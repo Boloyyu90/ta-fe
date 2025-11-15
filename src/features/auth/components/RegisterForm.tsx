@@ -1,48 +1,179 @@
+"use client";
+
 /**
- * REGISTRATION FORM COMPONENT
+ * REGISTER FORM COMPONENT
  *
- * PURPOSE:
- * - Render registration form with validation
- * - Submit to POST /auth/register
- * - Auto-login on success
- *
- * FORM FIELDS:
- * - Name (text input)
- * - Email (email input)
- * - Password (password input)
- * - Confirm Password (password input, client-side validation)
- * - Submit button
- * - Link to login page
- *
- * VALIDATION:
- * - Use registerSchema from schemas.ts
- * - Add confirmPassword field (client-only, not sent to backend)
- * - Password match validation
- *
- * IMPLEMENTATION:
- *
- * const registerWithConfirmSchema = registerSchema.extend({
- *   confirmPassword: z.string()
- * }).refine((data) => data.password === data.confirmPassword, {
- *   message: "Passwords don't match",
- *   path: ["confirmPassword"]
- * });
- *
- * export const RegisterForm = () => {
- *   const { mutate: register, isLoading, error } = useRegister();
- *
- *   const form = useForm({
- *     resolver: zodResolver(registerWithConfirmSchema)
- *   });
- *
- *   const onSubmit = ({ confirmPassword, ...data }) => {
- *     register(data); // Exclude confirmPassword from API call
- *   };
- *
- *   // Render form fields...
- * };
- *
- * ERROR HANDLING:
- * - 409 Conflict: "Email already registered"
- * - 400 Validation: Show specific field errors
+ * Form for new user registration
+ * Includes password confirmation field
  */
+
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { registerFormSchema, type RegisterFormInput } from "../schema";
+import { useRegister } from "../hooks";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/shared/components/ui/form";
+
+export const RegisterForm = () => {
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const { mutate: register, isPending } = useRegister();
+
+    const form = useForm<RegisterFormInput>({
+        resolver: zodResolver(registerFormSchema),
+        defaultValues: {
+            name: "",
+            email: "",
+            password: "",
+            confirmPassword: "",
+        },
+    });
+
+    const onSubmit = (data: RegisterFormInput) => {
+        // Exclude confirmPassword from API call
+        const { confirmPassword, ...registerData } = data;
+        register(registerData);
+    };
+
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Full Name</FormLabel>
+                            <FormControl>
+                                <Input
+                                    type="text"
+                                    placeholder="John Doe"
+                                    autoComplete="name"
+                                    disabled={isPending}
+                                    {...field}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                                <Input
+                                    type="email"
+                                    placeholder="you@example.com"
+                                    autoComplete="email"
+                                    disabled={isPending}
+                                    {...field}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                                <div className="relative">
+                                    <Input
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Create a strong password"
+                                        autoComplete="new-password"
+                                        disabled={isPending}
+                                        {...field}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4" />
+                                        ) : (
+                                            <Eye className="h-4 w-4" />
+                                        )}
+                                    </button>
+                                </div>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Confirm Password</FormLabel>
+                            <FormControl>
+                                <div className="relative">
+                                    <Input
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        placeholder="Confirm your password"
+                                        autoComplete="new-password"
+                                        disabled={isPending}
+                                        {...field}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowConfirmPassword(!showConfirmPassword)
+                                        }
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                        tabIndex={-1}
+                                    >
+                                        {showConfirmPassword ? (
+                                            <EyeOff className="h-4 w-4" />
+                                        ) : (
+                                            <Eye className="h-4 w-4" />
+                                        )}
+                                    </button>
+                                </div>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <Button type="submit" className="w-full" disabled={isPending}>
+                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Create account
+                </Button>
+
+                <p className="text-center text-sm text-muted-foreground">
+                    Already have an account?{" "}
+                    <Link
+                        href="/login"
+                        className="font-medium text-primary hover:underline"
+                    >
+                        Sign in
+                    </Link>
+                </p>
+            </form>
+        </Form>
+    );
+};

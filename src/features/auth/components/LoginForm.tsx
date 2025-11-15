@@ -1,53 +1,118 @@
+"use client";
+
 /**
  * LOGIN FORM COMPONENT
  *
- * PURPOSE:
- * - Render login form with validation
- * - Submit to POST /auth/login
- * - Handle errors and loading states
- *
- * FORM FIELDS:
- * - Email (text input, email type)
- * - Password (password input)
- * - Submit button
- * - Link to register page
- *
- * VALIDATION:
- * - Use loginSchema from schemas.ts
- * - React Hook Form + Zod resolver
- *
- * IMPLEMENTATION:
- *
- * import { useForm } from 'react-hook-form';
- * import { zodResolver } from '@hookform/resolvers/zod';
- * import { loginSchema } from '../schemas';
- * import { useLogin } from '../hooks';
- *
- * export const LoginForm = () => {
- *   const { mutate: login, isLoading, error } = useLogin();
- *
- *   const form = useForm({
- *     resolver: zodResolver(loginSchema),
- *     defaultValues: { email: '', password: '' }
- *   });
- *
- *   const onSubmit = (data) => {
- *     login(data);
- *   };
- *
- *   return (
- *     <form onSubmit={form.handleSubmit(onSubmit)}>
- *       // Email input with error display
- *       // Password input with error display
- *       // Submit button (disabled when loading)
- *       // Show error message if login fails
- *       // Link: "Don't have an account? Register"
- *     </form>
- *   );
- * };
- *
- * ERROR HANDLING:
- * - 401 Unauthorized: "Invalid email or password"
- * - 429 Too Many Requests: "Too many attempts, try again later"
- * - Network errors: "Connection failed, check your internet"
+ * Form for user authentication
+ * Uses React Hook Form + Zod for validation
  */
+
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { loginSchema, type LoginInput } from "../schema";
+import { useLogin } from "../hooks";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/shared/components/ui/form";
+
+export const LoginForm = () => {
+    const [showPassword, setShowPassword] = useState(false);
+    const { mutate: login, isPending } = useLogin();
+
+    const form = useForm<LoginInput>({
+        resolver: zodResolver(loginSchema),
+        defaultValues: {
+            email: "",
+            password: "",
+        },
+    });
+
+    const onSubmit = (data: LoginInput) => {
+        login(data);
+    };
+
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                                <Input
+                                    type="email"
+                                    placeholder="you@example.com"
+                                    autoComplete="email"
+                                    disabled={isPending}
+                                    {...field}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                                <div className="relative">
+                                    <Input
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Enter your password"
+                                        autoComplete="current-password"
+                                        disabled={isPending}
+                                        {...field}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4" />
+                                        ) : (
+                                            <Eye className="h-4 w-4" />
+                                        )}
+                                    </button>
+                                </div>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <Button type="submit" className="w-full" disabled={isPending}>
+                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Sign in
+                </Button>
+
+                <p className="text-center text-sm text-muted-foreground">
+                    Don't have an account?{" "}
+                    <Link
+                        href="/register"
+                        className="font-medium text-primary hover:underline"
+                    >
+                        Create one now
+                    </Link>
+                </p>
+            </form>
+        </Form>
+    );
+};

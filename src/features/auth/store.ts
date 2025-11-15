@@ -1,68 +1,73 @@
 /**
  * AUTH STATE STORE (Zustand)
  *
- * PURPOSE:
- * - Global state for authentication
- * - Persist tokens and user data
- * - Sync with localStorage
- *
- * STATE STRUCTURE:
- * {
- *   user: UserPublicData | null,
- *   accessToken: string | null,
- *   refreshToken: string | null,
- *   isAuthenticated: boolean,
- *   isLoading: boolean
- * }
- *
- * ACTIONS:
- * - setAuth(user, tokens) - Store user + tokens after login/register
- * - clearAuth() - Clear all auth data on logout
- * - updateUser(user) - Update user data after profile edit
- * - setLoading(boolean) - Manage loading state
- *
- * PERSISTENCE:
- * - Sync with localStorage for tokens
- * - Rehydrate state on app load
- * - Clear on logout or token expiry
- *
- * IMPLEMENTATION:
- *
- * import create from 'zustand';
- * import { persist } from 'zustand/middleware';
- *
- * interface AuthState {
- *   user: UserPublicData | null;
- *   accessToken: string | null;
- *   refreshToken: string | null;
- *   isAuthenticated: boolean;
- *   setAuth: (user: UserPublicData, tokens: TokensData) => void;
- *   clearAuth: () => void;
- *   updateUser: (user: UserPublicData) => void;
- * }
- *
- * export const useAuthStore = create<AuthState>()(
- *   persist(
- *     (set) => ({
- *       user: null,
- *       accessToken: null,
- *       refreshToken: null,
- *       isAuthenticated: false,
- *       setAuth: (user, tokens) => set({
- *         user,
- *         accessToken: tokens.accessToken,
- *         refreshToken: tokens.refreshToken,
- *         isAuthenticated: true
- *       }),
- *       clearAuth: () => set({
- *         user: null,
- *         accessToken: null,
- *         refreshToken: null,
- *         isAuthenticated: false
- *       }),
- *       updateUser: (user) => set({ user })
- *     }),
- *     { name: 'auth-storage' }
- *   )
- * );
+ * Global authentication state management
+ * Persists tokens and user data to localStorage
  */
+
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { User, TokensData } from "@/features/auth/types";
+
+interface AuthState {
+    user: User | null;
+    accessToken: string | null;
+    refreshToken: string | null;
+    isAuthenticated: boolean;
+    isLoading: boolean;
+
+    // Actions
+    setAuth: (user: User, tokens: TokensData) => void;
+    clearAuth: () => void;
+    updateUser: (user: User) => void;
+    setLoading: (loading: boolean) => void;
+}
+
+export const useAuthStore = create<AuthState>()(
+    persist(
+        (set) => ({
+            user: null,
+            accessToken: null,
+            refreshToken: null,
+            isAuthenticated: false,
+            isLoading: true,
+
+            setAuth: (user, tokens) =>
+                set({
+                    user,
+                    accessToken: tokens.accessToken,
+                    refreshToken: tokens.refreshToken,
+                    isAuthenticated: true,
+                    isLoading: false,
+                }),
+
+            clearAuth: () =>
+                set({
+                    user: null,
+                    accessToken: null,
+                    refreshToken: null,
+                    isAuthenticated: false,
+                    isLoading: false,
+                }),
+
+            updateUser: (user) =>
+                set({
+                    user,
+                }),
+
+            setLoading: (loading) =>
+                set({
+                    isLoading: loading,
+                }),
+        }),
+        {
+            name: "auth-storage",
+            partialize: (state) => ({
+                user: state.user,
+                accessToken: state.accessToken,
+                refreshToken: state.refreshToken,
+                isAuthenticated: state.isAuthenticated,
+            }),
+        }
+    )
+);
