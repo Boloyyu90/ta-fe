@@ -98,57 +98,13 @@
         @apply bg-background text-foreground;
     }
 
+    /* ✅ CRITICAL: This enables smooth scroll for navbar anchor links */
     html {
         scroll-behavior: smooth;
     }
-}
 
-@layer utilities {
-    /* Custom gradient utilities */
-    .gradient-primary {
-        background: linear-gradient(135deg, hsl(213, 50%, 40%) 0%, hsl(213, 50%, 30%) 100%);
-    }
-
-    .gradient-secondary {
-        background: linear-gradient(135deg, hsl(33, 85%, 61%) 0%, hsl(33, 85%, 50%) 100%);
-    }
-
-    .gradient-hero {
-        background: linear-gradient(135deg, hsl(213, 50%, 40%) 0%, hsl(33, 85%, 61%) 100%);
-    }
-
-    /* Text gradients */
-    .text-gradient-primary {
-        background: linear-gradient(135deg, hsl(213, 50%, 40%) 0%, hsl(213, 50%, 60%) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-
-    .text-gradient-secondary {
-        background: linear-gradient(135deg, hsl(33, 85%, 61%) 0%, hsl(33, 85%, 70%) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-
-    /* Shimmer effect for loading states */
-    .shimmer {
-        background: linear-gradient(
-                90deg,
-                transparent 0%,
-                rgba(255, 255, 255, 0.1) 50%,
-                transparent 100%
-        );
-        background-size: 200% 100%;
-    }
-
-    /* Smooth transitions */
-    .transition-smooth {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .transition-spring {
-        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    /* ✅ OPTIONAL: Add offset for fixed navbar to prevent content from hiding under it */
+    section {
+        scroll-margin-top: 80px; /* Adjust based on navbar height (h-16 = 64px + padding) */
     }
 }
