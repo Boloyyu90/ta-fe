@@ -22,34 +22,6 @@ import { Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function LoginPage() {
-    const router = useRouter();
-    const { isAuthenticated, isLoading, user } = useAuth();
-
-    // Redirect authenticated users to appropriate dashboard
-    useEffect(() => {
-        if (!isLoading && isAuthenticated && user) {
-            const redirectPath = user.role === "ADMIN" ? "/admin/dashboard" : "/dashboard";
-            router.push(redirectPath);
-        }
-    }, [isAuthenticated, isLoading, user, router]);
-
-    // Show loading state while checking authentication
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-muted/30">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Loading...</p>
-                </div>
-            </div>
-        );
-    }
-
-    // Don't render login form if user is authenticated (will redirect)
-    if (isAuthenticated) {
-        return null;
-    }
-
     return (
         <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
             <div className="w-full max-w-md">

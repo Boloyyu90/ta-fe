@@ -214,7 +214,9 @@ export const useInitAuth = () => {
     const query = useQuery({
         queryKey: ["initAuth"],
         queryFn: async () => {
+            // ✅ FIX: Skip API call if no token
             if (!accessToken) {
+                setLoading(false); // Mark as done immediately
                 return null;
             }
 
@@ -225,12 +227,12 @@ export const useInitAuth = () => {
                 throw error;
             }
         },
-        enabled: !!accessToken, // Only run if we have a token
-        retry: false, // Don't retry on failure
-        staleTime: Infinity, // Don't refetch automatically
+        enabled: !!accessToken, // ✅ Already correct - only run if token exists
+        retry: false,
+        staleTime: Infinity,
     });
 
-    // ✅ Handle success in useEffect instead of onSuccess callback
+    // Handle success
     useEffect(() => {
         if (query.isSuccess && query.data) {
             const tokens = {
@@ -241,21 +243,21 @@ export const useInitAuth = () => {
         }
     }, [query.isSuccess, query.data, setAuth]);
 
-    // ✅ Handle errors in useEffect
+    // Handle errors
     useEffect(() => {
         if (query.isError) {
             clearAuth();
         }
     }, [query.isError, clearAuth]);
 
-    // ✅ Handle settled state in useEffect instead of onSettled callback
+    // Handle loading state
     useEffect(() => {
         if (!query.isLoading) {
             setLoading(false);
         }
     }, [query.isLoading, setLoading]);
 
-    // ✅ Set loading to false if no token exists
+    // ✅ NEW: Immediately set loading false if no token
     useEffect(() => {
         if (!accessToken) {
             setLoading(false);

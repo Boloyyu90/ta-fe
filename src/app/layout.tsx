@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { AuthInitializer } from "@/features/auth/components/AuthInitializer";
+import { Providers } from "@/shared/lib/providers";
+import { Toaster } from "@/shared/components/ui/sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,11 +27,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <body>
+    <Providers>
+        {/* ✅ Initialize auth once at root level */}
+        <AuthInitializer />
         {children}
-      </body>
+        <Toaster />
+    </Providers>
+    </body>
     </html>
   );
 }
