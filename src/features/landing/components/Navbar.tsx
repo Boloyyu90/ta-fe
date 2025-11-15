@@ -36,7 +36,7 @@ export function Navbar() {
 
                     <div className="hidden md:flex items-center space-x-4">
                         <Button variant="ghost" size="sm" asChild>
-                            <Link href="/auth/login">Login</Link>
+                            <Link href="/login">Login</Link>
                         </Button>
                         <Button size="sm" className="bg-primary hover:bg-primary-700">
                             Book Demo
@@ -86,7 +86,7 @@ export function Navbar() {
                         </a>
                         <div className="pt-4 space-y-2">
                             <Button variant="outline" className="w-full" asChild>
-                                <Link href="/auth/login">Login</Link>
+                                <Link href="/login">Login</Link>
                             </Button>
                             <Button className="w-full bg-primary hover:bg-primary-700">
                                 Book Demo
