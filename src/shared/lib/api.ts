@@ -6,7 +6,7 @@
  */
 
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
-import { useAuthStore } from "@/features/auth/store";
+import { useAuthStore } from "@/features/auth/store/auth.store";
 
 // API base URL from environment variables
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1";

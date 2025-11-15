@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { AuthInitializer } from "@/features/auth/components/AuthInitializer";
+import { AuthInitializer } from "@/features/auth/lib/AuthInitializer";
 import { Providers } from "@/shared/lib/providers";
 import { Toaster } from "@/shared/components/ui/sonner";
 import "./globals.css";
@@ -29,7 +29,7 @@ export default function RootLayout({
     <html lang="en">
     <body>
     <Providers>
-        {/* ✅ Initialize auth once at root level */}
+        {/* Initialize auth once at root level */}
         <AuthInitializer />
         {children}
         <Toaster />

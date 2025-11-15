@@ -12,7 +12,7 @@ import type {
     AuthResponse,
     RefreshTokenResponse,
     MeResponse,
-} from "@/features/auth/types";
+} from "@/features/auth/types/auth.types";
 
 export const authApi = {
     /**

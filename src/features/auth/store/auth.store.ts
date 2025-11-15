@@ -7,7 +7,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { User, TokensData } from "@/features/auth/types";
+import type { User, TokensData } from "@/features/auth/types/auth.types";
 
 interface AuthState {
     user: User | null;

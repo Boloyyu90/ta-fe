@@ -12,8 +12,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { loginSchema, type LoginInput } from "../schema";
-import { useLogin } from "../hooks";
+import { loginSchema, type LoginInput } from "@/features/auth/schema/schemas";
+import { useLogin } from "@/features/auth/hooks";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
