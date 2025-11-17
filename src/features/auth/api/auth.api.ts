@@ -1,8 +1,6 @@
 /**
  * AUTH API CLIENT
- *
- * Type-safe API functions for authentication endpoints
- * Maps to backend /api/v1/auth endpoints
+ * Works with v3 unwrapped API client
  */
 
 import { apiClient } from "@/shared/lib/api";
@@ -17,21 +15,18 @@ import type {
 export const authApi = {
     /**
      * POST /auth/login
-     * Authenticate user with email and password
+     * Returns: AuthResponse (unwrapped by interceptor)
+     * Structure: { success, message, data: { user, tokens }, timestamp }
      */
     login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-        return apiClient.post("/auth/login", {
+        return apiClient.post<AuthResponse>("/auth/login", {
             email: credentials.email.toLowerCase(),
             password: credentials.password,
         });
     },
 
-    /**
-     * POST /auth/register
-     * Create new user account
-     */
     register: async (credentials: RegisterCredentials): Promise<AuthResponse> => {
-        return apiClient.post("/auth/register", {
+        return apiClient.post<AuthResponse>("/auth/register", {
             name: credentials.name,
             email: credentials.email.toLowerCase(),
             password: credentials.password,
@@ -39,27 +34,20 @@ export const authApi = {
         });
     },
 
-    /**
-     * POST /auth/refresh
-     * Refresh access token using refresh token
-     */
     refreshToken: async (refreshToken: string): Promise<RefreshTokenResponse> => {
-        return apiClient.post("/auth/refresh", { refreshToken });
+        return apiClient.post<RefreshTokenResponse>("/auth/refresh", { refreshToken });
     },
 
-    /**
-     * POST /auth/logout
-     * Invalidate refresh token and clear session
-     */
     logout: async (refreshToken: string): Promise<void> => {
-        await apiClient.post("/auth/logout", { refreshToken });
+        await apiClient.post<void>("/auth/logout", { refreshToken });
     },
 
     /**
      * GET /me
-     * Get current authenticated user profile
+     * Returns: MeResponse (unwrapped by interceptor)
+     * Structure: { success, message, data: { user }, timestamp }
      */
     getCurrentUser: async (): Promise<MeResponse> => {
-        return apiClient.get("/me");
+        return apiClient.get<MeResponse>("/me");
     },
 };

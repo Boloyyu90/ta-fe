@@ -1,95 +1,97 @@
-/**
- * SHARED API CLIENT
- *
- * Axios instance with request/response interceptors
- * Handles authentication tokens and automatic token refresh
- */
-
-import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import axios, {
+    AxiosInstance,
+    AxiosRequestConfig,
+    AxiosError,
+    InternalAxiosRequestConfig,
+    AxiosResponse,
+} from "axios";
 import { useAuthStore } from "@/features/auth/store/auth.store";
 
-// API base URL from environment variables
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1";
 
-// Create axios instance
-export const apiClient = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-        "Content-Type": "application/json",
-    },
-    withCredentials: true, // Include cookies for httpOnly tokens
-});
+// Interceptor unwraps AxiosResponse<T> → T
+type UnwrappedPromise<T> = Promise<T>;
 
-// Request interceptor - Add auth token to requests
-apiClient.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-        const accessToken = useAuthStore.getState().accessToken;
+class TypedApiClient {
+    private instance: AxiosInstance;
 
-        if (accessToken && config.headers) {
-            config.headers.Authorization = `Bearer ${accessToken}`;
-        }
+    constructor() {
+        this.instance = axios.create({
+            baseURL: API_BASE_URL,
+            headers: { "Content-Type": "application/json" },
+            withCredentials: true,
+        });
 
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
+        this.setupInterceptors();
     }
-);
 
-// Response interceptor - Handle token refresh and errors
-apiClient.interceptors.response.use(
-    (response) => {
-        // Unwrap data from response
-        return response.data;
-    },
-    async (error: AxiosError) => {
-        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    private setupInterceptors() {
+        this.instance.interceptors.request.use(
+            (config: InternalAxiosRequestConfig) => {
+                const token = useAuthStore.getState().accessToken;
+                if (token && config.headers) config.headers.Authorization = `Bearer ${token}`;
+                return config;
+            },
+            (error) => Promise.reject(error)
+        );
 
-        // If 401 Unauthorized and not already retrying, attempt token refresh
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
+        this.instance.interceptors.response.use(
+            <T>(response: AxiosResponse<T>): T => response.data, // unwrap
+            async (error: AxiosError) => {
+                const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-            try {
-                const refreshToken = useAuthStore.getState().refreshToken;
+                if (error.response?.status === 401 && !original._retry) {
+                    original._retry = true;
+                    try {
+                        const refreshToken = useAuthStore.getState().refreshToken;
+                        if (!refreshToken) throw new Error("Missing refresh token");
 
-                if (!refreshToken) {
-                    throw new Error("No refresh token available");
+                        const res = await axios.post(
+                            `${API_BASE_URL}/auth/refresh`,
+                            { refreshToken },
+                            { headers: { "Content-Type": "application/json" } }
+                        );
+
+                        const { tokens } = res.data.data;
+                        const user = useAuthStore.getState().user;
+                        if (user) useAuthStore.getState().setAuth(user, tokens);
+
+                        if (original.headers) {
+                            original.headers.Authorization = `Bearer ${tokens.accessToken}`;
+                        }
+
+                        return this.instance(original);
+                    } catch {
+                        useAuthStore.getState().clearAuth();
+                        if (typeof window !== "undefined") window.location.href = "/login";
+                        return Promise.reject(error);
+                    }
                 }
 
-                // Call refresh token endpoint
-                const response = await axios.post(
-                    `${API_BASE_URL}/auth/refresh`,
-                    { refreshToken },
-                    { headers: { "Content-Type": "application/json" } }
-                );
-
-                const { tokens } = response.data.data;
-
-                // Update tokens in store
-                const user = useAuthStore.getState().user;
-                if (user) {
-                    useAuthStore.getState().setAuth(user, tokens);
-                }
-
-                // Retry original request with new token
-                if (originalRequest.headers) {
-                    originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
-                }
-
-                return apiClient(originalRequest);
-            } catch (refreshError) {
-                // Refresh failed - clear auth and redirect to login
-                useAuthStore.getState().clearAuth();
-
-                // Only redirect if we're in the browser
-                if (typeof window !== "undefined") {
-                    window.location.href = "/login";
-                }
-
-                return Promise.reject(refreshError);
+                return Promise.reject(error);
             }
-        }
-
-        return Promise.reject(error);
+        );
     }
-);
+
+    async get<T = any>(url: string, config?: AxiosRequestConfig): UnwrappedPromise<T> {
+        return this.instance.get<T>(url, config) as UnwrappedPromise<T>;
+    }
+
+    async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): UnwrappedPromise<T> {
+        return this.instance.post<T>(url, data, config) as UnwrappedPromise<T>;
+    }
+
+    async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): UnwrappedPromise<T> {
+        return this.instance.patch<T>(url, data, config) as UnwrappedPromise<T>;
+    }
+
+    async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): UnwrappedPromise<T> {
+        return this.instance.put<T>(url, data, config) as UnwrappedPromise<T>;
+    }
+
+    async delete<T = any>(url: string, config?: AxiosRequestConfig): UnwrappedPromise<T> {
+        return this.instance.delete<T>(url, config) as UnwrappedPromise<T>;
+    }
+}
+
+export const apiClient = new TypedApiClient();
