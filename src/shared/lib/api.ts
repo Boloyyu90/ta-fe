@@ -25,6 +25,8 @@ class TypedApiClient {
         this.setupInterceptors();
     }
 
+    // src/shared/lib/api.ts
+
     private setupInterceptors() {
         this.instance.interceptors.request.use(
             (config: InternalAxiosRequestConfig) => {
@@ -36,16 +38,31 @@ class TypedApiClient {
         );
 
         this.instance.interceptors.response.use(
-            <T>(response: AxiosResponse<T>): T => response.data, // unwrap
+            <T>(response: AxiosResponse<T>): T => response.data,
             async (error: AxiosError) => {
                 const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+                // Check if this is an auth endpoint
+                const isAuthEndpoint = original.url?.includes('/auth/');
+
+                // DON'T retry token refresh for auth endpoints (login, register, refresh)
+                if (isAuthEndpoint) {
+                    return Promise.reject(error); // Let auth errors pass through to mutation error handler
+                }
+
+                // Only attempt token refresh for NON-AUTH 401 errors
                 if (error.response?.status === 401 && !original._retry) {
                     original._retry = true;
                     try {
                         const refreshToken = useAuthStore.getState().refreshToken;
-                        if (!refreshToken) throw new Error("Missing refresh token");
+                        if (!refreshToken) {
+                            // No refresh token available, clear auth and redirect
+                            useAuthStore.getState().clearAuth();
+                            if (typeof window !== "undefined") window.location.href = "/login";
+                            return Promise.reject(error);
+                        }
 
+                        // Attempt token refresh
                         const res = await axios.post(
                             `${API_BASE_URL}/auth/refresh`,
                             { refreshToken },
@@ -56,18 +73,21 @@ class TypedApiClient {
                         const user = useAuthStore.getState().user;
                         if (user) useAuthStore.getState().setAuth(user, tokens);
 
+                        // Retry original request with new token
                         if (original.headers) {
                             original.headers.Authorization = `Bearer ${tokens.accessToken}`;
                         }
 
                         return this.instance(original);
-                    } catch {
+                    } catch (refreshError) {
+                        // Refresh failed, clear auth and redirect
                         useAuthStore.getState().clearAuth();
                         if (typeof window !== "undefined") window.location.href = "/login";
                         return Promise.reject(error);
                     }
                 }
 
+                // All other errors pass through
                 return Promise.reject(error);
             }
         );
