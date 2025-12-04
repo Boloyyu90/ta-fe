@@ -1,10 +1,11 @@
 "use client";
 
 /**
- * LOGIN FORM COMPONENT
+ * LOGIN FORM COMPONENT - CORRECTED
  *
- * Form for user authentication
- * Uses React Hook Form + Zod for validation
+ * ✅ Uses refactored schemas (loginSchema, LoginFormData)
+ * ✅ Correct import paths
+ * ✅ Proper type annotations
  */
 
 import { useState } from "react";
@@ -12,7 +13,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { loginSchema, type LoginInput } from "@/features/auth/schema/schemas";
+import { loginSchema, type LoginFormData } from "@/features/auth/schemas/auth.schemas";
 import { useLogin } from "@/features/auth/hooks";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -29,7 +30,7 @@ export const LoginForm = () => {
     const [showPassword, setShowPassword] = useState(false);
     const { mutate: login, isPending } = useLogin();
 
-    const form = useForm<LoginInput>({
+    const form = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
         defaultValues: {
             email: "",
@@ -37,7 +38,7 @@ export const LoginForm = () => {
         },
     });
 
-    const onSubmit = (data: LoginInput) => {
+    const onSubmit = (data: LoginFormData) => {
         login(data);
     };
 

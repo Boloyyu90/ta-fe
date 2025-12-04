@@ -1,10 +1,12 @@
 "use client";
 
 /**
- * REGISTER FORM COMPONENT
+ * REGISTER FORM COMPONENT - CORRECTED
  *
- * Form for new user registration
- * Includes password confirmation field
+ * ✅ Uses refactored schemas (registerFormSchema, RegisterFormWithConfirmData)
+ * ✅ Correct import paths
+ * ✅ Strips confirmPassword before sending to API
+ * ✅ Proper type annotations
  */
 
 import { useState } from "react";
@@ -12,7 +14,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { registerFormSchema, type RegisterFormInput } from "@/features/auth/schema/schemas";
+import { registerFormSchema, type RegisterFormWithConfirmData } from "@/features/auth/schemas/auth.schemas";
 import { useRegister } from "@/features/auth/hooks";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -30,7 +32,7 @@ export const RegisterForm = () => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const { mutate: register, isPending } = useRegister();
 
-    const form = useForm<RegisterFormInput>({
+    const form = useForm<RegisterFormWithConfirmData>({
         resolver: zodResolver(registerFormSchema),
         defaultValues: {
             name: "",
@@ -40,8 +42,9 @@ export const RegisterForm = () => {
         },
     });
 
-    const onSubmit = (data: RegisterFormInput) => {
-        // Exclude confirmPassword from API call
+    const onSubmit = (data: RegisterFormWithConfirmData) => {
+        // ⚠️ IMPORTANT: Strip confirmPassword before sending to API
+        // Backend doesn't accept confirmPassword field
         const { confirmPassword, ...registerData } = data;
         register(registerData);
     };
@@ -119,6 +122,9 @@ export const RegisterForm = () => {
                                 </div>
                             </FormControl>
                             <FormMessage />
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Must be at least 8 characters with uppercase, lowercase, and number
+                            </p>
                         </FormItem>
                     )}
                 />

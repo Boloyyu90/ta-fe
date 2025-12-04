@@ -23,26 +23,18 @@ function AuthInit() {
         queryKey: ["initAuth"],
         queryFn: async () => {
             if (!accessToken) {
+                console.log("AuthInit: No token found, skipping verification");
                 setLoading(false);
                 return null;
             }
 
+            console.log("AuthInit: Verifying token...");
             try {
-                // ✅ With v3: TypeScript knows response is MeResponse
-                // No type assertion needed!
                 const response = await authApi.getCurrentUser();
-
-                // Response structure (unwrapped by interceptor):
-                // {
-                //   success: true,
-                //   message: "User retrieved successfully",
-                //   data: { user: {...} },
-                //   timestamp: "2024-11-16T..."
-                // }
-
-                // ✅ Access user via response.data.user
+                console.log("AuthInit: Token valid, user verified");
                 return response.data.user;
             } catch (error) {
+                console.error("AuthInit: Token verification failed", error);
                 throw error;
             }
         },
@@ -51,34 +43,38 @@ function AuthInit() {
         staleTime: Infinity,
     });
 
-    // Success handler
+    // ✅ Success: Set auth state (isAuthenticated = true)
     useEffect(() => {
         if (query.isSuccess && query.data) {
             const tokens = {
                 accessToken: useAuthStore.getState().accessToken!,
                 refreshToken: useAuthStore.getState().refreshToken!,
             };
+            console.log("AuthInit: Setting authenticated state");
             setAuth(query.data, tokens);
         }
     }, [query.isSuccess, query.data, setAuth]);
 
-    // Error handler
+    // ✅ Error: Clear invalid auth state
     useEffect(() => {
         if (query.isError) {
+            console.log("AuthInit: Clearing invalid auth state");
             clearAuth();
         }
     }, [query.isError, clearAuth]);
 
-    // Loading handler
+    // ✅ Loading complete: Allow UI to render
     useEffect(() => {
         if (!query.isLoading) {
+            console.log("AuthInit: Verification complete, loading = false");
             setLoading(false);
         }
     }, [query.isLoading, setLoading]);
 
-    // No token handler
+    // ✅ No token: Set loading false immediately
     useEffect(() => {
         if (!accessToken) {
+            console.log("AuthInit: No token, loading = false immediately");
             setLoading(false);
         }
     }, [accessToken, setLoading]);

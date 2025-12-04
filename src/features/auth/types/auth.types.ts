@@ -1,102 +1,226 @@
+// src/features/auth/types/auth.types.ts
+
 /**
- * AUTH TYPES - MODERN BEST PRACTICE
+ * AUTH TYPES - REFACTORED TO ALIGN WITH BACKEND
  *
- * ✅ Single source of truth for each response type
- * ✅ Types match backend responses exactly
- * ✅ No duplicate wrapped/unwrapped types needed
- * ✅ Generic types in API client handle the rest
+ * ✅ Uses shared enum types
+ * ✅ Matches backend response structure exactly
+ * ✅ Clear separation of request/response types
+ * ✅ Properly typed with ApiResponse wrapper
  */
 
-export type UserRole = "PARTICIPANT" | "ADMIN";
+import type { UserRole } from '@/shared/types/enum.types';
+import type { ApiResponse } from '@/shared/types/api.types';
 
+// ============================================================================
+// BASE USER ENTITY (matches backend User model)
+// ============================================================================
+
+/**
+ * User entity
+ * Matches backend Prisma User model (public fields only)
+ */
 export interface User {
     id: number;
     email: string;
     name: string;
     role: UserRole;
     isEmailVerified: boolean;
-    createdAt: string;
-    updatedAt: string;
+    createdAt: string; // ISO datetime string from backend
+    updatedAt: string; // ISO datetime string from backend
 }
 
+// ============================================================================
+// AUTHENTICATION TOKENS
+// ============================================================================
+
+/**
+ * Authentication tokens pair
+ * Returned by login, register, and refresh endpoints
+ */
 export interface TokensData {
     accessToken: string;
     refreshToken: string;
 }
 
-// ============================================
-// CREDENTIALS (Request types)
-// ============================================
+// ============================================================================
+// REQUEST TYPES (what we send to backend)
+// ============================================================================
 
-export interface LoginCredentials {
+/**
+ * Login request credentials
+ * POST /api/v1/auth/login
+ */
+export interface LoginRequest {
     email: string;
     password: string;
 }
 
-export interface RegisterCredentials {
+/**
+ * Register request credentials
+ * POST /api/v1/auth/register
+ */
+export interface RegisterRequest {
     name: string;
     email: string;
     password: string;
-    role?: UserRole;
+    role?: UserRole; // Optional, defaults to PARTICIPANT on backend
 }
 
-// ============================================
-// API RESPONSES (What backend returns after interceptor unwraps)
-// ============================================
+/**
+ * Refresh token request
+ * POST /api/v1/auth/refresh
+ */
+export interface RefreshTokenRequest {
+    refreshToken: string;
+}
 
 /**
+ * Logout request
+ * POST /api/v1/auth/logout
+ */
+export interface LogoutRequest {
+    refreshToken: string;
+}
+
+// ============================================================================
+// RESPONSE PAYLOAD TYPES (the 'data' field content)
+// ============================================================================
+
+/**
+ * Auth response payload (login/register)
+ * This is what's inside the 'data' field
+ */
+export interface AuthPayload {
+    user: User;
+    tokens: TokensData;
+}
+
+/**
+ * Refresh token response payload
+ * This is what's inside the 'data' field
+ */
+export interface RefreshTokenPayload {
+    tokens: TokensData;
+}
+
+/**
+ * Current user response payload (GET /me)
+ * This is what's inside the 'data' field
+ */
+export interface MePayload {
+    user: User;
+}
+
+/**
+ * Logout response payload
+ * This is what's inside the 'data' field
+ */
+export interface LogoutPayload {
+    success: boolean;
+}
+
+// ============================================================================
+// COMPLETE API RESPONSE TYPES (what backend actually returns)
+// ============================================================================
+
+/**
+ * Complete login/register response
+ * POST /api/v1/auth/login
+ * POST /api/v1/auth/register
+ *
  * Backend returns:
  * {
  *   success: true,
  *   message: "Login successful",
  *   data: { user: {...}, tokens: {...} },
- *   timestamp: "2024-..."
+ *   timestamp: "2025-..."
  * }
+ */
+export type AuthResponse = ApiResponse<AuthPayload>;
+
+/**
+ * Complete refresh token response
+ * POST /api/v1/auth/refresh
  *
- * After interceptor unwraps (strips axios wrapper), we get the full object above.
- * TypeScript needs to know this structure.
+ * Backend returns:
+ * {
+ *   success: true,
+ *   message: "Token refreshed successfully",
+ *   data: { tokens: {...} },
+ *   timestamp: "2025-..."
+ * }
  */
-export interface AuthResponse {
-    success: boolean;
-    message: string;
-    data: {
-        user: User;
-        tokens: TokensData;
-    };
-    timestamp: string;
+export type RefreshTokenResponse = ApiResponse<RefreshTokenPayload>;
+
+/**
+ * Complete get current user response
+ * GET /api/v1/me
+ *
+ * Backend returns:
+ * {
+ *   success: true,
+ *   message: "Profile retrieved successfully",
+ *   data: { user: {...} },
+ *   timestamp: "2025-..."
+ * }
+ */
+export type MeResponse = ApiResponse<MePayload>;
+
+/**
+ * Complete logout response
+ * POST /api/v1/auth/logout
+ *
+ * Backend returns:
+ * {
+ *   success: true,
+ *   message: "Logout successful",
+ *   data: { success: true },
+ *   timestamp: "2025-..."
+ * }
+ */
+export type LogoutResponse = ApiResponse<LogoutPayload>;
+
+// ============================================================================
+// ZUSTAND STORE TYPES
+// ============================================================================
+
+/**
+ * Auth state stored in Zustand
+ */
+export interface AuthState {
+    user: User | null;
+    accessToken: string | null;
+    refreshToken: string | null;
+    isAuthenticated: boolean;
+    isLoading: boolean;
 }
 
 /**
- * GET /me response
+ * Auth store actions
  */
-export interface MeResponse {
-    success: boolean;
-    message: string;
-    data: {
-        user: User;
-    };
-    timestamp: string;
+export interface AuthActions {
+    setAuth: (user: User, tokens: TokensData) => void;
+    updateUser: (user: Partial<User>) => void;
+    clearAuth: () => void;
+    setLoading: (loading: boolean) => void;
 }
 
 /**
- * POST /auth/refresh response
+ * Complete auth store type
  */
-export interface RefreshTokenResponse {
-    success: boolean;
-    message: string;
-    data: {
-        tokens: TokensData;
-    };
-    timestamp: string;
-}
+export type AuthStore = AuthState & AuthActions;
+
+// ============================================================================
+// BACKWARD COMPATIBILITY ALIASES (optional - for gradual migration)
+// ============================================================================
 
 /**
- * Generic API response wrapper
- * Use when you need a flexible type
+ * @deprecated Use LoginRequest instead
  */
-export interface ApiResponse<T = any> {
-    success: boolean;
-    message: string;
-    data: T;
-    timestamp: string;
-}
+export type LoginCredentials = LoginRequest;
+
+/**
+ * @deprecated Use RegisterRequest instead
+ */
+export type RegisterCredentials = RegisterRequest;

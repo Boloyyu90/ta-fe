@@ -1,216 +1,172 @@
 // src/features/exam-sessions/types/exam-sessions.types.ts
 
 // ============================================================================
-// ENUMS (from backend)
+// EXISTING TYPES (from Part 2)
 // ============================================================================
+export type QuestionType = 'TIU' | 'TWK' | 'TKP';
+export type ExamStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
-export type ExamStatus = 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED' | 'TIMEOUT';
-export type QuestionType = 'TIU' | 'TKP' | 'TWK';
-
-// ============================================================================
-// BASE ENTITIES
-// ============================================================================
-
-export interface UserExam {
-    id: number; // UserExam session ID
-    userId: number;
-    examId: number;
-    startedAt: string | null; // ISO datetime
-    submittedAt: string | null; // ISO datetime
-    totalScore: number | null;
-    status: ExamStatus;
-    createdAt: string; // ISO datetime
-}
-
-export interface UserExamWithRelations extends UserExam {
-    exam: {
-        id: number;
-        title: string;
-        description: string | null;
-        durationMinutes: number;
-        _count?: {
-            examQuestions: number;
-        };
-    };
-    user?: {
-        id: number;
-        name: string;
-        email: string;
-    };
-    _count?: {
-        answers: number;
-    };
+export interface Question {
+    id: number;
+    questionId: number;
+    content: string;
+    type: QuestionType;
+    optionA: string;
+    optionB: string;
+    optionC: string;
+    optionD: string;
+    optionE: string;
+    correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
+    score: number;
 }
 
 export interface ExamQuestion {
-    id: number; // Question ID
-    examQuestionId: number; // ExamQuestion junction ID
-    content: string;
-    options: {
-        A: string;
-        B: string;
-        C: string;
-        D: string;
-        E: string;
-    };
-    questionType: QuestionType;
-    orderNumber: number;
-    correctAnswer?: string; // Only included after submission for review
+    id: number;
+    examId: number;
+    questionId: number;
+    order: number;
+    question: Question;
 }
 
-export interface Answer {
-    examQuestionId: number;
-    selectedOption: string | null; // "A" | "B" | "C" | "D" | "E" | null
-    answeredAt: string | null; // ISO datetime
-    isCorrect?: boolean | null; // Only included after submission
-}
-
-export interface AnswerWithQuestion extends Answer {
-    questionContent: string;
-    questionType: QuestionType;
-    options: {
-        A: string;
-        B: string;
-        C: string;
-        D: string;
-        E: string;
-    };
-    correctAnswer: string; // Only included after submission
-    score: number;
-}
-
-export interface ScoreByType {
-    type: QuestionType;
-    score: number;
-    maxScore: number;
-    correctAnswers: number;
-    totalQuestions: number;
-}
-
-export interface ExamResult extends UserExam {
-    exam: {
-        id: number;
-        title: string;
-        description: string | null;
-    };
-    user: {
-        id: number;
-        name: string;
-        email: string;
-    };
-    duration: number | null; // Duration in seconds
-    answeredQuestions: number;
-    totalQuestions: number;
-    scoresByType: ScoreByType[];
-}
-
-// ============================================================================
-// API REQUEST TYPES
-// ============================================================================
-
-export interface SubmitAnswerRequest {
-    examQuestionId: number;
-    selectedOption?: string | null; // "A" | "B" | "C" | "D" | "E" or null to clear
-}
-
-// ============================================================================
-// API RESPONSE TYPES
-// ============================================================================
-
-export interface StartExamResponse {
-    userExam: {
-        id: number; // UserExam session ID
-        examId: number;
-        examTitle: string;
-        durationMinutes: number;
-        startedAt: string; // ISO datetime
-        submittedAt: string | null;
-        status: ExamStatus;
-        remainingTimeMs: number | null; // Milliseconds remaining
-        totalQuestions: number;
-        answeredQuestions: number;
-    };
-    questions: ExamQuestion[];
-    answers: Answer[];
-}
-
-export interface UserExamsListResponse {
-    data: Array<{
-        id: number;
-        exam: {
-            id: number;
-            title: string;
-            description: string | null;
-        };
-        status: ExamStatus;
-        startedAt: string | null;
-        submittedAt: string | null;
-        totalScore: number | null;
-        remainingTimeMs: number | null; // Only for IN_PROGRESS
-        durationMinutes: number | null;
-    }>;
-    pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-        hasNext: boolean;
-        hasPrev: boolean;
+export interface Exam {
+    id: number;
+    title: string;
+    description: string | null;
+    durationMinutes: number;
+    startTime: string | null;
+    endTime: string | null;
+    createdAt: string;
+    updatedAt: string;
+    _count?: {
+        examQuestions: number;
     };
 }
 
-export interface ExamSessionDetailResponse {
-    userExam: UserExamWithRelations;
+export interface UserExam {
+    id: number;
+    userId: number;
+    examId: number;
+    status: ExamStatus;
+    startedAt: string;
+    completedAt: string | null;
+    totalScore: number | null;
+    totalQuestions: number | null;
+    correctAnswers: number | null;
+    createdAt: string;
+    updatedAt: string;
+    exam: Exam;
+}
+
+export interface ExamSessionResponse {
+    userExam: UserExam;
 }
 
 export interface ExamQuestionsResponse {
-    questions: ExamQuestion[];
-    total: number;
+    examQuestions: ExamQuestion[];
+}
+
+export interface SubmitAnswerRequest {
+    examQuestionId: number;
+    selectedOption: 'A' | 'B' | 'C' | 'D' | 'E';
 }
 
 export interface SubmitAnswerResponse {
-    answer: Answer;
-    progress: {
-        answered: number;
-        total: number;
-        percentage: number; // 0-100
+    message: string;
+    answer: {
+        id: number;
+        userExamId: number;
+        examQuestionId: number;
+        selectedOption: string;
+        isCorrect: boolean;
+        score: number;
     };
 }
 
 export interface SubmitExamResponse {
-    result: ExamResult;
+    message: string;
+    userExam: UserExam;
+}
+
+// ============================================================================
+// NEW TYPES FOR PART 3
+// ============================================================================
+
+// For Answer Review Page
+export interface AnswerWithQuestion {
+    id: number;
+    userExamId: number;
+    examQuestionId: number;
+    selectedOption: 'A' | 'B' | 'C' | 'D' | 'E' | null;
+    isCorrect: boolean | null;
+    score: number;
+    createdAt: string;
+    updatedAt: string;
+    // Populated question data
+    questionType: QuestionType;
+    questionContent: string;
+    options: {
+        A: string;
+        B: string;
+        C: string;
+        D: string;
+        E: string;
+    };
+    correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
 }
 
 export interface ExamAnswersResponse {
     answers: AnswerWithQuestion[];
-    total: number;
 }
 
-export interface ResultsListResponse {
-    data: ExamResult[];
-    pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-        hasNext: boolean;
-        hasPrev: boolean;
+// For Results List Page
+export interface ExamSessionListItem {
+    id: number;
+    userId: number;
+    examId: number;
+    status: ExamStatus;
+    startedAt: string;
+    completedAt: string | null;
+    totalScore: number | null;
+    totalQuestions: number | null;
+    correctAnswers: number | null;
+    createdAt: string;
+    updatedAt: string;
+    exam: {
+        id: number;
+        title: string;
+        durationMinutes: number;
     };
 }
 
-// ============================================================================
-// QUERY PARAMS TYPES
-// ============================================================================
-
-export interface UserExamsQueryParams {
-    page?: number;
-    limit?: number;
+export interface PaginationMeta {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
 }
 
-export interface ResultsQueryParams {
+export interface MyResultsResponse {
+    userExams: ExamSessionListItem[];
+    pagination: PaginationMeta;
+}
+
+// For Result Detail Page (reuses UserExam but with expanded relations)
+export interface ExamSessionDetail extends UserExam {
+    // Already has exam relation from UserExam
+    user?: {
+        id: number;
+        username: string;
+        fullName: string;
+    };
+}
+
+export interface ExamSessionDetailResponse {
+    userExam: ExamSessionDetail;
+}
+
+// Query parameters
+export interface MyResultsParams {
     page?: number;
     limit?: number;
-    examId?: number; // Admin only
-    userId?: number; // Admin only
-    status?: ExamStatus; // Admin only
+    status?: 'COMPLETED' | 'CANCELLED';
 }

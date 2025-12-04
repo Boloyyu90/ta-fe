@@ -1,72 +1,91 @@
-"use client";
+// src/features/auth/hooks/useLogin.ts
 
 /**
- * LOGIN HOOK - MODERN BEST PRACTICE
+ * USE LOGIN HOOK - FIXED
  *
- * ✅ Uses typed API client
+ * ✅ Works with unwrapped API responses (just payload)
  * ✅ Proper error handling
- * ✅ Clean side effects
+ * ✅ Role-based navigation
  */
 
-import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useAuthStore } from "@/features/auth/store/auth.store";
-import { authApi } from "@/features/auth/api/auth.api";
-import type { LoginCredentials } from "@/features/auth/types/auth.types";
-import { toast } from "sonner";
+'use client';
+
+import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { useAuthStore } from '@/features/auth/store/auth.store';
+import { authApi } from '@/features/auth/api/auth.api';
+import type { LoginRequest } from '@/features/auth/types/auth.types';
+
+/**
+ * Extract error message from various error types
+ */
+const extractErrorMessage = (error: any): string => {
+    // Axios error with backend response
+    if (error.response?.data?.message) {
+        return error.response.data.message;
+    }
+
+    // Axios error without backend response
+    if (error.request) {
+        return 'Network error. Please check your connection.';
+    }
+
+    // Generic error
+    if (error.message) {
+        return error.message;
+    }
+
+    return 'An unexpected error occurred.';
+};
 
 /**
  * Hook to handle user login
  *
+ * @returns Mutation object with login function and states
+ *
  * @example
  * const { mutate: login, isPending } = useLogin();
- * login({ email: "test@test.com", password: "password" });
+ * login({ email: 'user@example.com', password: 'Password123' });
  */
 export const useLogin = () => {
     const router = useRouter();
     const setAuth = useAuthStore((state) => state.setAuth);
 
-    const mutation = useMutation({
-        mutationFn: (credentials: LoginCredentials) => authApi.login(credentials),
-    });
+    return useMutation({
+        mutationFn: (credentials: LoginRequest) => authApi.login(credentials),
 
-    // Handle success
-    useEffect(() => {
-        if (mutation.isSuccess && mutation.data) {
-            // mutation.data is typed as AuthResponse
-            // Structure: { success, message, data: { user, tokens }, timestamp }
+        onSuccess: (payload) => {
+            // payload is AuthPayload = { user, tokens }
+            const { user, tokens } = payload;
 
-            const { user, tokens } = mutation.data.data;
-
-            // Store auth state
+            // Store auth state in Zustand + localStorage
             setAuth(user, tokens);
 
-            // Show success message
-            toast.success("Login successful!", {
+            // Show success toast
+            toast.success('Login successful!', {
                 description: `Welcome back, ${user.name}!`,
             });
 
-            // Redirect based on role
-            const redirectPath = user.role === "ADMIN" ? "/admin/dashboard" : "/dashboard";
+            // Navigate based on role
+            const redirectPath = user.role === 'ADMIN'
+                ? '/admin/dashboard'
+                : '/dashboard';
+
             router.push(redirectPath);
-        }
-    }, [mutation.isSuccess, mutation.data, setAuth, router]);
+        },
 
-    // Handle errors
-    useEffect(() => {
-        if (mutation.isError) {
-            const error: any = mutation.error;
-            const errorMessage =
-                error.response?.data?.message ||
-                error.message ||
-                "Invalid email or password.";
+        onError: (error: any) => {
+            // Extract user-friendly error message
+            const message = extractErrorMessage(error);
 
-            toast.error("Login Failed", {
-                description: errorMessage,
+            // Show error toast
+            toast.error('Login Failed', {
+                description: message,
+                duration: 5000,
             });
-        }
-    }, [mutation.isError, mutation.error]);
 
-    return mutation;
+            console.error('Login error:', error);
+        },
+    });
 };

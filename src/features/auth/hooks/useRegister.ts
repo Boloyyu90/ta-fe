@@ -1,72 +1,95 @@
-"use client";
+// src/features/auth/hooks/useRegister.ts
 
 /**
- * REGISTER HOOK - MODERN BEST PRACTICE
+ * USE REGISTER HOOK - FIXED
  *
- * ✅ Uses typed API client
+ * ✅ Works with unwrapped API responses (just payload)
  * ✅ Auto-login after registration
- * ✅ Proper error handling
+ * ✅ Role-based navigation
  */
 
-import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useAuthStore } from "@/features/auth/store/auth.store";
-import { authApi } from "@/features/auth/api/auth.api";
-import type { RegisterCredentials } from "@/features/auth/types/auth.types";
-import { toast } from "sonner";
+'use client';
+
+import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { useAuthStore } from '@/features/auth/store/auth.store';
+import { authApi } from '@/features/auth/api/auth.api';
+import type { RegisterRequest } from '@/features/auth/types/auth.types';
+
+/**
+ * Extract error message from various error types
+ */
+const extractErrorMessage = (error: any): string => {
+    // Axios error with backend response
+    if (error.response?.data?.message) {
+        return error.response.data.message;
+    }
+
+    // Axios error without backend response
+    if (error.request) {
+        return 'Network error. Please check your connection.';
+    }
+
+    // Generic error
+    if (error.message) {
+        return error.message;
+    }
+
+    return 'An unexpected error occurred.';
+};
 
 /**
  * Hook to handle user registration
  *
+ * @returns Mutation object with register function and states
+ *
  * @example
  * const { mutate: register, isPending } = useRegister();
- * register({ name: "John", email: "test@test.com", password: "password" });
+ * register({
+ *   name: 'John Doe',
+ *   email: 'john@example.com',
+ *   password: 'Password123',
+ * });
  */
 export const useRegister = () => {
     const router = useRouter();
     const setAuth = useAuthStore((state) => state.setAuth);
 
-    const mutation = useMutation({
-        mutationFn: (credentials: RegisterCredentials) => authApi.register(credentials),
-    });
+    return useMutation({
+        mutationFn: (credentials: RegisterRequest) => authApi.register(credentials),
 
-    // Handle success
-    useEffect(() => {
-        if (mutation.isSuccess && mutation.data) {
-            // mutation.data is typed as AuthResponse
-            // Structure: { success, message, data: { user, tokens }, timestamp }
+        onSuccess: (payload) => {
+            // payload is AuthPayload = { user, tokens }
+            const { user, tokens } = payload;
 
-            const { user, tokens } = mutation.data.data;
-
-            // Store auth state
+            // Store auth state in Zustand + localStorage (auto-login)
             setAuth(user, tokens);
 
-            // Show success message
-            toast.success("Account created successfully!", {
+            // Show success toast
+            toast.success('Account created successfully!', {
                 description: `Welcome, ${user.name}!`,
             });
 
-            // Redirect based on role
-            const redirectPath = user.role === "ADMIN" ? "/admin/dashboard" : "/dashboard";
+            // Navigate based on role
+            const redirectPath = user.role === 'ADMIN'
+                ? '/admin/dashboard'
+                : '/dashboard';
+
             router.push(redirectPath);
-        }
-    }, [mutation.isSuccess, mutation.data, setAuth, router]);
+        },
 
-    // Handle errors
-    useEffect(() => {
-        if (mutation.isError) {
-            const error: any = mutation.error;
-            const errorMessage =
-                error.response?.data?.message ||
-                error.message ||
-                "Registration failed. Please try again.";
+        onError: (error: any) => {
+            // Extract user-friendly error message
+            const message = extractErrorMessage(error);
 
-            toast.error("Registration Failed", {
-                description: errorMessage,
+            // Show error toast
+            toast.error('Registration Failed', {
+                description: message,
+                duration: 5000,
             });
-        }
-    }, [mutation.isError, mutation.error]);
 
-    return mutation;
+            console.error('Registration error:', error);
+        },
+    });
 };

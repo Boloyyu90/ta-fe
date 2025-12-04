@@ -1,57 +1,29 @@
 "use client";
 
 /**
- * REGISTRATION PAGE
+ * REGISTRATION PAGE - CORRECTED
+ *
+ * ✅ Removed redundant redirect logic (handled by auth layout)
+ * ✅ Cleaner, focused on displaying the form
+ * ✅ Auth layout handles all authentication checks
  *
  * PURPOSE:
  * - Public page for new user registration
  * - Displays RegisterForm component
- * - Auto-login after successful registration
- * - Redirects authenticated users to dashboard
+ * - Layout handles authenticated user redirects
  *
  * BACKEND INTEGRATION:
  * - Maps to: POST /api/v1/auth/register
  * - Creates account with PARTICIPANT role by default
- * - Returns tokens immediately (no email verification required in MVP)
+ * - Returns tokens immediately (auto-login)
  */
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { RegisterForm } from "@/features/auth/components/RegisterForm";
-import { useAuth } from "@/features/auth/hooks";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { Loader2, Shield, BookOpen, Trophy } from "lucide-react";
+import { Shield, BookOpen, Trophy } from "lucide-react";
 import Link from "next/link";
 
 export default function RegisterPage() {
-    const router = useRouter();
-    const { isAuthenticated, isLoading, user } = useAuth();
-
-    // Redirect authenticated users to appropriate dashboard
-    useEffect(() => {
-        if (!isLoading && isAuthenticated && user) {
-            const redirectPath = user.role === "ADMIN" ? "/admin/dashboard" : "/dashboard";
-            router.push(redirectPath);
-        }
-    }, [isAuthenticated, isLoading, user, router]);
-
-    // Show loading state while checking authentication
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-muted/30">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Loading...</p>
-                </div>
-            </div>
-        );
-    }
-
-    // Don't render register form if user is authenticated (will redirect)
-    if (isAuthenticated) {
-        return null;
-    }
-
     return (
         <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
             <div className="w-full max-w-4xl">

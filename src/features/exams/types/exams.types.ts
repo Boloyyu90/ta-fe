@@ -1,148 +1,78 @@
 // src/features/exams/types/exams.types.ts
 
 // ============================================================================
-// ENUMS (from backend)
+// EXISTING TYPES
 // ============================================================================
-
-export type QuestionType = 'TIU' | 'TKP' | 'TWK';
-
-// ============================================================================
-// BASE ENTITIES
-// ============================================================================
-
 export interface Exam {
     id: number;
     title: string;
     description: string | null;
-    startTime: string | null; // ISO datetime
-    endTime: string | null; // ISO datetime
     durationMinutes: number;
-    createdBy: number;
-    createdAt: string; // ISO datetime
-    updatedAt: string; // ISO datetime
-}
-
-export interface ExamWithCounts extends Exam {
-    _count: {
+    startTime: string | null;
+    endTime: string | null;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+    _count?: {
         examQuestions: number;
-        userExams?: number;
     };
 }
 
-export interface ExamWithCreator extends ExamWithCounts {
-    creator: {
-        id: number;
-        name: string;
-        email: string;
-    };
-}
-
-export interface ExamQuestion {
-    id: number; // ExamQuestion ID (junction table)
-    orderNumber: number;
-    question: {
-        id: number; // Question ID
-        content: string;
-        questionType: QuestionType;
-        defaultScore: number;
-        options: {
-            A: string;
-            B: string;
-            C: string;
-            D: string;
-            E: string;
-        };
-        correctAnswer: string; // Only included for admin
-    };
-}
-
-// ============================================================================
-// API REQUEST TYPES
-// ============================================================================
-
-export interface CreateExamRequest {
-    title: string;
-    description?: string;
-    startTime?: string; // ISO datetime
-    endTime?: string; // ISO datetime
-    durationMinutes: number;
-}
-
-export interface UpdateExamRequest {
-    title?: string;
-    description?: string | null;
-    startTime?: string | null;
-    endTime?: string | null;
-    durationMinutes?: number;
-}
-
-export interface AttachQuestionsRequest {
-    questionIds: number[];
-}
-
-export interface DetachQuestionsRequest {
-    questionIds: number[];
-}
-
-// ============================================================================
-// API RESPONSE TYPES
-// ============================================================================
-
-export interface ExamsListResponse {
-    data: ExamWithCounts[];
+export interface ExamsResponse {
+    exams: Exam[];
     pagination: {
-        page: number;
-        limit: number;
-        total: number;
+        currentPage: number;
         totalPages: number;
-        hasNext: boolean;
-        hasPrev: boolean;
+        totalItems: number;
+        itemsPerPage: number;
     };
 }
-
-export interface ExamDetailResponse {
-    exam: ExamWithCreator;
-}
-
-export interface CreateExamResponse {
-    exam: ExamWithCreator;
-}
-
-export interface UpdateExamResponse {
-    exam: ExamWithCreator;
-}
-
-export interface DeleteExamResponse {
-    success: boolean;
-}
-
-export interface AttachQuestionsResponse {
-    attached: number;
-    alreadyAttached: number;
-}
-
-export interface DetachQuestionsResponse {
-    detached: number;
-}
-
-export interface ExamQuestionsResponse {
-    questions: ExamQuestion[];
-    total: number;
-}
-
-// ============================================================================
-// QUERY PARAMS TYPES
-// ============================================================================
 
 export interface ExamsQueryParams {
     page?: number;
     limit?: number;
     search?: string;
-    sortBy?: 'createdAt' | 'startTime' | 'title';
-    sortOrder?: 'asc' | 'desc';
-    createdBy?: number; // Admin only
+    isActive?: boolean;
 }
 
-export interface ExamQuestionsQueryParams {
-    type?: QuestionType;
+// ============================================================================
+// NEW TYPES FOR PART 3
+// ============================================================================
+
+// For Exam Detail Page
+export interface ExamDetail {
+    id: number;
+    title: string;
+    description: string | null;
+    durationMinutes: number;
+    startTime: string | null;
+    endTime: string | null;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+    _count: {
+        examQuestions: number;
+    };
+}
+
+export interface ExamDetailResponse {
+    exam: ExamDetail;
+}
+
+// For Start Exam Response
+export interface StartExamResponse {
+    message: string;
+    userExam: {
+        id: number;
+        userId: number;
+        examId: number;
+        status: 'IN_PROGRESS';
+        startedAt: string;
+        completedAt: null;
+        totalScore: null;
+        totalQuestions: number;
+        correctAnswers: null;
+        createdAt: string;
+        updatedAt: string;
+    };
 }
