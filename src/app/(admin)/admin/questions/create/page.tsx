@@ -8,11 +8,38 @@ import { useCreateQuestion } from '@/features/questions/hooks';
 import { QuestionForm } from '@/features/questions/components';
 import type { CreateQuestionRequest } from '@/features/questions/types/questions.types';
 
+// Type for the form data (flat structure used by QuestionForm)
+type QuestionFormData = {
+    content: string;
+    optionA: string;
+    optionB: string;
+    optionC: string;
+    optionD: string;
+    optionE: string;
+    correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
+    questionType: 'TIU' | 'TWK' | 'TKP';
+    defaultScore: number;
+};
+
 export default function CreateQuestionPage() {
     const { mutate: createQuestion, isPending } = useCreateQuestion();
 
-    const handleSubmit = (data: CreateQuestionRequest) => {
-        createQuestion(data);
+    const handleSubmit = (formData: QuestionFormData) => {
+        // Transform flat form data to nested API request structure
+        const requestData: CreateQuestionRequest = {
+            content: formData.content,
+            options: {
+                A: formData.optionA,
+                B: formData.optionB,
+                C: formData.optionC,
+                D: formData.optionD,
+                E: formData.optionE,
+            },
+            correctAnswer: formData.correctAnswer,
+            questionType: formData.questionType,
+            defaultScore: formData.defaultScore,
+        };
+        createQuestion(requestData);
     };
 
     return (
@@ -42,8 +69,8 @@ export default function CreateQuestionPage() {
                     <CardContent>
                         <QuestionForm
                             onSubmit={handleSubmit}
-                            isSubmitting={isPending}
-                            mode="create"
+                            isLoading={isPending}
+                            submitLabel="Create Question"
                         />
                     </CardContent>
                 </Card>

@@ -2,54 +2,21 @@
 
 import { use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, Edit, BookOpen } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
-import { useQuestion, useUpdateQuestion } from '@/features/questions/hooks';
-import { QuestionForm } from '@/features/questions/components';
-import type { UpdateQuestionRequest } from '@/features/questions/types/questions.types';
+import { Badge } from '@/shared/components/ui/badge';
+import { useQuestion } from '@/features/questions/hooks';
 
 interface PageProps {
     params: Promise<{ id: string }>;
 }
 
-// Type for the form data (flat structure)
-type QuestionFormData = {
-    content: string;
-    optionA: string;
-    optionB: string;
-    optionC: string;
-    optionD: string;
-    optionE: string;
-    correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
-    questionType: 'TIU' | 'TWK' | 'TKP';
-    defaultScore: number;
-};
-
-export default function EditQuestionPage({ params }: PageProps) {
+export default function QuestionDetailPage({ params }: PageProps) {
     const { id } = use(params);
     const { data, isLoading, error } = useQuestion(id);
-    const { mutate: updateQuestion, isPending } = useUpdateQuestion(id);
 
     const question = data?.data;
-
-    const handleSubmit = (formData: QuestionFormData) => {
-        // Transform flat form data to nested API request structure
-        const requestData: UpdateQuestionRequest = {
-            content: formData.content,
-            options: {
-                optionA: formData.optionA,
-                optionB: formData.optionB,
-                optionC: formData.optionC,
-                optionD: formData.optionD,
-                optionE: formData.optionE,
-            },
-            correctAnswer: formData.correctAnswer,
-            questionType: formData.questionType,
-            defaultScore: formData.defaultScore,
-        };
-        updateQuestion(requestData);
-    };
 
     // Loading state
     if (isLoading) {
@@ -81,50 +48,218 @@ export default function EditQuestionPage({ params }: PageProps) {
         );
     }
 
-    // Transform nested question data to flat structure for form
-    const defaultValues = {
-        content: question.content,
-        optionA: question.options.optionA,
-        optionB: question.options.optionB,
-        optionC: question.options.optionC,
-        optionD: question.options.optionD,
-        optionE: question.options.optionE,
-        correctAnswer: question.correctAnswer,
-        questionType: question.questionType,
-        defaultScore: question.defaultScore,
-    };
-
     return (
         <div className="min-h-screen bg-muted/30">
             {/* Header */}
             <div className="bg-background border-b border-border">
                 <div className="container mx-auto px-4 py-6">
-                    <Link href={`/admin/questions/${id}`}>
+                    <Link href="/admin/questions">
                         <Button variant="ghost" className="mb-4">
                             <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back to Question
+                            Back to Questions
                         </Button>
                     </Link>
                 </div>
             </div>
 
             {/* Main Content */}
-            <div className="container mx-auto px-4 py-8">
-                <Card>
+            <div className="container mx-auto px-4 py-8 max-w-4xl">
+                {/* Question Header */}
+                <Card className="mb-6">
                     <CardHeader>
-                        <CardTitle className="text-2xl">Edit Question</CardTitle>
+                        <div className="flex items-start justify-between">
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <Badge variant="outline">{question.questionType}</Badge>
+                                    <Badge variant="secondary">{question.defaultScore} points</Badge>
+                                </div>
+                                <CardTitle className="text-2xl">Question Details</CardTitle>
+                                <CardDescription>
+                                    Review question information and answer options
+                                </CardDescription>
+                            </div>
+                            <div className="flex gap-2">
+                                <Link href={`/admin/questions/${id}/edit`}>
+                                    <Button variant="outline" size="sm">
+                                        <Edit className="h-4 w-4 mr-2" />
+                                        Edit
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
+                    </CardHeader>
+                </Card>
+
+                {/* Question Content */}
+                <Card className="mb-6">
+                    <CardHeader>
+                        <CardTitle className="text-lg">Question</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-foreground whitespace-pre-wrap">{question.content}</p>
+                    </CardContent>
+                </Card>
+
+                {/* Answer Options */}
+                <Card className="mb-6">
+                    <CardHeader>
+                        <CardTitle className="text-lg">Answer Options</CardTitle>
                         <CardDescription>
-                            Update the question details. Changes will be reflected in all exams using
-                            this question.
+                            Correct answer: <strong className="text-green-600">Option {question.correctAnswer}</strong>
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <QuestionForm
-                            defaultValues={defaultValues}
-                            onSubmit={handleSubmit}
-                            isSubmitting={isPending}
-                            mode="edit"
-                        />
+                        <div className="space-y-3">
+                            {/* Option A */}
+                            <div
+                                className={`p-4 rounded-lg border ${
+                                    question.correctAnswer === 'A'
+                                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20'
+                                        : 'border-border'
+                                }`}
+                            >
+                                <div className="flex items-start gap-3">
+                                    <div
+                                        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+                                            question.correctAnswer === 'A'
+                                                ? 'bg-green-500 text-white'
+                                                : 'bg-muted text-muted-foreground'
+                                        }`}
+                                    >
+                                        A
+                                    </div>
+                                    <p className="flex-1 text-sm">{question.options.A}</p>
+                                </div>
+                            </div>
+
+                            {/* Option B */}
+                            <div
+                                className={`p-4 rounded-lg border ${
+                                    question.correctAnswer === 'B'
+                                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20'
+                                        : 'border-border'
+                                }`}
+                            >
+                                <div className="flex items-start gap-3">
+                                    <div
+                                        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+                                            question.correctAnswer === 'B'
+                                                ? 'bg-green-500 text-white'
+                                                : 'bg-muted text-muted-foreground'
+                                        }`}
+                                    >
+                                        B
+                                    </div>
+                                    <p className="flex-1 text-sm">{question.options.B}</p>
+                                </div>
+                            </div>
+
+                            {/* Option C */}
+                            <div
+                                className={`p-4 rounded-lg border ${
+                                    question.correctAnswer === 'C'
+                                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20'
+                                        : 'border-border'
+                                }`}
+                            >
+                                <div className="flex items-start gap-3">
+                                    <div
+                                        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+                                            question.correctAnswer === 'C'
+                                                ? 'bg-green-500 text-white'
+                                                : 'bg-muted text-muted-foreground'
+                                        }`}
+                                    >
+                                        C
+                                    </div>
+                                    <p className="flex-1 text-sm">{question.options.C}</p>
+                                </div>
+                            </div>
+
+                            {/* Option D */}
+                            <div
+                                className={`p-4 rounded-lg border ${
+                                    question.correctAnswer === 'D'
+                                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20'
+                                        : 'border-border'
+                                }`}
+                            >
+                                <div className="flex items-start gap-3">
+                                    <div
+                                        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+                                            question.correctAnswer === 'D'
+                                                ? 'bg-green-500 text-white'
+                                                : 'bg-muted text-muted-foreground'
+                                        }`}
+                                    >
+                                        D
+                                    </div>
+                                    <p className="flex-1 text-sm">{question.options.D}</p>
+                                </div>
+                            </div>
+
+                            {/* Option E */}
+                            <div
+                                className={`p-4 rounded-lg border ${
+                                    question.correctAnswer === 'E'
+                                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20'
+                                        : 'border-border'
+                                }`}
+                            >
+                                <div className="flex items-start gap-3">
+                                    <div
+                                        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+                                            question.correctAnswer === 'E'
+                                                ? 'bg-green-500 text-white'
+                                                : 'bg-muted text-muted-foreground'
+                                        }`}
+                                    >
+                                        E
+                                    </div>
+                                    <p className="flex-1 text-sm">{question.options.E}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Usage Information */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <BookOpen className="h-5 w-5" />
+                            Usage Information
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Question ID:</span>
+                                <span className="font-mono">{question.id}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Question Type:</span>
+                                <Badge variant="outline">{question.questionType}</Badge>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Default Score:</span>
+                                <span className="font-semibold">{question.defaultScore} points</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Used in Exams:</span>
+                                <span className="font-semibold">
+                                    {question._count?.examQuestions || 0} exam(s)
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Created:</span>
+                                <span>{new Date(question.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Last Updated:</span>
+                                <span>{new Date(question.updatedAt).toLocaleDateString()}</span>
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
             </div>

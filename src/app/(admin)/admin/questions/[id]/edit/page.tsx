@@ -13,6 +13,19 @@ interface PageProps {
     params: Promise<{ id: string }>;
 }
 
+// Type for the form data (flat structure used by QuestionForm)
+type QuestionFormData = {
+    content: string;
+    optionA: string;
+    optionB: string;
+    optionC: string;
+    optionD: string;
+    optionE: string;
+    correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
+    questionType: 'TIU' | 'TWK' | 'TKP';
+    defaultScore: number;
+};
+
 export default function EditQuestionPage({ params }: PageProps) {
     const { id } = use(params);
     const { data, isLoading, error } = useQuestion(id);
@@ -20,8 +33,22 @@ export default function EditQuestionPage({ params }: PageProps) {
 
     const question = data?.data;
 
-    const handleSubmit = (formData: UpdateQuestionRequest) => {
-        updateQuestion(formData);
+    const handleSubmit = (formData: QuestionFormData) => {
+        // Transform flat form data to nested API request structure
+        const requestData: UpdateQuestionRequest = {
+            content: formData.content,
+            options: {
+                A: formData.optionA,
+                B: formData.optionB,
+                C: formData.optionC,
+                D: formData.optionD,
+                E: formData.optionE,
+            },
+            correctAnswer: formData.correctAnswer,
+            questionType: formData.questionType,
+            defaultScore: formData.defaultScore,
+        };
+        updateQuestion(requestData);
     };
 
     // Loading state
@@ -54,6 +81,19 @@ export default function EditQuestionPage({ params }: PageProps) {
         );
     }
 
+    // Transform nested API structure to flat form structure
+    const defaultValues = {
+        content: question.content,
+        optionA: question.options.A,
+        optionB: question.options.B,
+        optionC: question.options.C,
+        optionD: question.options.D,
+        optionE: question.options.E,
+        correctAnswer: question.correctAnswer,
+        questionType: question.questionType,
+        defaultScore: question.defaultScore,
+    };
+
     return (
         <div className="min-h-screen bg-muted/30">
             {/* Header */}
@@ -80,10 +120,10 @@ export default function EditQuestionPage({ params }: PageProps) {
                     </CardHeader>
                     <CardContent>
                         <QuestionForm
-                            initialData={question}
+                            defaultValues={defaultValues}
                             onSubmit={handleSubmit}
-                            isSubmitting={isPending}
-                            mode="edit"
+                            isLoading={isPending}
+                            submitLabel="Update Question"
                         />
                     </CardContent>
                 </Card>
