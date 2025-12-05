@@ -1,7 +1,6 @@
-// src/app/(participant)/dashboard/page.tsx
 'use client';
 
-import { useAuthStore } from '@/features/auth/stores/auth.store';
+import { useAuth } from '@/features/auth/hooks';
 import { useUserExams } from '@/features/exam-sessions/hooks/useUserExams';
 import { useExams } from '@/features/exams/hooks/useExams';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
@@ -9,6 +8,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { BookOpen, ClipboardList, Trophy, TrendingUp, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import type { UserExam } from '@/features/exam-sessions/types/exam-sessions.types';
 
 interface ExamQuickCardProps {
     exam: {
@@ -44,22 +44,22 @@ function ExamQuickCard({ exam }: ExamQuickCardProps) {
 }
 
 export default function DashboardPage() {
-    const { user } = useAuthStore();
+    const { user } = useAuth();
     const { data: examsData, isLoading: examsLoading } = useExams({ page: 1, limit: 3 });
     const { data: sessionsData, isLoading: sessionsLoading } = useUserExams({ page: 1, limit: 10 });
 
     const exams = examsData?.data || [];
     const sessions = sessionsData?.data || [];
 
-    // Calculate stats
+    // Calculate stats with proper typing
     const totalExamsTaken = sessions.length;
-    const completedExams = sessions.filter(s => s.status === 'FINISHED').length;
-    const inProgressExams = sessions.filter(s => s.status === 'IN_PROGRESS').length;
+    const completedExams = sessions.filter((s: UserExam) => s.status === 'FINISHED').length;
+    const inProgressExams = sessions.filter((s: UserExam) => s.status === 'IN_PROGRESS').length;
     const avgScore = completedExams > 0
         ? Math.round(
             (sessionsData?.data || [])
-                .filter(s => s.status === 'FINISHED')
-                .reduce((acc, s) => acc + (s.totalScore || 0), 0) / completedExams
+                .filter((s: UserExam) => s.status === 'FINISHED')
+                .reduce((acc: number, s: UserExam) => acc + (s.totalScore || 0), 0) / completedExams
         )
         : 0;
 
@@ -176,7 +176,7 @@ export default function DashboardPage() {
                     <Card>
                         <CardContent className="p-6">
                             <div className="space-y-4">
-                                {sessions.slice(0, 5).map((session) => (
+                                {sessions.slice(0, 5).map((session: UserExam) => (
                                     <div
                                         key={session.id}
                                         className="flex items-center justify-between py-3 border-b last:border-0"

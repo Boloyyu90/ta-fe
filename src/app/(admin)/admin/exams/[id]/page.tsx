@@ -1,45 +1,52 @@
+'use client';
+
 /**
- * EXAM DETAIL PAGE (Admin)
+ * EXAM DETAIL PAGE (Admin) (Stub Implementation)
  *
- * PURPOSE:
- * - View full exam details
- * - See question count, participant attempts
- * - Quick access to edit and manage questions
- *
- * BACKEND INTEGRATION:
- * - GET /api/v1/admin/exams/:id
- *
- * RESPONSE:
- * {
- *   exam: {
- *     id, title, description,
- *     startTime, endTime, durationMinutes,
- *     createdAt, updatedAt, createdBy,
- *     creator: { id, name, email },
- *     _count: { examQuestions, userExams }
- *   }
- * }
- *
- * AUTHORIZATION:
- * - Only exam creator can view/edit
- * - Returns 403 if not creator
- *
- * DISPLAYED INFO:
- * - Exam title, description
- * - Duration (e.g., "120 minutes")
- * - Schedule (start/end times if set)
- * - Question count
- * - Participant attempts count
- * - Creator info
- * - Status: "Draft" or "Ready"
- *
- * ACTIONS:
- * - "Edit Exam" → /admin/exams/:id/edit
- * - "Manage Questions" → /admin/exams/:id/questions
- * - "Delete Exam" → Confirm + DELETE /admin/exams/:id
- *
- * IMPLEMENTATION:
- * - Display exam info in card/section layout
- * - Show warning if no questions: "This exam has no questions yet"
- * - Show warning if attempts exist: "Cannot delete - has attempts"
+ * TODO: Full implementation pending
  */
+
+import { use } from 'react';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+
+interface PageProps {
+    params: Promise<{ id: string }>;
+}
+
+export default function ExamDetailPage({ params }: PageProps) {
+    const { id } = use(params);
+
+    return (
+        <div className="min-h-screen bg-muted/30">
+            <div className="bg-background border-b border-border">
+                <div className="container mx-auto px-4 py-6">
+                    <Link href="/admin/exams">
+                        <Button variant="ghost" className="mb-4">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Exams
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+
+            <div className="container mx-auto px-4 py-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl">Exam Details</CardTitle>
+                        <CardDescription>
+                            View exam information - Full implementation coming soon
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                            This page is under construction. Exam detail view will be implemented in the next iteration.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}

@@ -1,4 +1,3 @@
-// src/app/(participant)/exam-sessions/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -9,7 +8,7 @@ import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { useUserExams } from '@/features/exam-sessions/hooks/useUserExams';
 import { UserExamCard } from '@/features/exam-sessions/components/UserExamCard';
-import type { ExamStatus } from '@/features/exam-sessions/types/exam-sessions.types';
+import type { ExamStatus, UserExam } from '@/features/exam-sessions/types/exam-sessions.types';
 
 export default function ExamSessionsPage() {
     const [statusFilter, setStatusFilter] = useState<ExamStatus | 'all'>('all');
@@ -70,7 +69,7 @@ export default function ExamSessionsPage() {
                     {/* Sessions Grid */}
                     {!isLoading && sessions.length > 0 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {sessions.map((session) => (
+                            {sessions.map((session: UserExam) => (
                                 <UserExamCard key={session.id} userExam={session} />
                             ))}
                         </div>

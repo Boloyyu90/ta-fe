@@ -1,39 +1,52 @@
+'use client';
+
 /**
- * EXAM SESSION DETAIL PAGE (Admin)
+ * EXAM SESSION DETAIL PAGE (Admin) (Stub Implementation)
  *
- * PURPOSE:
- * - View detailed exam session for any user
- * - Monitor progress, answers, proctoring events
- *
- * BACKEND INTEGRATION:
- * - GET /api/v1/admin/exam-sessions/:id
- *
- * RESPONSE:
- * {
- *   userExam: {
- *     id, examId, userId, startedAt, submittedAt,
- *     totalScore, status, createdAt,
- *     exam: { id, title, description, durationMinutes, _count: { examQuestions } },
- *     user: { id, name, email },
- *     _count: { answers }
- *   }
- * }
- *
- * DISPLAYED INFO:
- * - User info (name, email)
- * - Exam info (title, duration)
- * - Session status, started time, submitted time
- * - Progress: "25/30 questions answered"
- * - Score (if finished)
- * - Time taken (duration)
- *
- * TABS/SECTIONS:
- * 1. Overview (status, progress, score)
- * 2. Answers (if finished) → GET /admin/exam-sessions/:id/answers
- * 3. Proctoring Events → Link to /admin/sessions/:id/proctoring
- *
- * IMPLEMENTATION:
- * - Tabbed layout for different data views
- * - Admin can view even if not finished (monitoring)
- * - Link to user profile, exam details
+ * TODO: Full implementation pending
  */
+
+import { use } from 'react';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+
+interface PageProps {
+    params: Promise<{ id: string }>;
+}
+
+export default function ExamSessionDetailPage({ params }: PageProps) {
+    const { id } = use(params);
+
+    return (
+        <div className="min-h-screen bg-muted/30">
+            <div className="bg-background border-b border-border">
+                <div className="container mx-auto px-4 py-6">
+                    <Link href="/admin/sessions">
+                        <Button variant="ghost" className="mb-4">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Sessions
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+
+            <div className="container mx-auto px-4 py-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl">Session Details</CardTitle>
+                        <CardDescription>
+                            View exam session information - Full implementation coming soon
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                            This page is under construction. Session detail view will be implemented in the next iteration.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}

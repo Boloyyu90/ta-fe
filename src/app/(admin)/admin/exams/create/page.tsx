@@ -1,37 +1,45 @@
+'use client';
+
 /**
- * CREATE EXAM PAGE
+ * CREATE EXAM PAGE (Stub Implementation)
  *
- * PURPOSE:
- * - Form to create new exam
- * - Set title, description, duration, schedule (optional)
- *
- * BACKEND INTEGRATION:
- * - POST /api/v1/admin/exams
- *
- * REQUEST:
- * {
- *   title: string, // Min 3 chars, max 200, unique per creator
- *   description?: string, // Max 2000 chars
- *   startTime?: string, // ISO datetime, optional
- *   endTime?: string, // ISO datetime, optional, must be after startTime
- *   durationMinutes: number // Required, min 1, max 300 (5 hours)
- * }
- *
- * VALIDATION:
- * - Title: Min 3, max 200, must be unique for this admin
- * - Duration: 1-300 minutes
- * - If both startTime and endTime provided, endTime must be after startTime
- * - Dates in future (optional validation)
- *
- * ERROR HANDLING:
- * - 409 Conflict: Title already exists for this admin
- *
- * IMPLEMENTATION:
- * - Use features/admin/components/exams/ExamForm.tsx
- * - Title input (required)
- * - Description textarea (optional)
- * - Duration input (number, minutes)
- * - Start/End datetime pickers (optional)
- * - On success: Redirect to /admin/exams/:id (then add questions)
- * - Note: Exam created without questions (draft state)
+ * TODO: Full implementation pending
  */
+
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+
+export default function CreateExamPage() {
+    return (
+        <div className="min-h-screen bg-muted/30">
+            <div className="bg-background border-b border-border">
+                <div className="container mx-auto px-4 py-6">
+                    <Link href="/admin/exams">
+                        <Button variant="ghost" className="mb-4">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Exams
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+
+            <div className="container mx-auto px-4 py-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl">Create New Exam</CardTitle>
+                        <CardDescription>
+                            Add a new exam - Full implementation coming soon
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                            This page is under construction. Exam creation functionality will be implemented in the next iteration.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}

@@ -1,40 +1,48 @@
+'use client';
+
 /**
- * QUESTION BANK MANAGEMENT PAGE
+ * QUESTION BANK MANAGEMENT PAGE (Stub Implementation)
  *
- * PURPOSE:
- * - List all questions with filters
- * - Search, filter by type, pagination
- * - CRUD operations on questions
- *
- * BACKEND INTEGRATION:
- * - GET /api/v1/admin/questions?page=1&limit=10&type=TIU&search=keyword&sortBy=createdAt&sortOrder=desc
- *
- * RESPONSE:
- * {
- *   data: [
- *     {
- *       id, content, options: { A, B, C, D, E },
- *       correctAnswer, questionType, defaultScore,
- *       createdAt, updatedAt
- *     }
- *   ],
- *   pagination: {...}
- * }
- *
- * FEATURES:
- * - Search by content (debounced)
- * - Filter by type: ALL | TIU | TWK | TKP
- * - Sort by: createdAt, questionType, defaultScore
- * - Display: content preview (truncated), type badge, score
- * - Actions: Edit, Delete, View
- *
- * DELETE CONSTRAINT:
- * - Cannot delete question used in exams (400 error)
- * - Show warning: "Question is used in X exams"
- *
- * IMPLEMENTATION:
- * - Use features/admin/components/questions/QuestionsTable.tsx
- * - "Create Question" button → /admin/questions/create
- * - Row actions: Edit, Delete, View Details
- * - Delete with confirmation dialog
+ * TODO: Full implementation pending
  */
+
+import Link from 'next/link';
+import { Plus } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+
+export default function QuestionBankManagementPage() {
+    return (
+        <div className="min-h-screen bg-muted/30">
+            <div className="bg-background border-b border-border">
+                <div className="container mx-auto px-4 py-6">
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-3xl font-bold">Question Bank</h1>
+                        <Link href="/admin/questions/create">
+                            <Button>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Create Question
+                            </Button>
+                        </Link>
+                    </div>
+                </div>
+            </div>
+
+            <div className="container mx-auto px-4 py-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Questions List</CardTitle>
+                        <CardDescription>
+                            Manage all questions - Full implementation coming soon
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                            This page is under construction. Question bank management functionality will be implemented in the next iteration.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}

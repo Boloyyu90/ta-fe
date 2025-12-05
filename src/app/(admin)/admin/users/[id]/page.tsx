@@ -1,35 +1,52 @@
+'use client';
+
 /**
- * USER DETAIL PAGE (Admin View)
+ * USER DETAIL PAGE (Admin View) (Stub Implementation)
  *
- * PURPOSE:
- * - View detailed user information
- * - Show user's exam history and statistics
- *
- * BACKEND INTEGRATION:
- * - GET /api/v1/admin/users/:id
- *
- * RESPONSE:
- * {
- *   user: {
- *     id, email, name, role, isEmailVerified,
- *     createdAt, updatedAt,
- *     _count: { createdExams, userExams }
- *   }
- * }
- *
- * DISPLAYED INFO:
- * - User details (name, email, role)
- * - Account status (email verified, created date)
- * - Statistics:
- *   - Exams created (if admin)
- *   - Exam sessions taken
- * - Action buttons: Edit, Delete, Reset Password (future)
- *
- * IMPLEMENTATION:
- * - Display user info in card layout
- * - "Edit" button → /admin/users/:id/edit
- * - "Delete" button → Confirm dialog → DELETE /admin/users/:id
- * - Handle delete constraints:
- *   - Cannot delete user with exam attempts (400 error)
- *   - Cannot delete user who created exams (400 error)
+ * TODO: Full implementation pending
  */
+
+import { use } from 'react';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+
+interface PageProps {
+    params: Promise<{ id: string }>;
+}
+
+export default function UserDetailPage({ params }: PageProps) {
+    const { id } = use(params);
+
+    return (
+        <div className="min-h-screen bg-muted/30">
+            <div className="bg-background border-b border-border">
+                <div className="container mx-auto px-4 py-6">
+                    <Link href="/admin/users">
+                        <Button variant="ghost" className="mb-4">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Users
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+
+            <div className="container mx-auto px-4 py-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl">User Details</CardTitle>
+                        <CardDescription>
+                            View user information - Full implementation coming soon
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                            This page is under construction. User detail view will be implemented in the next iteration.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}

@@ -1,13 +1,12 @@
-// src/app/(participant)/profile/page.tsx
 'use client';
 
-import { useAuthStore } from '@/features/auth/stores/auth.store';
+import { useAuth } from '@/features/auth/hooks';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { User, Mail, Shield } from 'lucide-react';
 
 export default function ProfilePage() {
-    const { user } = useAuthStore();
+    const { user } = useAuth();
 
     if (!user) {
         return (

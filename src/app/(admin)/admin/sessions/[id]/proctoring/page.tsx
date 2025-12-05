@@ -1,46 +1,52 @@
+'use client';
+
 /**
- * PROCTORING EVENTS PAGE (Admin)
+ * PROCTORING EVENTS PAGE (Admin) (Stub Implementation)
  *
- * PURPOSE:
- * - View all proctoring events for specific exam session
- * - Timeline of violations, face detection results
- *
- * BACKEND INTEGRATION:
- * - GET /api/v1/admin/proctoring/exam-sessions/:userExamId/events?page=1&limit=20
- *
- * RESPONSE:
- * {
- *   data: [
- *     {
- *       id, userExamId, eventType, timestamp, severity,
- *       metadata: { confidence, violations, ... }
- *     }
- *   ],
- *   pagination: {...}
- * }
- *
- * EVENT TYPES:
- * - FACE_DETECTED (normal)
- * - NO_FACE_DETECTED (violation)
- * - MULTIPLE_FACES (violation)
- * - LOOKING_AWAY (violation)
- *
- * SEVERITY:
- * - LOW (informational)
- * - MEDIUM (warning)
- * - HIGH (critical violation)
- *
- * DISPLAYED INFO:
- * - Timeline view of events (sorted by timestamp)
- * - Event type badge (color by severity)
- * - Timestamp (formatted)
- * - Confidence score (from metadata)
- * - Violation count summary at top
- *
- * IMPLEMENTATION:
- * - Use features/admin/components/monitoring/ProctoringEventsTable.tsx
- * - Timeline or table view
- * - Filter by event type, severity
- * - Highlight HIGH severity events
- * - Show total violation count: "3 HIGH, 5 MEDIUM, 2 LOW"
+ * TODO: Full implementation pending
  */
+
+import { use } from 'react';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+
+interface PageProps {
+    params: Promise<{ id: string }>;
+}
+
+export default function ProctoringEventsPage({ params }: PageProps) {
+    const { id } = use(params);
+
+    return (
+        <div className="min-h-screen bg-muted/30">
+            <div className="bg-background border-b border-border">
+                <div className="container mx-auto px-4 py-6">
+                    <Link href={`/admin/sessions/${id}`}>
+                        <Button variant="ghost" className="mb-4">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Session
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+
+            <div className="container mx-auto px-4 py-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl">Proctoring Events</CardTitle>
+                        <CardDescription>
+                            View proctoring timeline - Full implementation coming soon
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                            This page is under construction. Proctoring events view will be implemented in the next iteration.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}

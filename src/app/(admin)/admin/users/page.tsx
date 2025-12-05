@@ -1,37 +1,48 @@
+'use client';
+
 /**
- * USERS MANAGEMENT PAGE
+ * USERS MANAGEMENT PAGE (Stub Implementation)
  *
- * PURPOSE:
- * - List all users (admin + participants)
- * - Search, filter by role, pagination
- * - CRUD operations
- *
- * BACKEND INTEGRATION:
- * - GET /api/v1/admin/users?page=1&limit=10&role=PARTICIPANT&search=keyword&sortBy=createdAt&sortOrder=desc
- *
- * RESPONSE:
- * {
- *   data: [
- *     {
- *       id, email, name, role, isEmailVerified,
- *       createdAt, updatedAt
- *     }
- *   ],
- *   pagination: {...}
- * }
- *
- * FEATURES:
- * - Search by name/email (debounced)
- * - Filter by role dropdown (ALL | ADMIN | PARTICIPANT)
- * - Sort by: createdAt, name, email, role
- * - Pagination
- * - Actions: Edit, Delete
- *
- * IMPLEMENTATION:
- * - Use features/admin/components/users/UsersTable.tsx
- * - Use shared/components/DataTable.tsx (generic reusable table)
- * - Use shared/hooks/usePagination.ts
- * - "Create User" button → /admin/users/create
- * - Row click or Edit icon → /admin/users/:id/edit
- * - Delete icon → Confirm dialog → DELETE /admin/users/:id
+ * TODO: Full implementation pending
  */
+
+import Link from 'next/link';
+import { Plus } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+
+export default function UsersManagementPage() {
+    return (
+        <div className="min-h-screen bg-muted/30">
+            <div className="bg-background border-b border-border">
+                <div className="container mx-auto px-4 py-6">
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-3xl font-bold">User Management</h1>
+                        <Link href="/admin/users/create">
+                            <Button>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Create User
+                            </Button>
+                        </Link>
+                    </div>
+                </div>
+            </div>
+
+            <div className="container mx-auto px-4 py-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Users List</CardTitle>
+                        <CardDescription>
+                            Manage all users - Full implementation coming soon
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                            This page is under construction. User management functionality will be implemented in the next iteration.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}

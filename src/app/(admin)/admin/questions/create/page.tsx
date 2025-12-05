@@ -1,4 +1,3 @@
-// src/app/admin/questions/create/page.tsx
 'use client';
 
 import Link from 'next/link';
@@ -7,11 +6,12 @@ import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { useCreateQuestion } from '@/features/questions/hooks';
 import { QuestionForm } from '@/features/questions/components';
+import type { CreateQuestionRequest } from '@/features/questions/types/questions.types';
 
 export default function CreateQuestionPage() {
     const { mutate: createQuestion, isPending } = useCreateQuestion();
 
-    const handleSubmit = (data: any) => {
+    const handleSubmit = (data: CreateQuestionRequest) => {
         createQuestion(data);
     };
 

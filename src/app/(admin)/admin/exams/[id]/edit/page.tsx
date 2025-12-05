@@ -1,34 +1,52 @@
+'use client';
+
 /**
- * EDIT EXAM PAGE
+ * EDIT EXAM PAGE (Stub Implementation)
  *
- * PURPOSE:
- * - Update exam details
- * - Change title, description, duration, schedule
- *
- * BACKEND INTEGRATION:
- * - GET /api/v1/admin/exams/:id (fetch current data)
- * - PATCH /api/v1/admin/exams/:id (update)
- *
- * PATCH REQUEST (all optional, at least one required):
- * {
- *   title?: string,
- *   description?: string | null,
- *   startTime?: string | null,
- *   endTime?: string | null,
- *   durationMinutes?: number
- * }
- *
- * AUTHORIZATION:
- * - Only exam creator can edit
- * - Returns 403 if not creator
- *
- * DURATION UPDATE CONSTRAINT:
- * - Cannot update duration if exam has active sessions
- * - Returns 400: "Cannot update duration while exam sessions are active"
- *
- * IMPLEMENTATION:
- * - Reuse features/admin/components/exams/ExamForm.tsx (isEdit mode)
- * - Pre-populate form with current exam data
- * - Disable duration field if active sessions exist (check userExams count)
- * - On success: Redirect to /admin/exams/:id
+ * TODO: Full implementation pending
  */
+
+import { use } from 'react';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+
+interface PageProps {
+    params: Promise<{ id: string }>;
+}
+
+export default function EditExamPage({ params }: PageProps) {
+    const { id } = use(params);
+
+    return (
+        <div className="min-h-screen bg-muted/30">
+            <div className="bg-background border-b border-border">
+                <div className="container mx-auto px-4 py-6">
+                    <Link href={`/admin/exams/${id}`}>
+                        <Button variant="ghost" className="mb-4">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Exam
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+
+            <div className="container mx-auto px-4 py-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl">Edit Exam</CardTitle>
+                        <CardDescription>
+                            Update exam details - Full implementation coming soon
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                            This page is under construction. Exam editing functionality will be implemented in the next iteration.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}

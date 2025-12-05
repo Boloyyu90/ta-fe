@@ -1,37 +1,45 @@
+'use client';
+
 /**
- * CREATE USER PAGE (Admin)
+ * CREATE USER PAGE (Admin) (Stub Implementation)
  *
- * PURPOSE:
- * - Form to create new user manually
- * - Admin can set role (ADMIN or PARTICIPANT)
- *
- * BACKEND INTEGRATION:
- * - POST /api/v1/admin/users
- *
- * REQUEST:
- * {
- *   email: string,
- *   password: string, // Must meet validation: min 8 chars, 1 upper, 1 lower, 1 number
- *   name: string,
- *   role: "ADMIN" | "PARTICIPANT" // Optional, defaults to PARTICIPANT
- * }
- *
- * RESPONSE:
- * { user: UserPublicData }
- *
- * VALIDATION RULES (Same as register):
- * - Email: Valid format, unique
- * - Password: Min 8 chars, 1 uppercase, 1 lowercase, 1 number
- * - Name: Min 2 chars, max 100
- *
- * ERROR HANDLING:
- * - 409 Conflict: Email already exists
- * - 400 Validation: Show field errors
- *
- * IMPLEMENTATION:
- * - Use features/admin/components/users/UserForm.tsx
- * - Reuse features/auth/schemas.ts for validation
- * - Role selector (radio or dropdown)
- * - On success: Redirect to /admin/users
- * - Cancel button → /admin/users
+ * TODO: Full implementation pending
  */
+
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+
+export default function CreateUserPage() {
+    return (
+        <div className="min-h-screen bg-muted/30">
+            <div className="bg-background border-b border-border">
+                <div className="container mx-auto px-4 py-6">
+                    <Link href="/admin/users">
+                        <Button variant="ghost" className="mb-4">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Users
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+
+            <div className="container mx-auto px-4 py-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl">Create New User</CardTitle>
+                        <CardDescription>
+                            Add a new user account - Full implementation coming soon
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                            This page is under construction. User creation functionality will be implemented in the next iteration.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}

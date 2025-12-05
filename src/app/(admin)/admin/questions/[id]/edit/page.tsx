@@ -1,4 +1,3 @@
-// src/app/admin/questions/[id]/edit/page.tsx
 'use client';
 
 import { use } from 'react';
@@ -8,6 +7,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { useQuestion, useUpdateQuestion } from '@/features/questions/hooks';
 import { QuestionForm } from '@/features/questions/components';
+import type { UpdateQuestionRequest } from '@/features/questions/types/questions.types';
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -20,7 +20,7 @@ export default function EditQuestionPage({ params }: PageProps) {
 
     const question = data?.data;
 
-    const handleSubmit = (formData: any) => {
+    const handleSubmit = (formData: UpdateQuestionRequest) => {
         updateQuestion(formData);
     };
 
@@ -80,7 +80,7 @@ export default function EditQuestionPage({ params }: PageProps) {
                     </CardHeader>
                     <CardContent>
                         <QuestionForm
-                            question={question}
+                            initialData={question}
                             onSubmit={handleSubmit}
                             isSubmitting={isPending}
                             mode="edit"

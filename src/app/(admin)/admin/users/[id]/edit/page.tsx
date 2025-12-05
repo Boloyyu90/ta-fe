@@ -1,36 +1,52 @@
+'use client';
+
 /**
- * EDIT USER PAGE (Admin)
+ * EDIT USER PAGE (Admin) (Stub Implementation)
  *
- * PURPOSE:
- * - Update user information (admin privileges)
- * - Change email, role, name, password, email verification status
- *
- * BACKEND INTEGRATION:
- * - GET /api/v1/admin/users/:id (fetch current data)
- * - PATCH /api/v1/admin/users/:id (update)
- *
- * PATCH REQUEST (all fields optional, at least one required):
- * {
- *   email?: string,
- *   password?: string,
- *   name?: string,
- *   role?: "ADMIN" | "PARTICIPANT",
- *   isEmailVerified?: boolean
- * }
- *
- * ADMIN PRIVILEGES:
- * - Can change email (unlike participants)
- * - Can change role
- * - Can toggle email verification status
- *
- * ERROR HANDLING:
- * - 409 Conflict: Email already taken
- * - 404 Not Found: User doesn't exist
- *
- * IMPLEMENTATION:
- * - Reuse features/admin/components/users/UserForm.tsx (with isEdit mode)
- * - Pre-populate form with current user data
- * - Password field optional (only show if changing)
- * - On success: Redirect to /admin/users/:id
- * - Cancel → /admin/users/:id
+ * TODO: Full implementation pending
  */
+
+import { use } from 'react';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+
+interface PageProps {
+    params: Promise<{ id: string }>;
+}
+
+export default function EditUserPage({ params }: PageProps) {
+    const { id } = use(params);
+
+    return (
+        <div className="min-h-screen bg-muted/30">
+            <div className="bg-background border-b border-border">
+                <div className="container mx-auto px-4 py-6">
+                    <Link href={`/admin/users/${id}`}>
+                        <Button variant="ghost" className="mb-4">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to User
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+
+            <div className="container mx-auto px-4 py-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl">Edit User</CardTitle>
+                        <CardDescription>
+                            Update user information - Full implementation coming soon
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                            This page is under construction. User editing functionality will be implemented in the next iteration.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}
