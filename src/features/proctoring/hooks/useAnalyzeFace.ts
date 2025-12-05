@@ -1,64 +1,33 @@
 // src/features/proctoring/hooks/useAnalyzeFace.ts
-import { useMutation } from '@tanstack/react-query';
+
+/**
+ * Hook to analyze face via YOLO
+ *
+ * ✅ Rate limited: 30 requests/minute
+ * ✅ Invalidates events cache on violation
+ */
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { proctoringApi } from '../api/proctoring.api';
-import { useProctoringStore } from '../store/proctoring.store';
 import type { AnalyzeFaceRequest } from '../types/proctoring.types';
-import { toast } from 'sonner';
-import { useEffect } from 'react';
 
-interface UseAnalyzeFaceParams {
-    sessionId: number;
-    onViolation?: (severity: string) => void;
-    onCancel?: () => void;
-}
+export function useAnalyzeFace(sessionId: number) {
+    const queryClient = useQueryClient();
 
-export function useAnalyzeFace({ sessionId, onViolation, onCancel }: UseAnalyzeFaceParams) {
-    const { addViolation } = useProctoringStore();
+    return useMutation({
+        mutationFn: (data: AnalyzeFaceRequest) =>
+            proctoringApi.analyzeFace(sessionId, data),
 
-    const mutation = useMutation({
-        mutationFn: (data: AnalyzeFaceRequest) => proctoringApi.analyzeFace(sessionId, data),
-    });
-
-    // Handle success
-    useEffect(() => {
-        if (mutation.isSuccess && mutation.data) {
-            const { analysis, eventLogged } = mutation.data.data;
-
-            // Check for violations
-            const hasViolations = analysis.violations.some((v: string) => v !== 'FACE_DETECTED');
-
-            if (hasViolations && eventLogged) {
-                // Add to local store
-                const violation = {
-                    id: `${Date.now()}-${Math.random()}`,
-                    type: analysis.violations[0],
-                    severity: 'HIGH' as const,
-                    timestamp: new Date().toISOString(),
-                    message: analysis.message,
-                };
-
-                addViolation(violation);
-
-                // Show warning
-                toast.error('⚠️ Proctoring Warning', {
-                    description: analysis.message,
-                    duration: 5000,
+        onSuccess: (data) => {
+            // If violation was logged, refresh events
+            if (data.eventLogged) {
+                queryClient.invalidateQueries({
+                    queryKey: ['proctoring-events', sessionId]
                 });
-
-                if (onViolation) {
-                    onViolation('HIGH');
-                }
             }
-        }
-    }, [mutation.isSuccess, mutation.data, addViolation, onViolation]);
+        },
 
-    // Handle errors (silent - don't block exam)
-    useEffect(() => {
-        if (mutation.isError) {
-            console.error('Face analysis error:', mutation.error);
-            // Don't show toast - fails silently
-        }
-    }, [mutation.isError, mutation.error]);
-
-    return mutation;
+        // Don't retry on errors (rate limiting)
+        retry: false,
+    });
 }

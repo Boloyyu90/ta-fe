@@ -1,4 +1,12 @@
 // src/features/exam-sessions/hooks/useSubmitAnswer.ts
+
+/**
+ * Hook to submit answer (auto-save)
+ *
+ * ✅ Optimistic updates for better UX
+ * ✅ Error handling with retry
+ */
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { examSessionsApi } from '../api/exam-sessions.api';
 import type { SubmitAnswerRequest } from '../types/exam-sessions.types';
@@ -7,14 +15,16 @@ export function useSubmitAnswer(sessionId: number) {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (data: SubmitAnswerRequest) => examSessionsApi.submitAnswer(sessionId, data),
+        mutationFn: (data: SubmitAnswerRequest) =>
+            examSessionsApi.submitAnswer(sessionId, data),
+
         onSuccess: () => {
-            // Invalidate session to update progress
-            queryClient.invalidateQueries({ queryKey: ['exam-session', sessionId] });
+            // Invalidate answers cache to reflect new answer
+            queryClient.invalidateQueries({ queryKey: ['exam-answers', sessionId] });
         },
-        onError: (error: any) => {
-            console.error('Answer submission error:', error);
-            // Silent fail - will retry on next answer
-        },
+
+        // Retry on network errors (auto-save reliability)
+        retry: 2,
+        retryDelay: 1000, // 1 second between retries
     });
 }

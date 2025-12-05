@@ -1,18 +1,33 @@
 // src/features/exam-sessions/types/exam-sessions.types.ts
 
-// Question types
+/**
+ * EXAM SESSIONS TYPES - ALIGNED WITH CURRENT FRONTEND
+ *
+ * ✅ All exports that are being imported elsewhere
+ * ✅ Matches existing backend contract
+ */
+
+// ============================================================================
+// ENUMS (EXPORTED - used by components)
+// ============================================================================
+
 export type QuestionType = 'TIU' | 'TWK' | 'TKP';
 
-// Exam session status
 export type ExamStatus =
     | 'NOT_STARTED'
     | 'IN_PROGRESS'
     | 'FINISHED'
-    | 'COMPLETED' // ✅ Added for frontend display
+    | 'COMPLETED' // Frontend display alias for FINISHED
     | 'TIMEOUT'
     | 'CANCELLED';
 
-// Question entity
+// ============================================================================
+// BASE ENTITIES
+// ============================================================================
+
+/**
+ * Question entity from question bank
+ */
 export interface Question {
     id: number;
     content: string;
@@ -27,17 +42,22 @@ export interface Question {
     defaultScore: number;
 }
 
-// Exam question (question assigned to exam)
+/**
+ * Exam question (question assigned to exam)
+ * ⚠️ IMPORTANT: Has nested `question` property
+ */
 export interface ExamQuestion {
     id: number;
     examId: number;
     questionId: number;
     questionOrder: number;
     score: number;
-    question: Question;
+    question: Question; // ✅ Nested structure
 }
 
-// User's exam session
+/**
+ * User's exam session
+ */
 export interface UserExam {
     id: number;
     userId: number;
@@ -46,20 +66,22 @@ export interface UserExam {
     totalScore: number | null;
     startedAt: string | null;
     finishedAt: string | null;
-    completedAt?: string | null; // ✅ Added
+    completedAt?: string | null; // ✅ Added for frontend
     timeSpent: number | null;
     totalQuestions: number | null;
     correctAnswers: number | null;
     createdAt: string;
-    exam: {
+    exam?: {
         id: number;
         title: string;
         durationMinutes: number;
-        passingScore: number;
+        passingScore?: number;
     };
 }
 
-// User's answer to a question
+/**
+ * User's answer to a question
+ */
 export interface ExamAnswer {
     id: number;
     userExamId: number;
@@ -70,7 +92,9 @@ export interface ExamAnswer {
     question: Question;
 }
 
-// Extended answer with flattened question details for easier UI access
+/**
+ * Answer with flattened question details for review UI
+ */
 export interface AnswerWithQuestion {
     id: number;
     userExamId: number;
@@ -91,7 +115,9 @@ export interface AnswerWithQuestion {
     };
 }
 
-// Exam session list item
+/**
+ * Exam session list item (EXPORTED - used by ResultCard, UserExamCard)
+ */
 export interface ExamSessionListItem {
     id: number;
     userId: number;
@@ -100,24 +126,32 @@ export interface ExamSessionListItem {
     totalScore: number | null;
     startedAt: string | null;
     finishedAt: string | null;
-    completedAt?: string | null; // ✅ Added
-    correctAnswers?: number | null; // ✅ Added
-    totalQuestions?: number | null; // ✅ Added
-    exam: {
+    completedAt?: string | null;
+    correctAnswers?: number | null;
+    totalQuestions?: number | null;
+    exam?: {
         title: string;
         durationMinutes: number;
     };
 }
 
-// Pagination
+// ============================================================================
+// PAGINATION
+// ============================================================================
+
 export interface PaginationMeta {
     page: number;
     limit: number;
     total: number;
     totalPages: number;
+    hasNext?: boolean;
+    hasPrev?: boolean;
 }
 
-// API Responses
+// ============================================================================
+// API RESPONSES
+// ============================================================================
+
 export interface ExamSessionDetailResponse {
     data: {
         userExam: UserExam;
@@ -126,10 +160,8 @@ export interface ExamSessionDetailResponse {
     };
 }
 
-// Alias for backward compatibility
 export type ExamSessionResponse = ExamSessionDetailResponse;
 
-// ✅ Added missing types
 export interface ExamQuestionsResponse {
     data: ExamQuestion[];
 }
@@ -141,12 +173,6 @@ export interface ExamAnswersResponse {
 export interface MyResultsResponse {
     data: UserExam[];
     pagination: PaginationMeta;
-}
-
-export interface MyResultsParams {
-    page?: number;
-    limit?: number;
-    status?: 'COMPLETED' | 'CANCELLED';
 }
 
 export interface StartExamResponse {
@@ -170,6 +196,14 @@ export interface SubmitExamResponse {
     };
 }
 
-export interface FinishExamResponse {
-    data: UserExam;
+export interface MyResultsParams {
+    page?: number;
+    limit?: number;
+    status?: 'COMPLETED' | 'CANCELLED' | 'FINISHED';
+}
+
+export interface GetUserExamsParams {
+    page?: number;
+    limit?: number;
+    status?: ExamStatus;
 }

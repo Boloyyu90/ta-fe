@@ -1,35 +1,26 @@
 // src/features/proctoring/hooks/useProctoringEvents.ts
+
+/**
+ * Hook to fetch proctoring events for a session
+ *
+ * ✅ Properly exported
+ * ✅ Correct return type
+ */
+
 import { useQuery } from '@tanstack/react-query';
 import { proctoringApi } from '../api/proctoring.api';
-import type { ProctoringEventsResponse, ProctoringEventsParams } from '../types/proctoring.types';
-
-interface UseProctoringEventsOptions {
-    isAdmin?: boolean;
-    page?: number;
-    limit?: number;
-    eventType?: string;
-    severity?: 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH';
-}
+import type { ProctoringEventsParams } from '../types/proctoring.types';
 
 export function useProctoringEvents(
     sessionId: number,
-    options: UseProctoringEventsOptions = {}
+    params?: ProctoringEventsParams,
+    enabled = true
 ) {
-    const { isAdmin = false, page, limit, eventType, severity } = options;
-
-    const params: ProctoringEventsParams = {
-        page,
-        limit,
-        eventType,
-        severity,
-    };
-
-    return useQuery<ProctoringEventsResponse>({
-        queryKey: ['proctoring-events', sessionId, isAdmin, params],
-        queryFn: () =>
-            isAdmin
-                ? proctoringApi.getEventsAdmin(sessionId, params)
-                : proctoringApi.getEvents(sessionId, params),
-        staleTime: 1000 * 30, // 30 seconds
+    return useQuery({
+        queryKey: ['proctoring-events', sessionId, params],
+        queryFn: () => proctoringApi.getEvents(sessionId, params || {}),
+        enabled: enabled && sessionId > 0,
+        refetchInterval: 5000, // Poll every 5 seconds
+        staleTime: 1000,
     });
 }

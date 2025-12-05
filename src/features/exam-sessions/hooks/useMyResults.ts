@@ -1,20 +1,19 @@
 // src/features/exam-sessions/hooks/useMyResults.ts
+
+/**
+ * Hook to fetch my exam results
+ *
+ * ✅ Returns correct payload structure
+ */
+
 import { useQuery } from '@tanstack/react-query';
 import { examSessionsApi } from '../api/exam-sessions.api';
-import type { MyResultsResponse } from '../types/exam-sessions.types';
+import type { GetUserExamsParams } from '../types/exam-sessions.types';
 
-interface UseMyResultsParams {
-    page?: number;
-    limit?: number;
-    status?: 'COMPLETED' | 'CANCELLED';
-}
-
-export function useMyResults(params: UseMyResultsParams = {}) {
-    const { page = 1, limit = 10, status } = params;
-
-    return useQuery<MyResultsResponse>({
-        queryKey: ['my-results', { page, limit, status }],
-        queryFn: () => examSessionsApi.getMyResults({ page, limit, status }),
+export function useMyResults(params?: GetUserExamsParams) {
+    return useQuery({
+        queryKey: ['my-results', params],
+        queryFn: () => examSessionsApi.getMyResults(params),
         staleTime: 1000 * 60, // 1 minute
     });
 }
