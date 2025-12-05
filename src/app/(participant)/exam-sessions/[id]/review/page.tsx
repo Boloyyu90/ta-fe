@@ -1,260 +1,250 @@
-// src/app/(participant)/exam-sessions/[id]/review/page.tsx
 'use client';
 
-import { use, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Loader2, ArrowLeft, Filter } from 'lucide-react';
-import { Button } from '@/shared/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
-import { Badge } from '@/shared/components/ui/badge';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/shared/components/ui/select';
-import { useExamSession } from '@/features/exam-sessions/hooks/useExamSession';
-import { useExamAnswers } from '@/features/exam-sessions/hooks/useExamAnswers';
-import { AnswerReviewCard } from '@/features/exam-sessions/components/AnswerReviewCard';
-import type { QuestionType } from '@/features/exam-sessions/types/exam-sessions.types';
+import { useParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { examSessionsApi } from '@/features/exam-sessions/api/exam-sessions.api';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ArrowLeft, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
+import type { QuestionType, ExamAnswer } from '@/features/exam-sessions/types/exam-sessions.types';
 
-interface PageProps {
-    params: Promise<{ id: string }>;
-}
+type FilterType = 'ALL' | QuestionType;
 
-export default function ExamReviewPage({ params }: PageProps) {
-    const resolvedParams = use(params);
-    const sessionId = parseInt(resolvedParams.id);
-    const router = useRouter();
+export default function ReviewAnswersPage() {
+    const params = useParams();
+    const userExamId = Number(params.id);
+    const [filterType, setFilterType] = useState<FilterType>('ALL');
 
-    const [filterType, setFilterType] = useState<QuestionType | 'ALL'>('ALL');
-    const [filterCorrect, setFilterCorrect] = useState<'ALL' | 'CORRECT' | 'INCORRECT'>('ALL');
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['exam-session', userExamId],
+        queryFn: () => examSessionsApi.getExamSession(userExamId),
+    });
 
-    const { data: sessionData, isLoading: isLoadingSession } = useExamSession(sessionId);
-    const { data: answersData, isLoading: isLoadingAnswers } = useExamAnswers(sessionId);
+    if (isLoading) {
+        return (
+            <div className="container py-8">
+                <Skeleton className="h-8 w-64 mb-6" />
+                <Skeleton className="h-96 w-full" />
+            </div>
+        );
+    }
 
-    const session = sessionData?.userExam;
-    const answers = answersData?.answers || [];
+    if (error || !data) {
+        return (
+            <div className="container py-8">
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>Failed to load exam review</AlertDescription>
+                </Alert>
+            </div>
+        );
+    }
 
-    // Filter answers
+    const { userExam, answers } = data.data;
+
+    // Filter answers based on selected type
     const filteredAnswers = answers.filter((answer) => {
-        if (filterType !== 'ALL' && answer.questionType !== filterType) return false;
-        if (filterCorrect === 'CORRECT' && !answer.isCorrect) return false;
-        if (filterCorrect === 'INCORRECT' && answer.isCorrect) return false;
+        if (filterType !== 'ALL' && answer.question.questionType !== filterType) return false;
         return true;
     });
 
-    // Calculate statistics
-    const stats = {
-        total: answers.length,
-        correct: answers.filter((a) => a.isCorrect).length,
-        incorrect: answers.filter((a) => a.isCorrect === false).length,
-        unanswered: answers.filter((a) => !a.selectedOption).length,
-    };
-
-    const scoresByType = answers.reduce((acc, answer) => {
-        if (!acc[answer.questionType]) {
-            acc[answer.questionType] = { correct: 0, total: 0, score: 0 };
+    // Calculate statistics by question type
+    const stats = answers.reduce((acc, answer) => {
+        const qType = answer.question.questionType;
+        if (!acc[qType]) {
+            acc[qType] = { correct: 0, total: 0, score: 0 };
         }
-        acc[answer.questionType].total++;
+        acc[qType].total++;
         if (answer.isCorrect) {
-            acc[answer.questionType].correct++;
-            acc[answer.questionType].score += answer.score;
+            acc[qType].correct++;
+            acc[qType].score += answer.score ?? 0;
         }
         return acc;
     }, {} as Record<QuestionType, { correct: number; total: number; score: number }>);
 
-    // Loading state
-    if (isLoadingSession || isLoadingAnswers) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Loading review...</p>
-                </div>
-            </div>
-        );
-    }
-
-    // Error state
-    if (!session || !answersData) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center space-y-4">
-                    <p className="text-lg font-semibold text-foreground">Review Not Available</p>
-                    <Button onClick={() => router.push('/exam-sessions')}>Back to Sessions</Button>
-                </div>
-            </div>
-        );
-    }
+    const typeColors: Record<QuestionType, string> = {
+        TIU: 'bg-blue-100 text-blue-800',
+        TWK: 'bg-green-100 text-green-800',
+        TKP: 'bg-purple-100 text-purple-800',
+    };
 
     return (
-        <div className="min-h-screen bg-muted/30">
+        <div className="container py-8">
             {/* Header */}
-            <div className="bg-background border-b border-border sticky top-0 z-40">
-                <div className="container mx-auto px-4 py-4">
-                    <Button
-                        variant="ghost"
-                        onClick={() => router.push('/exam-sessions')}
-                        className="mb-4"
-                    >
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back to Sessions
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/results/${userExamId}`}>
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Back to Results
+                        </Link>
                     </Button>
-
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-bold text-foreground">{session.exam.title}</h1>
-                            <p className="text-sm text-muted-foreground mt-1">Answer Review & Explanation</p>
-                        </div>
-
-                        <div className="text-right">
-                            <div className="text-3xl font-bold text-foreground">
-                                {session.totalScore || 0}
-                            </div>
-                            <p className="text-sm text-muted-foreground">Final Score</p>
-                        </div>
-                    </div>
+                    <h1 className="text-2xl font-bold">Review Answers</h1>
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className="container mx-auto px-4 py-8">
-                <div className="grid lg:grid-cols-4 gap-6">
-                    {/* Left Column: Statistics */}
-                    <div className="space-y-6">
-                        {/* Overall Statistics */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base">Overall Statistics</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Total Questions</span>
-                                    <span className="font-semibold">{stats.total}</span>
-                                </div>
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-green-600">Correct</span>
-                                    <span className="font-semibold text-green-600">{stats.correct}</span>
-                                </div>
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-red-600">Incorrect</span>
-                                    <span className="font-semibold text-red-600">{stats.incorrect}</span>
-                                </div>
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Unanswered</span>
-                                    <span className="font-semibold">{stats.unanswered}</span>
-                                </div>
-                            </CardContent>
-                        </Card>
+            {/* Summary Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                {(['TIU', 'TWK', 'TKP'] as QuestionType[]).map((type) => {
+                    const typeStat = stats[type] || { correct: 0, total: 0, score: 0 };
+                    const accuracy =
+                        typeStat.total > 0
+                            ? ((typeStat.correct / typeStat.total) * 100).toFixed(1)
+                            : '0.0';
 
-                        {/* Score by Type */}
-                        <Card>
+                    return (
+                        <Card key={type}>
                             <CardHeader>
-                                <CardTitle className="text-base">Score by Type</CardTitle>
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-lg">{type}</CardTitle>
+                                    <Badge className={typeColors[type]}>{type}</Badge>
+                                </div>
                             </CardHeader>
-                            <CardContent className="space-y-4">
-                                {Object.entries(scoresByType).map(([type, data]) => (
-                                    <div key={type} className="space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <Badge
-                                                className={
-                                                    type === 'TIU'
-                                                        ? 'bg-blue-100 text-blue-700'
-                                                        : type === 'TWK'
-                                                            ? 'bg-green-100 text-green-700'
-                                                            : 'bg-purple-100 text-purple-700'
-                                                }
-                                            >
-                                                {type}
-                                            </Badge>
-                                            <span className="text-sm font-semibold">
-                        {data.correct}/{data.total}
-                      </span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                            <span>Score</span>
-                                            <span className="font-medium">{data.score} points</span>
-                                        </div>
+                            <CardContent>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Correct:</span>
+                                        <span className="font-medium">
+                      {typeStat.correct}/{typeStat.total}
+                    </span>
                                     </div>
-                                ))}
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Accuracy:</span>
+                                        <span className="font-medium">{accuracy}%</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Score:</span>
+                                        <span className="font-medium">{typeStat.score}</span>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
+                    );
+                })}
+            </div>
 
-                        {/* Filters */}
-                        <Card>
+            {/* Filter Tabs */}
+            <Tabs value={filterType} onValueChange={(v) => setFilterType(v as FilterType)} className="mb-6">
+                <TabsList>
+                    <TabsTrigger value="ALL">All ({answers.length})</TabsTrigger>
+                    {(['TIU', 'TWK', 'TKP'] as QuestionType[]).map((type) => {
+                        const count = answers.filter((a) => a.question.questionType === type).length;
+                        return (
+                            <TabsTrigger key={type} value={type}>
+                                {type} ({count})
+                            </TabsTrigger>
+                        );
+                    })}
+                </TabsList>
+            </Tabs>
+
+            {/* Answers List */}
+            <div className="space-y-4">
+                {filteredAnswers.map((answer, index) => {
+                    const question = answer.question;
+                    const optionLabels = ['A', 'B', 'C', 'D', 'E'];
+                    const options = [
+                        question.optionA,
+                        question.optionB,
+                        question.optionC,
+                        question.optionD,
+                        question.optionE,
+                    ];
+
+                    return (
+                        <Card key={answer.questionId} className={answer.isCorrect ? 'border-green-500' : 'border-red-500'}>
                             <CardHeader>
-                                <CardTitle className="text-base flex items-center gap-2">
-                                    <Filter className="h-4 w-4" />
-                                    Filters
-                                </CardTitle>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                    <span className="text-lg font-bold text-muted-foreground">
+                      #{index + 1}
+                    </span>
+                                        <Badge className={typeColors[question.questionType]}>
+                                            {question.questionType}
+                                        </Badge>
+                                        {answer.isCorrect ? (
+                                            <Badge variant="outline" className="bg-green-100 text-green-800">
+                                                <CheckCircle className="w-3 h-3 mr-1" />
+                                                Correct
+                                            </Badge>
+                                        ) : (
+                                            <Badge variant="outline" className="bg-red-100 text-red-800">
+                                                <XCircle className="w-3 h-3 mr-1" />
+                                                Incorrect
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <Badge variant="outline">{answer.score ?? 0} pts</Badge>
+                                </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Question Type</label>
-                                    <Select value={filterType} onValueChange={(value) => setFilterType(value as any)}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="ALL">All Types</SelectItem>
-                                            <SelectItem value="TIU">TIU Only</SelectItem>
-                                            <SelectItem value="TWK">TWK Only</SelectItem>
-                                            <SelectItem value="TKP">TKP Only</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                {/* Question Content */}
+                                <div>
+                                    <p className="font-medium mb-3">{question.content}</p>
                                 </div>
 
+                                {/* Options */}
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Answer Status</label>
-                                    <Select value={filterCorrect} onValueChange={(value) => setFilterCorrect(value as any)}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="ALL">All Answers</SelectItem>
-                                            <SelectItem value="CORRECT">Correct Only</SelectItem>
-                                            <SelectItem value="INCORRECT">Incorrect Only</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                    {options.map((option, idx) => {
+                                        const isSelected = answer.selectedOption === optionLabels[idx];
+                                        const isCorrect = question.correctAnswer === optionLabels[idx];
 
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-full"
-                                    onClick={() => {
-                                        setFilterType('ALL');
-                                        setFilterCorrect('ALL');
-                                    }}
-                                >
-                                    Reset Filters
-                                </Button>
+                                        return (
+                                            <div
+                                                key={optionLabels[idx]}
+                                                className={`flex items-start gap-3 p-3 border rounded-lg ${
+                                                    isCorrect
+                                                        ? 'bg-green-50 border-green-500'
+                                                        : isSelected
+                                                            ? 'bg-red-50 border-red-500'
+                                                            : ''
+                                                }`}
+                                            >
+                                                <div
+                                                    className={`flex items-center justify-center w-6 h-6 rounded-full border font-medium text-sm ${
+                                                        isCorrect
+                                                            ? 'bg-green-500 text-white border-green-500'
+                                                            : isSelected
+                                                                ? 'bg-red-500 text-white border-red-500'
+                                                                : 'bg-white'
+                                                    }`}
+                                                >
+                                                    {optionLabels[idx]}
+                                                </div>
+                                                <p className="flex-1">{option}</p>
+                                                {isCorrect && (
+                                                    <Badge variant="outline" className="bg-green-100 text-green-800">
+                                                        Correct Answer
+                                                    </Badge>
+                                                )}
+                                                {isSelected && !isCorrect && (
+                                                    <Badge variant="outline" className="bg-red-100 text-red-800">
+                                                        Your Answer
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </CardContent>
                         </Card>
-                    </div>
-
-                    {/* Right Column: Answer Review */}
-                    <div className="lg:col-span-3 space-y-6">
-                        {filteredAnswers.length === 0 ? (
-                            <Card>
-                                <CardContent className="py-12 text-center">
-                                    <p className="text-muted-foreground">No answers match your filters.</p>
-                                </CardContent>
-                            </Card>
-                        ) : (
-                            filteredAnswers.map((answer, index) => (
-                                <AnswerReviewCard
-                                    key={answer.examQuestionId}
-                                    answer={answer}
-                                    questionNumber={index + 1}
-                                />
-                            ))
-                        )}
-                    </div>
-                </div>
+                    );
+                })}
             </div>
+
+            {filteredAnswers.length === 0 && (
+                <Card>
+                    <CardContent className="py-8 text-center text-muted-foreground">
+                        No answers found for this filter
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }

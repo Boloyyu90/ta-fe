@@ -1,140 +1,103 @@
-// src/app/(participant)/exam-sessions/page.tsx
 'use client';
 
-import { useState } from 'react';
-import { Loader2, FileText, AlertCircle } from 'lucide-react';
-import { Card, CardContent } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/shared/components/ui/select';
-import { useUserExams } from '@/features/exam-sessions/hooks/useUserExams';
+import { useQuery } from '@tanstack/react-query';
+import { examSessionsApi } from '@/features/exam-sessions/api/exam-sessions.api';
 import { UserExamCard } from '@/features/exam-sessions/components/UserExamCard';
-import type { ExamStatus } from '@/features/exam-sessions/types/exam-sessions.types';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import type { ExamStatus, UserExam } from '@/features/exam-sessions/types/exam-sessions.types';
 
 export default function ExamSessionsPage() {
-    const [statusFilter, setStatusFilter] = useState<ExamStatus | 'ALL'>('ALL');
+    const [statusFilter, setStatusFilter] = useState<ExamStatus | 'all'>('all');
 
-    const { data, isLoading, error } = useUserExams();
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['my-results'],
+        queryFn: () => examSessionsApi.getMyResults({ page: 1, limit: 100 }),
+    });
 
-    const userExams = data?.userExams || [];
+    if (isLoading) {
+        return (
+            <div className="container py-8">
+                <h1 className="text-3xl font-bold mb-6">My Exam Sessions</h1>
+                <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-48 w-full" />
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
-    // Filter exams by status
-    const filteredExams = userExams.filter((userExam) => {
-        if (statusFilter === 'ALL') return true;
+    if (error || !data) {
+        return (
+            <div className="container py-8">
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>Failed to load exam sessions</AlertDescription>
+                </Alert>
+            </div>
+        );
+    }
+
+    const userExams = data.data || [];
+    const filteredExams = userExams.filter((userExam: UserExam) => {
+        if (statusFilter === 'all') return true;
         return userExam.status === statusFilter;
     });
 
+    const statusCounts = {
+        all: userExams.length,
+        IN_PROGRESS: userExams.filter((e: UserExam) => e.status === 'IN_PROGRESS').length,
+        FINISHED: userExams.filter((e: UserExam) => e.status === 'FINISHED').length,
+        TIMEOUT: userExams.filter((e: UserExam) => e.status === 'TIMEOUT').length,
+        CANCELLED: userExams.filter((e: UserExam) => e.status === 'CANCELLED').length,
+    };
+
     return (
-        <div className="min-h-screen bg-muted/30">
-            {/* Header */}
-            <div className="bg-background border-b border-border">
-                <div className="container mx-auto px-4 py-8">
-                    <div className="flex items-center gap-3 mb-2">
-                        <FileText className="h-8 w-8 text-primary" />
-                        <h1 className="text-3xl font-bold text-foreground">My Exam Sessions</h1>
-                    </div>
-                    <p className="text-muted-foreground">
-                        Track your ongoing and completed exam sessions
-                    </p>
+        <div className="container py-8">
+            <h1 className="text-3xl font-bold mb-6">My Exam Sessions</h1>
+
+            {/* Status Filter Tabs */}
+            <Tabs
+                value={statusFilter}
+                onValueChange={(v) => setStatusFilter(v as ExamStatus | 'all')}
+                className="mb-6"
+            >
+                <TabsList>
+                    <TabsTrigger value="all">All ({statusCounts.all})</TabsTrigger>
+                    <TabsTrigger value="IN_PROGRESS">
+                        In Progress ({statusCounts.IN_PROGRESS})
+                    </TabsTrigger>
+                    <TabsTrigger value="FINISHED">
+                        Finished ({statusCounts.FINISHED})
+                    </TabsTrigger>
+                    <TabsTrigger value="TIMEOUT">
+                        Timeout ({statusCounts.TIMEOUT})
+                    </TabsTrigger>
+                    <TabsTrigger value="CANCELLED">
+                        Cancelled ({statusCounts.CANCELLED})
+                    </TabsTrigger>
+                </TabsList>
+            </Tabs>
+
+            {/* Exam Sessions List */}
+            {filteredExams.length > 0 ? (
+                <div className="space-y-4">
+                    {filteredExams.map((userExam: UserExam) => (
+                        <UserExamCard key={userExam.id} userExam={userExam} />
+                    ))}
                 </div>
-            </div>
-
-            {/* Filters */}
-            <div className="bg-background border-b border-border">
-                <div className="container mx-auto px-4 py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="text-sm text-muted-foreground">
-                            {filteredExams.length} {filteredExams.length === 1 ? 'session' : 'sessions'}{' '}
-                            found
-                        </div>
-
-                        <Select
-                            value={statusFilter}
-                            onValueChange={(value) => setStatusFilter(value as ExamStatus | 'ALL')}
-                        >
-                            <SelectTrigger className="w-[200px]">
-                                <SelectValue placeholder="Filter by status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="ALL">All Status</SelectItem>
-                                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                                <SelectItem value="COMPLETED">Completed</SelectItem>
-                                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                                <SelectItem value="NOT_STARTED">Not Started</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-            </div>
-
-            {/* Main Content */}
-            <div className="container mx-auto px-4 py-8">
-                {/* Loading State */}
-                {isLoading && (
-                    <div className="flex items-center justify-center py-12">
-                        <div className="flex flex-col items-center gap-4">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                            <p className="text-sm text-muted-foreground">Loading exam sessions...</p>
-                        </div>
-                    </div>
-                )}
-
-                {/* Error State */}
-                {error && (
-                    <Card className="border-destructive">
-                        <CardContent className="py-12 text-center">
-                            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold text-foreground mb-2">
-                                Failed to Load Sessions
-                            </h3>
-                            <p className="text-muted-foreground mb-6">
-                                There was an error loading your exam sessions. Please try again.
-                            </p>
-                            <Button onClick={() => window.location.reload()}>Retry</Button>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Empty State */}
-                {!isLoading && !error && filteredExams.length === 0 && (
-                    <Card>
-                        <CardContent className="py-12 text-center">
-                            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold text-foreground mb-2">
-                                No Exam Sessions Found
-                            </h3>
-                            <p className="text-muted-foreground mb-6">
-                                {statusFilter !== 'ALL'
-                                    ? `You don't have any ${statusFilter.toLowerCase().replace('_', ' ')} exam sessions`
-                                    : "You haven't started any exams yet"}
-                            </p>
-                            {statusFilter !== 'ALL' ? (
-                                <Button variant="outline" onClick={() => setStatusFilter('ALL')}>
-                                    Show All Sessions
-                                </Button>
-                            ) : (
-                                <Button onClick={() => (window.location.href = '/exams')}>
-                                    Browse Exams
-                                </Button>
-                            )}
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Exam Sessions Grid */}
-                {!isLoading && !error && filteredExams.length > 0 && (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredExams.map((userExam) => (
-                            <UserExamCard key={userExam.id} userExam={userExam} />
-                        ))}
-                    </div>
-                )}
-            </div>
+            ) : (
+                <Card>
+                    <CardContent className="py-12 text-center text-muted-foreground">
+                        No exam sessions found for this filter
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }

@@ -1,64 +1,52 @@
-// src/features/proctoring/types/proctoring.types.ts
+// Webcam state
+export type WebcamState = 'idle' | 'initializing' | 'active' | 'error';
 
-import type { PaginationMeta } from '@/shared/types/api.types';
+// Violation severity
+export type ViolationSeverity = 'LOW' | 'MEDIUM' | 'HIGH';
 
-// ============================================================================
-// PROCTORING REQUEST TYPES
-// ============================================================================
-
-export interface AnalyzeFaceRequest {
-    imageBase64: string; // ✅ Correct property name
-}
-
-// ============================================================================
-// PROCTORING RESPONSE TYPES
-// ============================================================================
-
-export interface AnalyzeFaceResponse {
-    analysis: {
-        status: string;
-        violations: string[];
-        confidence: number;
-        message: string;
-        metadata?: any;
-    };
-    eventLogged: boolean;
-    eventType: string | null;
-    usedFallback?: boolean;
-}
-
-// ============================================================================
-// VIOLATION TYPES
-// ============================================================================
-
-export interface Violation {
-    type: string;
-    severity: 'LOW' | 'MEDIUM' | 'HIGH';
-    timestamp: string;
-    message: string; // ✅ Added message property
-}
-
-// ============================================================================
-// PROCTORING EVENTS TYPES
-// ============================================================================
-
+// Proctoring event
 export interface ProctoringEvent {
     id: number;
     userExamId: number;
-    eventType: 'FACE_DETECTED' | 'NO_FACE_DETECTED' | 'MULTIPLE_FACES' | 'LOOKING_AWAY';
-    severity: 'LOW' | 'MEDIUM' | 'HIGH';
-    metadata: Record<string, any> | null;
+    eventType: string;
+    severity: ViolationSeverity;
     timestamp: string;
+    details: string | null;
+    mlConfidence: number | null;
+    createdAt: string;
 }
 
+// Violation for UI state
+export interface Violation {
+    id: string;
+    type: string;
+    severity: ViolationSeverity;
+    timestamp: number;
+    message: string;
+}
+
+// Pagination
+export interface PaginationMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+}
+
+// API Responses
 export interface ProctoringEventsResponse {
     data: ProctoringEvent[];
     pagination: PaginationMeta;
 }
 
-export interface ProctoringEventsParams {
-    page?: number;
-    limit?: number;
-    eventType?: string;
-    severity?: string;
+export interface AnalyzeFaceRequest {
+    imageBase64: string;
+}
+
+export interface AnalyzeFaceResponse {
+    data: {
+        faceDetected: boolean;
+        violations: string[];
+        confidence: number;
+    };
 }

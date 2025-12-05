@@ -1,18 +1,14 @@
-// src/features/exams/types/exams.types.ts
-
-import type { PaginationMeta } from '@/shared/types/api.types';
-
-// ============================================================================
-// EXAM TYPES
-// ============================================================================
-
+// Exam entity matching backend Prisma schema
 export interface Exam {
     id: number;
     title: string;
     description: string | null;
     durationMinutes: number;
-    isActive: boolean;
-    createdBy: number;
+    passingScore: number;
+    instructions: string | null;
+    isPublished: boolean;
+    startTime: string | null;
+    endTime: string | null;
     createdAt: string;
     updatedAt: string;
     _count?: {
@@ -21,33 +17,34 @@ export interface Exam {
     };
 }
 
+// Pagination metadata matching backend response
+export interface PaginationMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+}
+
+// API response structure with wrapper
 export interface ExamsResponse {
-    data: Exam[]; // ✅ Array of exams
+    data: Exam[];
     pagination: PaginationMeta;
 }
 
 export interface ExamDetailResponse {
-    exam: Exam;
+    data: Exam;
 }
 
-export interface ExamsQueryParams {
-    page?: number;
-    limit?: number;
-    search?: string;
-    isActive?: boolean;
+// Form data for creating/updating exams
+export interface CreateExamRequest {
+    title: string;
+    description?: string;
+    durationMinutes: number;
+    passingScore: number;
+    instructions?: string;
+    isPublished?: boolean;
+    startTime?: string;
+    endTime?: string;
 }
 
-// ============================================================================
-// START EXAM TYPES
-// ============================================================================
-
-export interface StartExamResponse {
-    userExam: {
-        id: number;
-        examId: number;
-        userId: number;
-        status: string;
-        startedAt: string;
-        createdAt: string;
-    };
-}
+export interface UpdateExamRequest extends Partial<CreateExamRequest> {}
