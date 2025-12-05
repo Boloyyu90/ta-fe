@@ -1,50 +1,19 @@
-// src/features/exam-sessions/hooks/useSubmitExam.ts
+// src/features/exam-sessions/hooks/useSubmitAnswer.ts
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
 import { examSessionsApi } from '../api/exam-sessions.api';
-import { toast } from 'sonner';
-import { useEffect } from 'react';
+import type { SubmitAnswerRequest, SubmitAnswerResponse } from '../types/exam-sessions.types';
 
-export function useSubmitExam(sessionId: number) {
-    const router = useRouter();
+/**
+ * Hook to submit answer (auto-save)
+ * POST /api/v1/exam-sessions/:id/answers
+ */
+export function useSubmitAnswer(sessionId: number) {
     const queryClient = useQueryClient();
 
-    const mutation = useMutation({
-        mutationFn: () => examSessionsApi.submitExam(sessionId),
+    return useMutation<SubmitAnswerResponse, Error, SubmitAnswerRequest>({
+        mutationFn: (data) => examSessionsApi.submitAnswer(sessionId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['exam-answers', sessionId] });
+        },
     });
-
-    // Handle success
-    useEffect(() => {
-        if (mutation.isSuccess && mutation.data) {
-            // ✅ FIXED: Correct path - mutation.data is already the unwrapped response
-            // Backend returns: { data: { result: {...} } } (already unwrapped by API client)
-            const { result } = mutation.data.data;
-
-            toast.success('Exam Submitted!', {
-                description: `Your exam has been submitted. Score: ${result.totalScore || 0}`,
-            });
-
-            // Invalidate relevant queries
-            queryClient.invalidateQueries({ queryKey: ['user-exams'] });
-            queryClient.invalidateQueries({ queryKey: ['my-results'] });
-
-            // Redirect to results page
-            router.push(`/results/${result.id}`);
-        }
-    }, [mutation.isSuccess, mutation.data, router, queryClient]);
-
-    // Handle errors
-    useEffect(() => {
-        if (mutation.isError) {
-            const error: any = mutation.error;
-            const errorMessage =
-                error.response?.data?.message || 'Failed to submit exam. Please try again.';
-
-            toast.error('Submission Failed', {
-                description: errorMessage,
-            });
-        }
-    }, [mutation.isError, mutation.error]);
-
-    return mutation;
 }

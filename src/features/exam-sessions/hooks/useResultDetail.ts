@@ -4,7 +4,7 @@ import { examSessionsApi } from '../api/exam-sessions.api';
 import type { ExamSessionDetailResponse } from '../types/exam-sessions.types';
 
 /**
- * Hook to fetch result detail for a specific session
+ * Hook to fetch result detail
  * GET /api/v1/results/:id
  */
 export function useResultDetail(sessionId: number) {

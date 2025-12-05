@@ -4,7 +4,7 @@ import { examSessionsApi } from '../api/exam-sessions.api';
 import type { MyResultsResponse, MyResultsParams } from '../types/exam-sessions.types';
 
 /**
- * Hook to fetch my exam results
+ * Hook to fetch user's results
  * GET /api/v1/results
  */
 export function useMyResults(params?: MyResultsParams) {

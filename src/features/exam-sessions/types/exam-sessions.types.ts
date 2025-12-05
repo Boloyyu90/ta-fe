@@ -1,58 +1,44 @@
 // src/features/exam-sessions/types/exam-sessions.types.ts
 
 /**
- * EXAM SESSIONS TYPES - ALIGNED WITH CURRENT FRONTEND
+ * EXAM SESSIONS TYPES
  *
- * ✅ All exports that are being imported elsewhere
- * ✅ Matches existing backend contract
+ * ✅ Aligned with backend API responses
+ * ✅ Matches actual controller response structure
  */
 
 // ============================================================================
-// ENUMS (EXPORTED - used by components)
+// CORE DOMAIN TYPES
 // ============================================================================
 
-export type QuestionType = 'TIU' | 'TWK' | 'TKP';
-
-export type ExamStatus =
-    | 'NOT_STARTED'
-    | 'IN_PROGRESS'
-    | 'FINISHED'
-    | 'COMPLETED' // Frontend display alias for FINISHED
-    | 'TIMEOUT'
-    | 'CANCELLED';
-
-// ============================================================================
-// BASE ENTITIES
-// ============================================================================
+export type ExamStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+export type QuestionType = 'TWK' | 'TIU' | 'TKP';
+export type UserExamStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'FINISHED' | 'TIMEOUT' | 'CANCELLED' | 'COMPLETED';
 
 /**
- * Question entity from question bank
+ * Question data structure (without correct answer for active exams)
  */
 export interface Question {
     id: number;
-    content: string;
-    optionA: string;
-    optionB: string;
-    optionC: string;
-    optionD: string;
-    optionE: string;
-    correctAnswer: string;
     questionType: QuestionType;
-    imageUrl: string | null;
-    defaultScore: number;
+    content: string;
+    options: {
+        A: string;
+        B: string;
+        C: string;
+        D: string;
+        E: string;
+    };
+    correctAnswer?: string; // Only present after submission
+    imageUrl?: string | null;
 }
 
 /**
- * Exam question (question assigned to exam)
- * ⚠️ IMPORTANT: Has nested `question` property
+ * Exam question with order number
  */
-export interface ExamQuestion {
-    id: number;
-    examId: number;
-    questionId: number;
-    questionOrder: number;
-    score: number;
-    question: Question; // ✅ Nested structure
+export interface ExamQuestion extends Question {
+    examQuestionId: number;
+    orderNumber: number;
 }
 
 /**
@@ -62,13 +48,17 @@ export interface UserExam {
     id: number;
     userId: number;
     examId: number;
-    status: ExamStatus;
-    totalScore: number | null;
+    status: UserExamStatus;
     startedAt: string | null;
     finishedAt: string | null;
+    submittedAt: string | null;
+    totalScore: number | null;
+    answeredQuestions: number;
+    totalQuestions: number;
+    durationMinutes: number;
+    remainingTimeMs: number | null;
     completedAt?: string | null; // ✅ Added for frontend
     timeSpent: number | null;
-    totalQuestions: number | null;
     correctAnswers: number | null;
     createdAt: string;
     exam?: {
@@ -149,52 +139,78 @@ export interface PaginationMeta {
 }
 
 // ============================================================================
-// API RESPONSES
+// API RESPONSES (✅ CORRECTED to match backend controller responses)
 // ============================================================================
 
+/**
+ * GET /api/v1/exam-sessions/:id
+ * Controller sends: { userExam: {...} }
+ */
 export interface ExamSessionDetailResponse {
-    data: {
-        userExam: UserExam;
-        questions: ExamQuestion[];
-        answers: ExamAnswer[];
-    };
+    userExam: UserExam;
 }
 
 export type ExamSessionResponse = ExamSessionDetailResponse;
 
+/**
+ * GET /api/v1/exam-sessions/:id/questions
+ * Controller sends: { questions: [...], total: number }
+ */
 export interface ExamQuestionsResponse {
-    data: ExamQuestion[];
+    questions: ExamQuestion[];
+    total: number;
 }
 
+/**
+ * GET /api/v1/exam-sessions/:id/answers
+ * Controller sends: { answers: [...], total: number }
+ */
 export interface ExamAnswersResponse {
-    data: AnswerWithQuestion[];
+    answers: AnswerWithQuestion[];
+    total: number;
 }
 
+/**
+ * GET /api/v1/exam-sessions OR GET /api/v1/results
+ * Service returns: { data: [...], pagination: {...} }
+ */
 export interface MyResultsResponse {
     data: UserExam[];
     pagination: PaginationMeta;
 }
 
+/**
+ * POST /api/v1/exams/:id/start
+ * Controller sends: { userExam: {...} }
+ */
 export interface StartExamResponse {
-    data: {
-        userExam: UserExam;
-    };
+    userExam: UserExam;
 }
 
+/**
+ * POST /api/v1/exam-sessions/:id/answers
+ * Controller sends: { answer: {...} }
+ */
 export interface SubmitAnswerRequest {
     questionId: number;
     selectedOption: string;
 }
 
 export interface SubmitAnswerResponse {
-    data: ExamAnswer;
+    answer: ExamAnswer;
 }
 
+/**
+ * POST /api/v1/exam-sessions/:id/submit
+ * Controller sends: { result: {...} }
+ */
 export interface SubmitExamResponse {
-    data: {
-        result: UserExam;
-    };
+    result: UserExam;
 }
+
+// ============================================================================
+// REQUEST PARAMS
+// ============================================================================
 
 export interface MyResultsParams {
     page?: number;
@@ -205,5 +221,5 @@ export interface MyResultsParams {
 export interface GetUserExamsParams {
     page?: number;
     limit?: number;
-    status?: ExamStatus;
+    status?: UserExamStatus;
 }
