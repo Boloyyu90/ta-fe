@@ -4,14 +4,21 @@
 import { AlertCircle, Eye, Users, TrendingUp, CheckCircle } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { Card, CardContent } from '@/shared/components/ui/card';
-import type { ProctoringEvent } from '../types/proctoring.types';
+import type { ProctoringEvent, ViolationSeverity } from '../types/proctoring.types';
 
 interface ProctoringEventsListProps {
     events: ProctoringEvent[];
 }
 
+type EventType = 'PROCTORING_STARTED' | 'FACE_DETECTED' | 'NO_FACE_DETECTED' | 'MULTIPLE_FACES' | 'LOOKING_AWAY' | 'EXAM_AUTO_CANCELLED';
+
 export function ProctoringEventsList({ events }: ProctoringEventsListProps) {
-    const eventConfig = {
+    const eventConfig: Record<EventType, {
+        icon: typeof CheckCircle;
+        label: string;
+        color: string;
+        bgColor: string;
+    }> = {
         PROCTORING_STARTED: {
             icon: CheckCircle,
             label: 'Proctoring Started',
@@ -50,7 +57,7 @@ export function ProctoringEventsList({ events }: ProctoringEventsListProps) {
         },
     };
 
-    const severityConfig = {
+    const severityConfig: Record<ViolationSeverity, { label: string; color: string }> = {
         INFO: { label: 'Info', color: 'bg-blue-100 text-blue-700' },
         LOW: { label: 'Low', color: 'bg-yellow-100 text-yellow-700' },
         MEDIUM: { label: 'Medium', color: 'bg-orange-100 text-orange-700' },
@@ -71,7 +78,7 @@ export function ProctoringEventsList({ events }: ProctoringEventsListProps) {
     return (
         <div className="space-y-3">
             {events.map((event) => {
-                const config = eventConfig[event.eventType];
+                const config = eventConfig[event.eventType as EventType] || eventConfig.FACE_DETECTED;
                 const EventIcon = config.icon;
                 const severityStyle = severityConfig[event.severity];
 
@@ -109,12 +116,12 @@ export function ProctoringEventsList({ events }: ProctoringEventsListProps) {
 
                                     {event.mlConfidence !== null && event.mlConfidence !== undefined && (
                                         <div className="mt-2 flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        ML Confidence:
-                      </span>
+                                            <span className="text-xs text-muted-foreground">
+                                                ML Confidence:
+                                            </span>
                                             <span className="text-xs font-semibold">
-                        {(event.mlConfidence * 100).toFixed(1)}%
-                      </span>
+                                                {(event.mlConfidence * 100).toFixed(1)}%
+                                            </span>
                                         </div>
                                     )}
                                 </div>

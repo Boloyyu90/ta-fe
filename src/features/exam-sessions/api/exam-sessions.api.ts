@@ -114,7 +114,6 @@ export const examSessionsApi = {
             queryParams.append('status', status);
         }
 
-        // ✅ FIXED: Changed from /exam-sessions/my-results to /results
         const response = await apiClient.get<ApiResponse<MyResultsResponse>>(
             `/results?${queryParams.toString()}`
         );

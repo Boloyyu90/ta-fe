@@ -15,13 +15,13 @@ export function AnswerOptions({
                                   onSelectAnswer,
                                   disabled = false,
                               }: AnswerOptionsProps) {
-    const options = ['A', 'B', 'C', 'D', 'E'] as const;
+    const options: Array<'A' | 'B' | 'C' | 'D' | 'E'> = ['A', 'B', 'C', 'D', 'E'];
 
     return (
         <div className="space-y-3">
             {options.map((optionKey) => {
-                // ✅ Access nested question.question.options
-                const optionText = question.question.options[optionKey];
+                // ✅ Access nested question properties correctly
+                const optionText = question.question[`option${optionKey}` as keyof typeof question.question];
                 const isSelected = selectedAnswer === optionKey;
 
                 return (
@@ -39,7 +39,7 @@ export function AnswerOptions({
                     >
                         <div className="flex items-start gap-3">
                             <span className="font-bold">{optionKey}.</span>
-                            <span>{optionText}</span>
+                            <span>{optionText as string}</span>
                         </div>
                     </button>
                 );

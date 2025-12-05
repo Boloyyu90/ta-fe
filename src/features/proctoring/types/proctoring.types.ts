@@ -1,8 +1,15 @@
-// Webcam state
-export type WebcamState = 'idle' | 'initializing' | 'active' | 'error';
+// src/features/proctoring/types/proctoring.types.ts
+
+// Webcam state - changed from union to object interface
+export interface WebcamState {
+    isActive: boolean;
+    stream: MediaStream | null;
+    error: string | null;
+    lastCapture: string | null;
+}
 
 // Violation severity
-export type ViolationSeverity = 'LOW' | 'MEDIUM' | 'HIGH';
+export type ViolationSeverity = 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH';
 
 // Proctoring event
 export interface ProctoringEvent {
@@ -21,7 +28,7 @@ export interface Violation {
     id: string;
     type: string;
     severity: ViolationSeverity;
-    timestamp: number;
+    timestamp: string;
     message: string;
 }
 
@@ -31,6 +38,14 @@ export interface PaginationMeta {
     limit: number;
     total: number;
     totalPages: number;
+}
+
+// Query params for events
+export interface ProctoringEventsParams {
+    page?: number;
+    limit?: number;
+    eventType?: string;
+    severity?: ViolationSeverity;
 }
 
 // API Responses
@@ -45,8 +60,12 @@ export interface AnalyzeFaceRequest {
 
 export interface AnalyzeFaceResponse {
     data: {
-        faceDetected: boolean;
-        violations: string[];
-        confidence: number;
+        analysis: {
+            faceDetected: boolean;
+            violations: string[];
+            message: string;
+            confidence: number;
+        };
+        eventLogged: boolean;
     };
 }

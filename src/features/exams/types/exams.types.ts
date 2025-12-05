@@ -1,12 +1,15 @@
-// Exam entity matching backend Prisma schema
+// src/features/exams/types/exams.types.ts
+
+import type { UserExam } from '@/features/exam-sessions/types/exam-sessions.types';
+
+// Exam entity
 export interface Exam {
     id: number;
     title: string;
     description: string | null;
     durationMinutes: number;
     passingScore: number;
-    instructions: string | null;
-    isPublished: boolean;
+    isActive: boolean; // ✅ Added
     startTime: string | null;
     endTime: string | null;
     createdAt: string;
@@ -17,7 +20,7 @@ export interface Exam {
     };
 }
 
-// Pagination metadata matching backend response
+// Pagination
 export interface PaginationMeta {
     page: number;
     limit: number;
@@ -25,7 +28,17 @@ export interface PaginationMeta {
     totalPages: number;
 }
 
-// API response structure with wrapper
+// Query params
+export interface ExamsQueryParams {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: 'active' | 'inactive' | 'all';
+    sortBy?: 'title' | 'createdAt' | 'durationMinutes';
+    sortOrder?: 'asc' | 'desc';
+}
+
+// API Responses
 export interface ExamsResponse {
     data: Exam[];
     pagination: PaginationMeta;
@@ -35,16 +48,8 @@ export interface ExamDetailResponse {
     data: Exam;
 }
 
-// Form data for creating/updating exams
-export interface CreateExamRequest {
-    title: string;
-    description?: string;
-    durationMinutes: number;
-    passingScore: number;
-    instructions?: string;
-    isPublished?: boolean;
-    startTime?: string;
-    endTime?: string;
+export interface StartExamResponse {
+    data: {
+        userExam: UserExam;
+    };
 }
-
-export interface UpdateExamRequest extends Partial<CreateExamRequest> {}

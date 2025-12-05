@@ -21,52 +21,67 @@ interface UserExamCardProps {
     userExam: UserExam;
 }
 
+type StatusConfig = {
+    label: string;
+    color: string;
+    icon: typeof CheckCircle;
+};
+
+const statusConfig: Record<ExamStatus, StatusConfig> = {
+    NOT_STARTED: {
+        label: 'Not Started',
+        color: 'bg-gray-100 text-gray-700 dark:bg-gray-950 dark:text-gray-400',
+        icon: Clock4,
+    },
+    IN_PROGRESS: {
+        label: 'In Progress',
+        color: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
+        icon: PlayCircle,
+    },
+    FINISHED: {
+        label: 'Finished',
+        color: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
+        icon: CheckCircle,
+    },
+    COMPLETED: {
+        label: 'Completed',
+        color: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
+        icon: CheckCircle,
+    },
+    TIMEOUT: {
+        label: 'Timeout',
+        color: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400',
+        icon: Clock,
+    },
+    CANCELLED: {
+        label: 'Cancelled',
+        color: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+        icon: AlertTriangle,
+    },
+};
+
 export function UserExamCard({ userExam }: UserExamCardProps) {
     const router = useRouter();
-
-    const statusConfig: Record<
-        ExamStatus,
-        {
-            label: string;
-            color: string;
-            icon: typeof CheckCircle;
-        }
-    > = {
-        NOT_STARTED: {
-            label: 'Not Started',
-            color: 'bg-gray-100 text-gray-700 dark:bg-gray-950 dark:text-gray-400',
-            icon: Clock4,
-        },
-        IN_PROGRESS: {
-            label: 'In Progress',
-            color: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
-            icon: PlayCircle,
-        },
-        COMPLETED: {
-            label: 'Completed',
-            color: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
-            icon: CheckCircle,
-        },
-        CANCELLED: {
-            label: 'Cancelled',
-            color: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
-            icon: AlertTriangle,
-        },
-    };
 
     const status = statusConfig[userExam.status];
     const StatusIcon = status.icon;
 
     // Safe calculation with null checks
     const progressPercentage =
-        userExam.totalQuestions && userExam.totalQuestions > 0 && userExam.correctAnswers !== null
+        userExam.totalQuestions &&
+        userExam.totalQuestions > 0 &&
+        userExam.correctAnswers !== null &&
+        userExam.correctAnswers !== undefined
             ? (userExam.correctAnswers / userExam.totalQuestions) * 100
             : 0;
+
+    const isCompleted =
+        userExam.status === 'COMPLETED' || userExam.status === 'FINISHED';
 
     const handleClick = () => {
         if (userExam.status === 'IN_PROGRESS') {
             router.push(`/exam-sessions/${userExam.id}/take`);
-        } else if (userExam.status === 'COMPLETED') {
+        } else if (isCompleted) {
             router.push(`/results/${userExam.id}`);
         }
     };
@@ -86,7 +101,7 @@ export function UserExamCard({ userExam }: UserExamCardProps) {
                         </Badge>
                     </div>
 
-                    {userExam.status === 'COMPLETED' && userExam.totalScore !== null && (
+                    {isCompleted && userExam.totalScore !== null && (
                         <div className="text-right ml-4">
                             <div className="text-2xl font-bold text-primary">
                                 {userExam.totalScore}
@@ -98,30 +113,32 @@ export function UserExamCard({ userExam }: UserExamCardProps) {
 
                 {/* Exam Info */}
                 <div className="space-y-2 mb-4">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>
-                            Started:{' '}
-                            {new Date(userExam.startedAt).toLocaleDateString('id-ID', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                            })}
-                        </span>
-                    </div>
+                    {userExam.startedAt && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>
+                Started:{' '}
+                                {new Date(userExam.startedAt).toLocaleDateString('id-ID', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                })}
+              </span>
+                        </div>
+                    )}
 
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Clock className="h-4 w-4" />
                         <span>Duration: {userExam.exam.durationMinutes} minutes</span>
                     </div>
 
-                    {userExam.status === 'COMPLETED' && userExam.completedAt && (
+                    {isCompleted && userExam.completedAt && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <CheckCircle className="h-4 w-4" />
                             <span>
-                                Completed:{' '}
+                Completed:{' '}
                                 {new Date(userExam.completedAt).toLocaleDateString('id-ID', {
                                     day: 'numeric',
                                     month: 'short',
@@ -129,22 +146,24 @@ export function UserExamCard({ userExam }: UserExamCardProps) {
                                     hour: '2-digit',
                                     minute: '2-digit',
                                 })}
-                            </span>
+              </span>
                         </div>
                     )}
                 </div>
 
                 {/* Progress Bar for Completed Exams */}
-                {userExam.status === 'COMPLETED' &&
+                {isCompleted &&
                     userExam.correctAnswers !== null &&
-                    userExam.totalQuestions !== null && (
+                    userExam.correctAnswers !== undefined &&
+                    userExam.totalQuestions !== null &&
+                    userExam.totalQuestions !== undefined && (
                         <div className="space-y-2">
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-muted-foreground">Accuracy</span>
                                 <span className="font-semibold">
-                                    {userExam.correctAnswers}/{userExam.totalQuestions} (
+                  {userExam.correctAnswers}/{userExam.totalQuestions} (
                                     {progressPercentage.toFixed(0)}%)
-                                </span>
+                </span>
                             </div>
                             <Progress value={progressPercentage} className="h-2" />
                         </div>
@@ -155,7 +174,11 @@ export function UserExamCard({ userExam }: UserExamCardProps) {
                 <Button
                     className="w-full"
                     onClick={handleClick}
-                    disabled={userExam.status === 'NOT_STARTED' || userExam.status === 'CANCELLED'}
+                    disabled={
+                        userExam.status === 'NOT_STARTED' ||
+                        userExam.status === 'CANCELLED' ||
+                        userExam.status === 'TIMEOUT'
+                    }
                 >
                     {userExam.status === 'IN_PROGRESS' && (
                         <>
@@ -163,19 +186,24 @@ export function UserExamCard({ userExam }: UserExamCardProps) {
                             Continue Exam
                         </>
                     )}
-                    {userExam.status === 'COMPLETED' && (
+
+                    {isCompleted && (
                         <>
                             View Results
                             <ChevronRight className="h-4 w-4 ml-2" />
                         </>
                     )}
-                    {userExam.status === 'CANCELLED' && (
+
+                    {userExam.status === 'CANCELLED' && !isCompleted && (
                         <>
                             <AlertTriangle className="h-4 w-4 mr-2" />
                             Cancelled
                         </>
                     )}
+
                     {userExam.status === 'NOT_STARTED' && 'Not Available'}
+
+                    {userExam.status === 'TIMEOUT' && !isCompleted && 'Timeout'}
                 </Button>
             </CardFooter>
         </Card>

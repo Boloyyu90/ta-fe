@@ -25,7 +25,7 @@ interface ProctoringState {
     reset: () => void;
 }
 
-const initialState = {
+const initialState: Omit<ProctoringState, 'setWebcam' | 'addViolation' | 'setWarningLevel' | 'startMonitoring' | 'stopMonitoring' | 'reset'> = {
     webcam: {
         isActive: false,
         stream: null,

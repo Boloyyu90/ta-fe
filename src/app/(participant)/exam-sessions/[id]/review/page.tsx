@@ -1,250 +1,164 @@
+// src/app/(participant)/exam-sessions/[id]/review/page.tsx
 'use client';
 
-import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { examSessionsApi } from '@/features/exam-sessions/api/exam-sessions.api';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import type { QuestionType, ExamAnswer } from '@/features/exam-sessions/types/exam-sessions.types';
+import { useExamAnswers } from '@/features/exam-sessions/hooks/useExamAnswers';
+import { useExamSession } from '@/features/exam-sessions/hooks/useExamSession';
+import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { Badge } from '@/shared/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
+import { Skeleton } from '@/shared/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/shared/components/ui/alert';
+import { ArrowLeft, CheckCircle, XCircle, Circle } from 'lucide-react';
+import { AnswerReviewCard } from '@/features/exam-sessions/components';
+import Link from 'next/link';
+import type { AnswerWithQuestion, QuestionType } from '@/features/exam-sessions/types/exam-sessions.types';
 
-type FilterType = 'ALL' | QuestionType;
+type FilterType = 'all' | 'correct' | 'incorrect' | 'unanswered';
 
-export default function ReviewAnswersPage() {
+export default function ReviewExamPage() {
     const params = useParams();
-    const userExamId = Number(params.id);
-    const [filterType, setFilterType] = useState<FilterType>('ALL');
+    const router = useRouter();
+    const sessionId = parseInt(params.id as string);
 
-    const { data, isLoading, error } = useQuery({
-        queryKey: ['exam-session', userExamId],
-        queryFn: () => examSessionsApi.getExamSession(userExamId),
-    });
+    const [filterType, setFilterType] = useState<FilterType>('all');
 
-    if (isLoading) {
+    const { data: sessionData, isLoading: sessionLoading } = useExamSession(sessionId);
+    const { data: answersData, isLoading: answersLoading } = useExamAnswers(sessionId);
+
+    if (sessionLoading || answersLoading) {
         return (
-            <div className="container py-8">
-                <Skeleton className="h-8 w-64 mb-6" />
-                <Skeleton className="h-96 w-full" />
+            <div className="container mx-auto py-8 space-y-6">
+                <Skeleton className="h-8 w-64" />
+                <Skeleton className="h-64" />
             </div>
         );
     }
 
-    if (error || !data) {
+    const session = sessionData?.data?.userExam;
+    const answers = answersData?.data || [];
+
+    if (!session) {
         return (
-            <div className="container py-8">
+            <div className="container mx-auto py-8">
                 <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>Failed to load exam review</AlertDescription>
+                    <AlertDescription>Exam session not found.</AlertDescription>
                 </Alert>
             </div>
         );
     }
 
-    const { userExam, answers } = data.data;
-
-    // Filter answers based on selected type
-    const filteredAnswers = answers.filter((answer) => {
-        if (filterType !== 'ALL' && answer.question.questionType !== filterType) return false;
+    // Filter answers
+    const filteredAnswers = answers.filter((answer: AnswerWithQuestion) => {
+        if (filterType === 'all') return true;
+        if (filterType === 'correct') return answer.isCorrect;
+        if (filterType === 'incorrect') return !answer.isCorrect && answer.selectedOption;
+        if (filterType === 'unanswered') return !answer.selectedOption;
         return true;
     });
 
-    // Calculate statistics by question type
-    const stats = answers.reduce((acc, answer) => {
-        const qType = answer.question.questionType;
-        if (!acc[qType]) {
-            acc[qType] = { correct: 0, total: 0, score: 0 };
-        }
-        acc[qType].total++;
-        if (answer.isCorrect) {
-            acc[qType].correct++;
-            acc[qType].score += answer.score ?? 0;
-        }
-        return acc;
-    }, {} as Record<QuestionType, { correct: number; total: number; score: number }>);
-
-    const typeColors: Record<QuestionType, string> = {
-        TIU: 'bg-blue-100 text-blue-800',
-        TWK: 'bg-green-100 text-green-800',
-        TKP: 'bg-purple-100 text-purple-800',
+    const stats = {
+        total: answers.length,
+        correct: answers.filter((a: AnswerWithQuestion) => a.isCorrect).length,
+        incorrect: answers.filter((a: AnswerWithQuestion) => !a.isCorrect && a.selectedOption).length,
+        unanswered: answers.filter((a: AnswerWithQuestion) => !a.selectedOption).length,
     };
 
     return (
-        <div className="container py-8">
+        <div className="container mx-auto py-8 space-y-6">
+            {/* Back Button */}
+            <Button variant="ghost" asChild>
+                <Link href="/results">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Results
+                </Link>
+            </Button>
+
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/results/${userExamId}`}>
-                            <ArrowLeft className="w-4 h-4 mr-2" />
-                            Back to Results
-                        </Link>
-                    </Button>
-                    <h1 className="text-2xl font-bold">Review Answers</h1>
-                </div>
+            <div>
+                <h1 className="text-3xl font-bold text-foreground">{session.exam.title}</h1>
+                <p className="text-muted-foreground mt-2">Review your answers</p>
             </div>
 
-            {/* Summary Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                {(['TIU', 'TWK', 'TKP'] as QuestionType[]).map((type) => {
-                    const typeStat = stats[type] || { correct: 0, total: 0, score: 0 };
-                    const accuracy =
-                        typeStat.total > 0
-                            ? ((typeStat.correct / typeStat.total) * 100).toFixed(1)
-                            : '0.0';
+            {/* Summary Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium">Total Score</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{session.totalScore || 0}</div>
+                    </CardContent>
+                </Card>
 
-                    return (
-                        <Card key={type}>
-                            <CardHeader>
-                                <div className="flex items-center justify-between">
-                                    <CardTitle className="text-lg">{type}</CardTitle>
-                                    <Badge className={typeColors[type]}>{type}</Badge>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Correct:</span>
-                                        <span className="font-medium">
-                      {typeStat.correct}/{typeStat.total}
-                    </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Accuracy:</span>
-                                        <span className="font-medium">{accuracy}%</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Score:</span>
-                                        <span className="font-medium">{typeStat.score}</span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    );
-                })}
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            Correct
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-green-600">{stats.correct}</div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                            <XCircle className="h-4 w-4 text-red-600" />
+                            Incorrect
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-red-600">{stats.incorrect}</div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                            <Circle className="h-4 w-4 text-muted-foreground" />
+                            Unanswered
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-muted-foreground">
+                            {stats.unanswered}
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Filter Tabs */}
             <Tabs value={filterType} onValueChange={(v) => setFilterType(v as FilterType)} className="mb-6">
                 <TabsList>
-                    <TabsTrigger value="ALL">All ({answers.length})</TabsTrigger>
-                    {(['TIU', 'TWK', 'TKP'] as QuestionType[]).map((type) => {
-                        const count = answers.filter((a) => a.question.questionType === type).length;
-                        return (
-                            <TabsTrigger key={type} value={type}>
-                                {type} ({count})
-                            </TabsTrigger>
-                        );
-                    })}
+                    <TabsTrigger value="all">All ({stats.total})</TabsTrigger>
+                    <TabsTrigger value="correct">Correct ({stats.correct})</TabsTrigger>
+                    <TabsTrigger value="incorrect">Incorrect ({stats.incorrect})</TabsTrigger>
+                    <TabsTrigger value="unanswered">Unanswered ({stats.unanswered})</TabsTrigger>
                 </TabsList>
-            </Tabs>
 
-            {/* Answers List */}
-            <div className="space-y-4">
-                {filteredAnswers.map((answer, index) => {
-                    const question = answer.question;
-                    const optionLabels = ['A', 'B', 'C', 'D', 'E'];
-                    const options = [
-                        question.optionA,
-                        question.optionB,
-                        question.optionC,
-                        question.optionD,
-                        question.optionE,
-                    ];
+                <TabsContent value={filterType} className="space-y-6 mt-6">
+                    {filteredAnswers.map((answer: AnswerWithQuestion, index: number) => (
+                        <AnswerReviewCard
+                            key={answer.id}
+                            answer={answer}
+                            questionNumber={answers.findIndex((a: AnswerWithQuestion) => a.id === answer.id) + 1}
+                        />
+                    ))}
 
-                    return (
-                        <Card key={answer.questionId} className={answer.isCorrect ? 'border-green-500' : 'border-red-500'}>
-                            <CardHeader>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                    <span className="text-lg font-bold text-muted-foreground">
-                      #{index + 1}
-                    </span>
-                                        <Badge className={typeColors[question.questionType]}>
-                                            {question.questionType}
-                                        </Badge>
-                                        {answer.isCorrect ? (
-                                            <Badge variant="outline" className="bg-green-100 text-green-800">
-                                                <CheckCircle className="w-3 h-3 mr-1" />
-                                                Correct
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant="outline" className="bg-red-100 text-red-800">
-                                                <XCircle className="w-3 h-3 mr-1" />
-                                                Incorrect
-                                            </Badge>
-                                        )}
-                                    </div>
-                                    <Badge variant="outline">{answer.score ?? 0} pts</Badge>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {/* Question Content */}
-                                <div>
-                                    <p className="font-medium mb-3">{question.content}</p>
-                                </div>
-
-                                {/* Options */}
-                                <div className="space-y-2">
-                                    {options.map((option, idx) => {
-                                        const isSelected = answer.selectedOption === optionLabels[idx];
-                                        const isCorrect = question.correctAnswer === optionLabels[idx];
-
-                                        return (
-                                            <div
-                                                key={optionLabels[idx]}
-                                                className={`flex items-start gap-3 p-3 border rounded-lg ${
-                                                    isCorrect
-                                                        ? 'bg-green-50 border-green-500'
-                                                        : isSelected
-                                                            ? 'bg-red-50 border-red-500'
-                                                            : ''
-                                                }`}
-                                            >
-                                                <div
-                                                    className={`flex items-center justify-center w-6 h-6 rounded-full border font-medium text-sm ${
-                                                        isCorrect
-                                                            ? 'bg-green-500 text-white border-green-500'
-                                                            : isSelected
-                                                                ? 'bg-red-500 text-white border-red-500'
-                                                                : 'bg-white'
-                                                    }`}
-                                                >
-                                                    {optionLabels[idx]}
-                                                </div>
-                                                <p className="flex-1">{option}</p>
-                                                {isCorrect && (
-                                                    <Badge variant="outline" className="bg-green-100 text-green-800">
-                                                        Correct Answer
-                                                    </Badge>
-                                                )}
-                                                {isSelected && !isCorrect && (
-                                                    <Badge variant="outline" className="bg-red-100 text-red-800">
-                                                        Your Answer
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                    {filteredAnswers.length === 0 && (
+                        <Card>
+                            <CardContent className="py-12 text-center">
+                                <p className="text-muted-foreground">No answers in this category</p>
                             </CardContent>
                         </Card>
-                    );
-                })}
-            </div>
-
-            {filteredAnswers.length === 0 && (
-                <Card>
-                    <CardContent className="py-8 text-center text-muted-foreground">
-                        No answers found for this filter
-                    </CardContent>
-                </Card>
-            )}
+                    )}
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

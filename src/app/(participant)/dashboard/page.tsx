@@ -1,23 +1,21 @@
+// src/app/(participant)/dashboard/page.tsx
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { examsApi } from '@/features/exams/api/exams.api';
-import { examSessionsApi } from '@/features/exam-sessions/api/exam-sessions.api';
-import { useAuthStore } from '@/features/auth/store/auth.store';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { BookOpen, Clock, Award, TrendingUp, ArrowRight } from 'lucide-react';
+import { useAuthStore } from '@/features/auth/stores/auth.store';
+import { useUserExams } from '@/features/exam-sessions/hooks/useUserExams';
+import { useExams } from '@/features/exams/hooks/useExams';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { Button } from '@/shared/components/ui/button';
+import { Skeleton } from '@/shared/components/ui/skeleton';
+import { BookOpen, ClipboardList, Trophy, TrendingUp, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import type { UserExam } from '@/features/exam-sessions/types/exam-sessions.types';
-import type { Exam } from '@/features/exams/types/exams.types';
 
 interface ExamQuickCardProps {
     exam: {
         id: number;
         title: string;
         durationMinutes: number;
-        _count: {
+        _count?: {
             examQuestions: number;
         };
     };
@@ -25,25 +23,19 @@ interface ExamQuickCardProps {
 
 function ExamQuickCard({ exam }: ExamQuickCardProps) {
     return (
-        <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-                <CardTitle className="text-lg">{exam.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-2 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4" />
-                        <span>{exam.durationMinutes} minutes</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <BookOpen className="w-4 h-4" />
-                        <span>{exam._count.examQuestions} questions</span>
-                    </div>
+        <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+                <h3 className="font-semibold text-foreground mb-2 line-clamp-1">
+                    {exam.title}
+                </h3>
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>{exam.durationMinutes} min</span>
+                    <span>{exam._count?.examQuestions || 0} questions</span>
                 </div>
-                <Button asChild className="w-full mt-4">
+                <Button asChild size="sm" className="w-full mt-3">
                     <Link href={`/exams/${exam.id}`}>
                         View Details
-                        <ArrowRight className="w-4 h-4 ml-2" />
+                        <ArrowRight className="h-4 w-4 ml-2" />
                     </Link>
                 </Button>
             </CardContent>
@@ -51,210 +43,166 @@ function ExamQuickCard({ exam }: ExamQuickCardProps) {
     );
 }
 
-export default function ParticipantDashboard() {
+export default function DashboardPage() {
     const { user } = useAuthStore();
-
-    // Fetch available exams
-    const { data: examsData, isLoading: examsLoading } = useQuery({
-        queryKey: ['exams', { page: 1, limit: 6 }],
-        queryFn: () => examsApi.getExams({ page: 1, limit: 6 }),
-    });
-
-    // Fetch user's exam sessions
-    const { data: sessionsData, isLoading: sessionsLoading } = useQuery({
-        queryKey: ['my-results'],
-        queryFn: () => examSessionsApi.getMyResults({ page: 1, limit: 10 }),
-    });
-
-    // Calculate statistics
-    const stats = {
-        totalExams: examsData?.pagination?.total || 0,
-        completedExams:
-            sessionsData?.data.filter((s) => s.status === 'FINISHED').length || 0,
-        averageScore:
-            sessionsData?.data.reduce((acc, s) => acc + (s.totalScore || 0), 0) /
-            (sessionsData?.data.filter((s) => s.totalScore !== null).length || 1) || 0,
-        totalTimeSpent:
-            sessionsData?.data.reduce((acc, s) => acc + (s.timeSpent || 0), 0) || 0,
-    };
+    const { data: examsData, isLoading: examsLoading } = useExams({ page: 1, limit: 3 });
+    const { data: sessionsData, isLoading: sessionsLoading } = useUserExams({ page: 1, limit: 10 });
 
     const exams = examsData?.data || [];
-    const recentSessions = sessionsData?.data.slice(0, 3) || [];
+    const sessions = sessionsData?.data || [];
+
+    // Calculate stats
+    const totalExamsTaken = sessions.length;
+    const completedExams = sessions.filter(s => s.status === 'FINISHED').length;
+    const inProgressExams = sessions.filter(s => s.status === 'IN_PROGRESS').length;
+    const avgScore = completedExams > 0
+        ? Math.round(
+            (sessionsData?.data || [])
+                .filter(s => s.status === 'FINISHED')
+                .reduce((acc, s) => acc + (s.totalScore || 0), 0) / completedExams
+        )
+        : 0;
 
     return (
-        <div className="container py-8">
+        <div className="container mx-auto py-8 space-y-8">
             {/* Welcome Section */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold mb-2">
-                    Welcome back, {user?.fullName}!
+            <div>
+                <h1 className="text-3xl font-bold text-foreground">
+                    Welcome back, {user?.email || 'User'}!
                 </h1>
-                <p className="text-muted-foreground">
-                    Here's your exam progress overview
+                <p className="text-muted-foreground mt-2">
+                    Here's an overview of your exam activity
                 </p>
             </div>
 
-            {/* Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">
-                            Available Exams
-                        </CardTitle>
-                        <BookOpen className="h-4 w-4 text-muted-foreground" />
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Exams</CardTitle>
+                        <ClipboardList className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        {examsLoading ? (
-                            <Skeleton className="h-8 w-16" />
-                        ) : (
-                            <div className="text-2xl font-bold">{stats.totalExams}</div>
-                        )}
+                        <div className="text-2xl font-bold">{totalExamsTaken}</div>
+                        <p className="text-xs text-muted-foreground">Exams taken</p>
                     </CardContent>
                 </Card>
 
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">
-                            Completed Exams
-                        </CardTitle>
-                        <Award className="h-4 w-4 text-muted-foreground" />
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Completed</CardTitle>
+                        <Trophy className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        {sessionsLoading ? (
-                            <Skeleton className="h-8 w-16" />
-                        ) : (
-                            <div className="text-2xl font-bold">{stats.completedExams}</div>
-                        )}
+                        <div className="text-2xl font-bold">{completedExams}</div>
+                        <p className="text-xs text-muted-foreground">Finished exams</p>
                     </CardContent>
                 </Card>
 
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">
-                            Average Score
-                        </CardTitle>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">In Progress</CardTitle>
                         <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        {sessionsLoading ? (
-                            <Skeleton className="h-8 w-16" />
-                        ) : (
-                            <div className="text-2xl font-bold">
-                                {stats.averageScore.toFixed(1)}
-                            </div>
-                        )}
+                        <div className="text-2xl font-bold">{inProgressExams}</div>
+                        <p className="text-xs text-muted-foreground">Active exams</p>
                     </CardContent>
                 </Card>
 
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">
-                            Total Time Spent
-                        </CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Average Score</CardTitle>
+                        <BookOpen className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        {sessionsLoading ? (
-                            <Skeleton className="h-8 w-16" />
-                        ) : (
-                            <div className="text-2xl font-bold">
-                                {Math.floor(stats.totalTimeSpent / 60)}h
-                            </div>
-                        )}
+                        <div className="text-2xl font-bold">{avgScore}</div>
+                        <p className="text-xs text-muted-foreground">Points average</p>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Available Exams Section */}
-            <div className="mb-8">
+            {/* Available Exams */}
+            <div>
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-2xl font-bold">Available Exams</h2>
-                    <Button variant="outline" asChild>
-                        <Link href="/exams">View All</Link>
+                    <h2 className="text-2xl font-bold text-foreground">Available Exams</h2>
+                    <Button asChild variant="outline">
+                        <Link href="/exams">
+                            View All
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                        </Link>
                     </Button>
                 </div>
 
                 {examsLoading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {[1, 2, 3].map((i) => (
-                            <Card key={i}>
-                                <CardHeader>
-                                    <Skeleton className="h-6 w-3/4" />
-                                </CardHeader>
-                                <CardContent>
-                                    <Skeleton className="h-4 w-full mb-2" />
-                                    <Skeleton className="h-4 w-2/3" />
-                                </CardContent>
-                            </Card>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {[...Array(3)].map((_, i) => (
+                            <Skeleton key={i} className="h-40" />
                         ))}
                     </div>
                 ) : exams.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {exams.map((exam) => (
                             <ExamQuickCard
                                 key={exam.id}
-                                exam={
-                                    exam._count
-                                        ? exam
-                                        : { ...exam, _count: { examQuestions: 0, userExams: 0 } }
-                                }
+                                exam={exam}
                             />
                         ))}
                     </div>
                 ) : (
                     <Card>
-                        <CardContent className="py-8 text-center text-muted-foreground">
-                            No exams available at the moment
+                        <CardContent className="py-12 text-center">
+                            <p className="text-muted-foreground">No exams available</p>
                         </CardContent>
                     </Card>
                 )}
             </div>
 
-            {/* Recent Activity Section */}
+            {/* Recent Activity */}
             <div>
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-2xl font-bold">Recent Activity</h2>
-                    <Button variant="outline" asChild>
-                        <Link href="/results">View All Results</Link>
+                    <h2 className="text-2xl font-bold text-foreground">Recent Activity</h2>
+                    <Button asChild variant="outline">
+                        <Link href="/exam-sessions">
+                            View All Sessions
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                        </Link>
                     </Button>
                 </div>
 
                 {sessionsLoading ? (
-                    <div className="space-y-4">
-                        {[1, 2, 3].map((i) => (
-                            <Card key={i}>
-                                <CardContent className="py-4">
-                                    <Skeleton className="h-4 w-full mb-2" />
-                                    <Skeleton className="h-4 w-2/3" />
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                ) : recentSessions.length > 0 ? (
-                    <div className="space-y-4">
-                        {recentSessions.map((session: UserExam) => (
-                            <Card key={session.id}>
-                                <CardContent className="py-4">
-                                    <div className="flex items-center justify-between">
+                    <Skeleton className="h-64" />
+                ) : sessions.length > 0 ? (
+                    <Card>
+                        <CardContent className="p-6">
+                            <div className="space-y-4">
+                                {sessions.slice(0, 5).map((session) => (
+                                    <div
+                                        key={session.id}
+                                        className="flex items-center justify-between py-3 border-b last:border-0"
+                                    >
                                         <div>
-                                            <h3 className="font-semibold">{session.exam.title}</h3>
+                                            <p className="font-medium">{session.exam.title}</p>
                                             <p className="text-sm text-muted-foreground">
-                                                Status: {session.status}
-                                                {session.totalScore !== null &&
-                                                    ` • Score: ${session.totalScore}`}
+                                                {session.status === 'FINISHED' && `Score: ${session.totalScore || 0}`}
+                                                {session.status === 'IN_PROGRESS' && 'In Progress'}
+                                                {session.status === 'CANCELLED' && 'Cancelled'}
                                             </p>
                                         </div>
-                                        <Button variant="outline" size="sm" asChild>
-                                            <Link href={`/results/${session.id}`}>View Details</Link>
+                                        <Button asChild variant="ghost" size="sm">
+                                            <Link href={`/exam-sessions/${session.id}`}>
+                                                View
+                                            </Link>
                                         </Button>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
                 ) : (
                     <Card>
-                        <CardContent className="py-8 text-center text-muted-foreground">
-                            No recent activity
+                        <CardContent className="py-12 text-center">
+                            <p className="text-muted-foreground">No recent activity</p>
                         </CardContent>
                     </Card>
                 )}

@@ -11,7 +11,7 @@ export function useExamSession(sessionId: number, enabled = true) {
         refetchInterval: (query) => {
             // Refetch every 10 seconds if exam is IN_PROGRESS
             const data = query.state.data;
-            return data?.userExam.status === 'IN_PROGRESS' ? 10000 : false;
+            return data?.data?.userExam?.status === 'IN_PROGRESS' ? 10000 : false;
         },
     });
 }

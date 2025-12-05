@@ -1,3 +1,5 @@
+// src/features/exam-sessions/types/exam-sessions.types.ts
+
 // Question types
 export type QuestionType = 'TIU' | 'TWK' | 'TKP';
 
@@ -6,6 +8,7 @@ export type ExamStatus =
     | 'NOT_STARTED'
     | 'IN_PROGRESS'
     | 'FINISHED'
+    | 'COMPLETED' // ✅ Added for frontend display
     | 'TIMEOUT'
     | 'CANCELLED';
 
@@ -43,6 +46,7 @@ export interface UserExam {
     totalScore: number | null;
     startedAt: string | null;
     finishedAt: string | null;
+    completedAt?: string | null; // ✅ Added
     timeSpent: number | null;
     totalQuestions: number | null;
     correctAnswers: number | null;
@@ -66,9 +70,25 @@ export interface ExamAnswer {
     question: Question;
 }
 
-// Extended answer with question details
-export interface AnswerWithQuestion extends ExamAnswer {
-    question: Question;
+// Extended answer with flattened question details for easier UI access
+export interface AnswerWithQuestion {
+    id: number;
+    userExamId: number;
+    questionId: number;
+    selectedOption: string | null;
+    isCorrect: boolean;
+    score: number;
+    // Flattened question properties
+    questionType: QuestionType;
+    questionContent: string;
+    correctAnswer: string;
+    options: {
+        A: string;
+        B: string;
+        C: string;
+        D: string;
+        E: string;
+    };
 }
 
 // Exam session list item
@@ -80,6 +100,9 @@ export interface ExamSessionListItem {
     totalScore: number | null;
     startedAt: string | null;
     finishedAt: string | null;
+    completedAt?: string | null; // ✅ Added
+    correctAnswers?: number | null; // ✅ Added
+    totalQuestions?: number | null; // ✅ Added
     exam: {
         title: string;
         durationMinutes: number;
@@ -106,9 +129,24 @@ export interface ExamSessionDetailResponse {
 // Alias for backward compatibility
 export type ExamSessionResponse = ExamSessionDetailResponse;
 
+// ✅ Added missing types
+export interface ExamQuestionsResponse {
+    data: ExamQuestion[];
+}
+
+export interface ExamAnswersResponse {
+    data: AnswerWithQuestion[];
+}
+
 export interface MyResultsResponse {
     data: UserExam[];
     pagination: PaginationMeta;
+}
+
+export interface MyResultsParams {
+    page?: number;
+    limit?: number;
+    status?: 'COMPLETED' | 'CANCELLED';
 }
 
 export interface StartExamResponse {
@@ -124,6 +162,12 @@ export interface SubmitAnswerRequest {
 
 export interface SubmitAnswerResponse {
     data: ExamAnswer;
+}
+
+export interface SubmitExamResponse {
+    data: {
+        result: UserExam;
+    };
 }
 
 export interface FinishExamResponse {

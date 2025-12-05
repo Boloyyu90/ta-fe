@@ -42,7 +42,7 @@ export function ProctoringMonitor({
 
     const handleFrameCapture = (imageBase64: string) => {
         if (!isPending) {
-            analyzeFace.mutate({ imageBase64 });
+            analyzeFace({ imageBase64 });
         }
     };
 

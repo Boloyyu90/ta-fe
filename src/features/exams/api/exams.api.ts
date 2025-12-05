@@ -2,19 +2,19 @@
 import { apiClient } from '@/shared/lib/api';
 import type { ApiResponse } from '@/shared/types/api.types';
 import type {
-    ExamsResponse,
     ExamsQueryParams,
+    ExamsResponse,
     ExamDetailResponse,
     StartExamResponse,
 } from '../types/exams.types';
 
 export const examsApi = {
     /**
-     * Get all exams (paginated)
+     * Get all exams (with filters)
      * GET /api/v1/exams
      */
     getExams: async (params: ExamsQueryParams = {}): Promise<ExamsResponse> => {
-        const { page = 1, limit = 10, search, isActive } = params;
+        const { page = 1, limit = 10, search, status, sortBy, sortOrder } = params;
 
         const queryParams = new URLSearchParams({
             page: page.toString(),
@@ -22,14 +22,18 @@ export const examsApi = {
         });
 
         if (search) queryParams.append('search', search);
-        if (isActive !== undefined) queryParams.append('isActive', isActive.toString());
+        if (status && status !== 'all') queryParams.append('status', status);
+        if (sortBy) queryParams.append('sortBy', sortBy);
+        if (sortOrder) queryParams.append('sortOrder', sortOrder);
 
-        const response = await apiClient.get<ApiResponse<ExamsResponse>>(`/exams?${queryParams.toString()}`);
+        const response = await apiClient.get<ApiResponse<ExamsResponse>>(
+            `/exams?${queryParams.toString()}`
+        );
         return response.data;
     },
 
     /**
-     * Get single exam details
+     * Get exam by ID
      * GET /api/v1/exams/:id
      */
     getExam: async (examId: number): Promise<ExamDetailResponse> => {
@@ -38,11 +42,13 @@ export const examsApi = {
     },
 
     /**
-     * Start exam (creates user exam session)
+     * Start an exam (creates user_exam)
      * POST /api/v1/exams/:id/start
      */
     startExam: async (examId: number): Promise<StartExamResponse> => {
-        const response = await apiClient.post<ApiResponse<StartExamResponse>>(`/exams/${examId}/start`);
+        const response = await apiClient.post<ApiResponse<StartExamResponse>>(
+            `/exams/${examId}/start`
+        );
         return response.data;
     },
 };

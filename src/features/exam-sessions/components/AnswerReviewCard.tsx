@@ -3,7 +3,7 @@
 
 import { CheckCircle, XCircle, Circle } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
-import type { AnswerWithQuestion } from '../types/exam-sessions.types';
+import type { AnswerWithQuestion, QuestionType } from '../types/exam-sessions.types';
 
 interface AnswerReviewCardProps {
     answer: AnswerWithQuestion;
@@ -11,13 +11,13 @@ interface AnswerReviewCardProps {
 }
 
 export function AnswerReviewCard({ answer, questionNumber }: AnswerReviewCardProps) {
-    const typeColors = {
+    const typeColors: Record<QuestionType, string> = {
         TIU: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
         TWK: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
         TKP: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-400',
     };
 
-    const options = ['A', 'B', 'C', 'D', 'E'] as const;
+    const options: Array<'A' | 'B' | 'C' | 'D' | 'E'> = ['A', 'B', 'C', 'D', 'E'];
 
     return (
         <div className="p-6 rounded-lg border border-border bg-card">
@@ -35,22 +35,22 @@ export function AnswerReviewCard({ answer, questionNumber }: AnswerReviewCardPro
                         <>
                             <CheckCircle className="h-5 w-5 text-green-600" />
                             <span className="text-sm font-semibold text-green-600">
-                +{answer.score} points
-              </span>
+                                +{answer.score} points
+                            </span>
                         </>
                     ) : answer.selectedOption ? (
                         <>
                             <XCircle className="h-5 w-5 text-red-600" />
                             <span className="text-sm font-semibold text-red-600">
-                0 points
-              </span>
+                                0 points
+                            </span>
                         </>
                     ) : (
                         <>
                             <Circle className="h-5 w-5 text-muted-foreground" />
                             <span className="text-sm font-semibold text-muted-foreground">
-                Not answered
-              </span>
+                                Not answered
+                            </span>
                         </>
                     )}
                 </div>

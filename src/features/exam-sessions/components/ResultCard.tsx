@@ -2,7 +2,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Calendar, Clock, Award, Eye, AlertTriangle, CheckCircle, PlayCircle, Clock4 } from 'lucide-react';
+import { Calendar, Clock, Award, Eye, AlertTriangle, CheckCircle, PlayCircle, Clock4, XCircle } from 'lucide-react';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
@@ -31,10 +31,20 @@ export function ResultCard({ result }: ResultCardProps) {
             color: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
             icon: PlayCircle,
         },
+        FINISHED: {
+            label: 'Finished',
+            color: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
+            icon: CheckCircle,
+        },
         COMPLETED: {
             label: 'Completed',
             color: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
             icon: CheckCircle,
+        },
+        TIMEOUT: {
+            label: 'Timeout',
+            color: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400',
+            icon: Clock,
         },
         CANCELLED: {
             label: 'Cancelled',
@@ -56,6 +66,8 @@ export function ResultCard({ result }: ResultCardProps) {
         })
         : 'N/A';
 
+    const isCompleted = result.status === 'COMPLETED' || result.status === 'FINISHED';
+
     return (
         <Card className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">
@@ -72,7 +84,7 @@ export function ResultCard({ result }: ResultCardProps) {
                         </div>
                     </div>
 
-                    {result.status === 'COMPLETED' && (
+                    {isCompleted && (
                         <div className="text-right">
                             <div className="text-2xl font-bold text-primary">
                                 {result.totalScore || 0}
@@ -94,12 +106,12 @@ export function ResultCard({ result }: ResultCardProps) {
                         <span>Duration: {result.exam.durationMinutes} minutes</span>
                     </div>
 
-                    {result.status === 'COMPLETED' && (
+                    {isCompleted && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Award className="h-4 w-4" />
                             <span>
-                {result.correctAnswers || 0}/{result.totalQuestions || 0} Correct
-              </span>
+                                {result.correctAnswers || 0}/{result.totalQuestions || 0} Correct
+                            </span>
                         </div>
                     )}
 
@@ -123,7 +135,7 @@ export function ResultCard({ result }: ResultCardProps) {
                         View Details
                     </Button>
 
-                    {result.status === 'COMPLETED' && (
+                    {isCompleted && (
                         <Button
                             variant="default"
                             size="sm"

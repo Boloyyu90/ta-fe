@@ -16,7 +16,8 @@ export function useStartExam() {
     // Handle success
     useEffect(() => {
         if (mutation.isSuccess && mutation.data) {
-            const { userExam } = mutation.data; // ✅ No .data.data - already unwrapped
+            // ✅ FIXED: Access nested data structure correctly
+            const { userExam } = mutation.data.data;
 
             toast.success('Exam Started!', {
                 description: 'Your exam session has begun. Good luck!',

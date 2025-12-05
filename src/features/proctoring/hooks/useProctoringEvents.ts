@@ -3,8 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { proctoringApi } from '../api/proctoring.api';
 import type { ProctoringEventsResponse, ProctoringEventsParams } from '../types/proctoring.types';
 
-interface UseProctoringEventsOptions extends ProctoringEventsParams {
+interface UseProctoringEventsOptions {
     isAdmin?: boolean;
+    page?: number;
+    limit?: number;
+    eventType?: string;
+    severity?: 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH';
 }
 
 export function useProctoringEvents(

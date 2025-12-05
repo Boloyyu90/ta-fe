@@ -22,14 +22,15 @@ export function useAnalyzeFace({ sessionId, onViolation, onCancel }: UseAnalyzeF
     // Handle success
     useEffect(() => {
         if (mutation.isSuccess && mutation.data) {
-            const { analysis, eventLogged } = mutation.data; // ✅ Correct structure
+            const { analysis, eventLogged } = mutation.data.data;
 
             // Check for violations
-            const hasViolations = analysis.violations.some(v => v !== 'FACE_DETECTED');
+            const hasViolations = analysis.violations.some((v: string) => v !== 'FACE_DETECTED');
 
             if (hasViolations && eventLogged) {
                 // Add to local store
                 const violation = {
+                    id: `${Date.now()}-${Math.random()}`,
                     type: analysis.violations[0],
                     severity: 'HIGH' as const,
                     timestamp: new Date().toISOString(),

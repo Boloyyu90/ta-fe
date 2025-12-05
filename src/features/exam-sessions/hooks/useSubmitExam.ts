@@ -16,10 +16,16 @@ export function useSubmitExam(sessionId: number) {
     // Handle success
     useEffect(() => {
         if (mutation.isSuccess && mutation.data) {
-            const { result } = mutation.data; // ✅ Correct - no double unwrap
+            // ✅ FIXED: Access nested data structure correctly
+            const { result } = mutation.data.data;
+
+            // ✅ FIXED: Safe score calculation with null checks
+            const totalScore = result.totalScore ?? 0;
+            const totalQuestions = result.totalQuestions ?? 0;
+            const maxScore = totalQuestions * 5;
 
             toast.success('Exam Submitted!', {
-                description: `Your score: ${result.totalScore}/${result.totalQuestions * 5}`,
+                description: `Your score: ${totalScore}/${maxScore}`,
             });
 
             // Invalidate relevant queries
