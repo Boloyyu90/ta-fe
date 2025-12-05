@@ -1,5 +1,4 @@
 // src/app/(participant)/exam-sessions/[id]/take/page.tsx
-
 'use client';
 
 /**
@@ -34,6 +33,7 @@ import {
     ChevronRight,
     Send
 } from 'lucide-react';
+import type { Question } from '@/features/exam-sessions/types/exam-sessions.types';
 
 export default function TakeExamPage() {
     const params = useParams();
@@ -48,8 +48,8 @@ export default function TakeExamPage() {
     const submitAnswerMutation = useSubmitAnswer(sessionId);
     const submitExamMutation = useSubmitExam(sessionId);
 
-    const session = sessionData?.userExam;
-    const questions = questionsData?.questions || [];
+    const session = sessionData?.data.userExam;
+    const questions = questionsData?.data || [];
     const currentQuestion = questions[currentQuestionIndex];
 
     // Timer with auto-submit
@@ -57,86 +57,76 @@ export default function TakeExamPage() {
         startedAt: session?.startedAt || new Date().toISOString(),
         durationMinutes: session?.exam?.durationMinutes || 60,
         onExpire: () => {
-            handleSubmitExam(true); // Auto-submit
+            handleSubmitExam(true);
+        },
+        onCritical: () => {
+            // Show warning toast or notification
+            console.log('Less than 5 minutes remaining!');
         },
     });
 
-    // Check if exam is already finished
-    useEffect(() => {
-        if (session?.status === 'FINISHED' || session?.status === 'CANCELLED') {
-            router.push(`/results/${sessionId}`);
-        }
-    }, [session, sessionId, router]);
-
     // Handle answer selection
-    const handleSelectAnswer = useCallback((option: 'A' | 'B' | 'C' | 'D' | 'E') => {
-        if (!currentQuestion) return;
-
-        const questionId = currentQuestion.questionId;
-
-        // Update local state immediately
+    const handleAnswerSelect = useCallback((option: string) => {
         setAnswers((prev) => ({
             ...prev,
-            [questionId]: option,
+            [currentQuestion.questionId]: option,
         }));
 
-        // Submit to backend (auto-save)
+        // Auto-save answer
         submitAnswerMutation.mutate({
-            questionId,
+            questionId: currentQuestion.questionId,
             selectedOption: option,
         });
     }, [currentQuestion, submitAnswerMutation]);
 
-    // Handle exam submission
-    const handleSubmitExam = useCallback((isAutoSubmit = false) => {
-        const message = isAutoSubmit
-            ? 'Time is up! Your exam will be submitted automatically.'
-            : 'Are you sure you want to submit your exam? This action cannot be undone.';
-
-        if (!isAutoSubmit && !confirm(message)) {
-            return;
-        }
-
-        submitExamMutation.mutate();
-    }, [submitExamMutation]);
-
-    // Handle exam cancellation due to violations
-    const handleExamCancelled = useCallback(() => {
-        alert('Your exam has been cancelled due to excessive proctoring violations.');
-        router.push('/dashboard');
-    }, [router]);
-
-    // Navigation handlers
-    const goToNextQuestion = () => {
-        if (currentQuestionIndex < questions.length - 1) {
-            setCurrentQuestionIndex(prev => prev + 1);
-        }
-    };
-
-    const goToPreviousQuestion = () => {
-        if (currentQuestionIndex > 0) {
-            setCurrentQuestionIndex(prev => prev - 1);
-        }
-    };
-
-    const jumpToQuestion = (index: number) => {
+    // Navigate to specific question
+    const goToQuestion = (index: number) => {
         setCurrentQuestionIndex(index);
+    };
+
+    // Handle submit exam
+    const handleSubmitExam = async (isAutoSubmit = false) => {
+        if (isAutoSubmit) {
+            // Auto-submit on timeout
+            submitExamMutation.mutate();
+        } else {
+            // Manual submit - confirm first
+            const confirmed = window.confirm(
+                'Are you sure you want to submit this exam? You cannot change your answers after submission.'
+            );
+
+            if (confirmed) {
+                submitExamMutation.mutate();
+            }
+        }
+    };
+
+    // Handle violation limit
+    const handleViolationLimit = () => {
+        alert('You have exceeded the violation limit. Your exam will be cancelled.');
+        submitExamMutation.mutate();
     };
 
     // Loading state
     if (sessionLoading || questionsLoading) {
         return (
-            <div className="container mx-auto py-8 space-y-6">
-                <Skeleton className="h-8 w-64" />
-                <Skeleton className="h-96" />
+            <div className="container mx-auto py-6 space-y-6">
+                <Skeleton className="h-32 w-full" />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2">
+                        <Skeleton className="h-96 w-full" />
+                    </div>
+                    <div>
+                        <Skeleton className="h-96 w-full" />
+                    </div>
+                </div>
             </div>
         );
     }
 
-    // No session or questions
-    if (!session || questions.length === 0) {
+    if (!session || !questions.length) {
         return (
-            <div className="container mx-auto py-8">
+            <div className="container mx-auto py-6">
                 <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
@@ -165,8 +155,9 @@ export default function TakeExamPage() {
 
                         {/* Timer */}
                         <div className="flex items-center gap-4">
+                            {/* ✅ FIXED: Use isCritical instead of checking remainingSeconds */}
                             <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                                timer.remainingSeconds < 300 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                                timer.isCritical ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
                             }`}>
                                 <Clock className="h-5 w-5" />
                                 <span className="text-lg font-mono font-bold">
@@ -197,97 +188,101 @@ export default function TakeExamPage() {
                 </CardHeader>
             </Card>
 
+            {/* Main Content */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Content */}
+                {/* Question Panel */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Question Card */}
-                    {currentQuestion && (
-                        <Card>
-                            <CardHeader>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-muted-foreground">
-                                        {currentQuestion.questionType}
-                                    </span>
-                                    <span className="text-sm text-muted-foreground">
-                                        Question {currentQuestionIndex + 1}
-                                    </span>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                {/* Question Content */}
-                                <div className="text-lg">
-                                    {currentQuestion.content}
-                                </div>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Question {currentQuestionIndex + 1}</CardTitle>
+                            <p className="text-sm text-muted-foreground">
+                                {currentQuestion.question.questionType} | {currentQuestion.score} points
+                            </p>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {/* Question Content */}
+                            <div className="prose prose-sm max-w-none">
+                                <p className="text-base font-medium">{currentQuestion.question.content}</p>
 
-                                {/* Options */}
-                                <div className="space-y-3">
-                                    {(['A', 'B', 'C', 'D', 'E'] as const).map((option) => {
-                                        const isSelected = answers[currentQuestion.questionId] === option;
+                                {currentQuestion.question.imageUrl && (
+                                    <img
+                                        src={currentQuestion.question.imageUrl}
+                                        alt="Question"
+                                        className="mt-4 rounded-lg max-w-full h-auto"
+                                    />
+                                )}
+                            </div>
 
-                                        return (
-                                            <button
-                                                key={option}
-                                                onClick={() => handleSelectAnswer(option)}
-                                                className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                            {/* Options */}
+                            <div className="space-y-3">
+                                {/* ✅ FIXED: Type the map callback properly */}
+                                {(['A', 'B', 'C', 'D', 'E'] as const).map((option) => {
+                                    const optionKey = `option${option}` as keyof Question;
+                                    const optionText = currentQuestion.question[optionKey];
+                                    const isSelected = answers[currentQuestion.questionId] === option;
+
+                                    return (
+                                        <button
+                                            key={option}
+                                            onClick={() => handleAnswerSelect(option)}
+                                            className={`w-full text-left p-4 border-2 rounded-lg transition-all hover:border-primary ${
+                                                isSelected
+                                                    ? 'border-primary bg-primary/5'
+                                                    : 'border-border'
+                                            }`}
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <div className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center ${
                                                     isSelected
-                                                        ? 'border-blue-500 bg-blue-50'
-                                                        : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
-                                                }`}
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <div className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                                                        isSelected
-                                                            ? 'border-blue-500 bg-blue-500'
-                                                            : 'border-gray-300'
-                                                    }`}>
-                                                        {isSelected && (
-                                                            <CheckCircle2 className="h-4 w-4 text-white" />
-                                                        )}
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <span className="font-semibold mr-2">{option}.</span>
-                                                        <span>{currentQuestion.options[option]}</span>
-                                                    </div>
+                                                        ? 'border-primary bg-primary text-primary-foreground'
+                                                        : 'border-border'
+                                                }`}>
+                                                    {isSelected ? (
+                                                        <CheckCircle2 className="h-4 w-4" />
+                                                    ) : (
+                                                        <Circle className="h-4 w-4" />
+                                                    )}
                                                 </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                                <div className="flex-1">
+                                                    <span className="font-medium">{option}. </span>
+                                                    <span>{optionText}</span>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
 
-                                {/* Navigation */}
-                                <div className="flex justify-between pt-4">
-                                    <Button
-                                        onClick={goToPreviousQuestion}
-                                        disabled={currentQuestionIndex === 0}
-                                        variant="outline"
-                                    >
-                                        <ChevronLeft className="h-4 w-4 mr-2" />
-                                        Previous
-                                    </Button>
+                            {/* Navigation */}
+                            <div className="flex items-center justify-between pt-4 border-t">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => goToQuestion(currentQuestionIndex - 1)}
+                                    disabled={currentQuestionIndex === 0}
+                                >
+                                    <ChevronLeft className="h-4 w-4 mr-2" />
+                                    Previous
+                                </Button>
 
-                                    <Button
-                                        onClick={goToNextQuestion}
-                                        disabled={currentQuestionIndex === questions.length - 1}
-                                    >
-                                        Next
-                                        <ChevronRight className="h-4 w-4 ml-2" />
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
+                                <span className="text-sm text-muted-foreground">
+                                    Question {currentQuestionIndex + 1} of {questions.length}
+                                </span>
+
+                                <Button
+                                    variant="outline"
+                                    onClick={() => goToQuestion(currentQuestionIndex + 1)}
+                                    disabled={currentQuestionIndex === questions.length - 1}
+                                >
+                                    Next
+                                    <ChevronRight className="h-4 w-4 ml-2" />
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
 
                 {/* Sidebar */}
                 <div className="space-y-6">
-                    {/* Proctoring Monitor */}
-                    <ProctoringMonitor
-                        sessionId={sessionId}
-                        onExamCancelled={handleExamCancelled}
-                        analyzeIntervalMs={10000} // 10 seconds
-                        maxViolations={10}
-                    />
-
                     {/* Question Navigator */}
                     <Card>
                         <CardHeader>
@@ -295,20 +290,21 @@ export default function TakeExamPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="grid grid-cols-5 gap-2">
-                                {questions.map((q, index) => {
+                                {/* ✅ FIXED: Type the map callbacks properly */}
+                                {questions.map((q: any, index: number) => {
                                     const isAnswered = !!answers[q.questionId];
                                     const isCurrent = index === currentQuestionIndex;
 
                                     return (
                                         <button
                                             key={q.id}
-                                            onClick={() => jumpToQuestion(index)}
-                                            className={`aspect-square rounded-lg border-2 font-semibold transition-all ${
+                                            onClick={() => goToQuestion(index)}
+                                            className={`aspect-square rounded-lg border-2 font-medium transition-all ${
                                                 isCurrent
-                                                    ? 'border-blue-500 bg-blue-500 text-white'
+                                                    ? 'border-primary bg-primary text-primary-foreground'
                                                     : isAnswered
                                                         ? 'border-green-500 bg-green-50 text-green-700'
-                                                        : 'border-gray-200 hover:border-gray-300'
+                                                        : 'border-border hover:border-primary/50'
                                             }`}
                                         >
                                             {index + 1}
@@ -316,23 +312,15 @@ export default function TakeExamPage() {
                                     );
                                 })}
                             </div>
-
-                            <div className="mt-4 space-y-2 text-sm">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-4 h-4 rounded border-2 border-green-500 bg-green-50" />
-                                    <span>Answered</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-4 h-4 rounded border-2 border-gray-200" />
-                                    <span>Not answered</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-4 h-4 rounded border-2 border-blue-500 bg-blue-500" />
-                                    <span>Current</span>
-                                </div>
-                            </div>
                         </CardContent>
                     </Card>
+
+                    {/* Proctoring Monitor */}
+                    <ProctoringMonitor
+                        sessionId={sessionId}
+                        isActive={session.status === 'IN_PROGRESS'}
+                        onViolationLimit={handleViolationLimit}
+                    />
                 </div>
             </div>
         </div>

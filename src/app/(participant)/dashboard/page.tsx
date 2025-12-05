@@ -1,292 +1,281 @@
 // src/app/(participant)/dashboard/page.tsx
-
 'use client';
 
-/**
- * PARTICIPANT DASHBOARD
- *
- * ✅ Real-time stats from exam sessions
- * ✅ Available exams display
- * ✅ Recent activity
- * ✅ Correct type usage
- */
-
-import { useAuth } from '@/features/auth/hooks';
+import { useState } from 'react';
+import { useExamsStats } from '@/features/exams/hooks/useExamsStats';
+import { useMyStats } from '@/features/exam-sessions/hooks/useMyStats';
 import { useUserExams } from '@/features/exam-sessions/hooks/useUserExams';
-import { useExams } from '@/features/exams/hooks/useExams';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
-import { Skeleton } from '@/shared/components/ui/skeleton';
 import { Badge } from '@/shared/components/ui/badge';
+import { Skeleton } from '@/shared/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import {
     BookOpen,
-    ClipboardList,
-    Trophy,
+    ClipboardCheck,
+    Award,
     Clock,
-    ArrowRight,
-    CheckCircle2,
-    XCircle
+    PlayCircle,
+    CheckCircle,
+    AlertTriangle,
+    Clock4,
+    ChevronRight,
+    TrendingUp
 } from 'lucide-react';
-import Link from 'next/link';
-import type { UserExam } from '@/features/exam-sessions/types/exam-sessions.types';
+import { useRouter } from 'next/navigation';
+import type { UserExam, ExamStatus } from '@/features/exam-sessions/types/exam-sessions.types';
 
-interface ExamQuickCardProps {
-    exam: {
-        id: number;
-        title: string;
-        durationMinutes: number;
-        _count?: {
-            examQuestions: number;
-        };
-    };
-}
+export default function ParticipantDashboardPage() {
+    const router = useRouter();
+    const [sessionFilter, setSessionFilter] = useState<'all' | 'IN_PROGRESS' | 'FINISHED'>('all');
 
-function ExamQuickCard({ exam }: ExamQuickCardProps) {
-    return (
-        <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-                <h3 className="font-semibold text-foreground mb-2 line-clamp-1">
-                    {exam.title}
-                </h3>
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {exam.durationMinutes} min
-                    </span>
-                    <span className="flex items-center gap-1">
-                        <ClipboardList className="h-3 w-3" />
-                        {exam._count?.examQuestions || 0} questions
-                    </span>
-                </div>
-                <Button asChild size="sm" className="w-full mt-3">
-                    <Link href={`/exams/${exam.id}`}>
-                        View Details
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                    </Link>
-                </Button>
-            </CardContent>
-        </Card>
-    );
-}
+    const { data: examsStats, isLoading: examsLoading } = useExamsStats();
+    const { data: myStats, isLoading: statsLoading } = useMyStats();
+    const { data: sessionsData, isLoading: sessionsLoading } = useUserExams({
+        page: 1,
+        limit: 6,
+    });
 
-function SessionCard({ session }: { session: UserExam }) {
-    const statusConfig = {
+    const isLoading = examsLoading || statsLoading || sessionsLoading;
+
+    // ✅ FIXED: Unwrap sessionsData correctly - it's { data: UserExam[], pagination: {...} }
+    const sessions = sessionsData?.data || [];
+
+    // Define status config with ALL possible ExamStatus values including NOT_STARTED
+    const statusConfig: Record<ExamStatus, {
+        variant: 'default' | 'secondary' | 'destructive' | 'outline';
+        icon: typeof PlayCircle;
+        label: string;
+    }> = {
+        NOT_STARTED: {
+            variant: 'secondary',
+            icon: Clock4,
+            label: 'Not Started',
+        },
         IN_PROGRESS: {
-            variant: 'default' as const,
-            icon: Clock,
+            variant: 'default',
+            icon: PlayCircle,
             label: 'In Progress',
         },
         FINISHED: {
-            variant: 'default' as const,
-            icon: CheckCircle2,
+            variant: 'outline',
+            icon: CheckCircle,
+            label: 'Finished',
+        },
+        COMPLETED: {
+            variant: 'outline',
+            icon: CheckCircle,
             label: 'Completed',
         },
+        TIMEOUT: {
+            variant: 'destructive',
+            icon: Clock,
+            label: 'Timeout',
+        },
         CANCELLED: {
-            variant: 'destructive' as const,
-            icon: XCircle,
+            variant: 'destructive',
+            icon: AlertTriangle,
             label: 'Cancelled',
         },
     };
 
-    const config = statusConfig[session.status];
-    const Icon = config.icon;
+    // Filter sessions if needed
+    const filteredSessions = sessionFilter === 'all'
+        ? sessions
+        : sessions.filter((s: UserExam) => s.status === sessionFilter);
 
     return (
-        <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-foreground line-clamp-1 flex-1">
-                        {session.exam?.title || 'Exam'}
-                    </h3>
-                    <Badge variant={config.variant} className="ml-2">
-                        <Icon className="h-3 w-3 mr-1" />
-                        {config.label}
-                    </Badge>
-                </div>
-
-                <div className="space-y-1 text-sm text-muted-foreground">
-                    <div className="flex justify-between">
-                        <span>Started:</span>
-                        <span>{new Date(session.startedAt).toLocaleDateString()}</span>
-                    </div>
-                    {session.status === 'FINISHED' && session.totalScore !== null && (
-                        <div className="flex justify-between font-semibold text-foreground">
-                            <span>Score:</span>
-                            <span>{session.totalScore} points</span>
-                        </div>
-                    )}
-                </div>
-
-                <Button asChild size="sm" variant="outline" className="w-full mt-3">
-                    <Link href={
-                        session.status === 'IN_PROGRESS'
-                            ? `/exam-sessions/${session.id}/take`
-                            : `/results/${session.id}`
-                    }>
-                        {session.status === 'IN_PROGRESS' ? 'Continue' : 'View Results'}
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                    </Link>
-                </Button>
-            </CardContent>
-        </Card>
-    );
-}
-
-export default function DashboardPage() {
-    const { user } = useAuth();
-    const { data: examsData, isLoading: examsLoading } = useExams({ page: 1, limit: 3 });
-    const { data: sessionsData, isLoading: sessionsLoading } = useUserExams({
-        page: 1,
-        limit: 10
-    });
-
-    const exams = examsData?.data || [];
-    const sessions = sessionsData?.data || [];
-
-    // Calculate stats with proper typing
-    const totalExamsTaken = sessions.length;
-    const completedExams = sessions.filter((s: UserExam) => s.status === 'FINISHED').length;
-    const inProgressExams = sessions.filter((s: UserExam) => s.status === 'IN_PROGRESS').length;
-
-    const avgScore = completedExams > 0
-        ? Math.round(
-            sessions
-                .filter((s: UserExam) => s.status === 'FINISHED' && s.totalScore !== null)
-                .reduce((acc: number, s: UserExam) => acc + (s.totalScore || 0), 0) / completedExams
-        )
-        : 0;
-
-    return (
-        <div className="container mx-auto py-8 space-y-8">
-            {/* Welcome Section */}
-            <div>
-                <h1 className="text-3xl font-bold text-foreground">
-                    Welcome back, {user?.name || 'User'}!
-                </h1>
-                <p className="text-muted-foreground mt-2">
-                    Here's your exam activity overview
+        <div className="container mx-auto py-6 space-y-6">
+            {/* Header */}
+            <div className="flex flex-col gap-2">
+                <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+                <p className="text-muted-foreground">
+                    Welcome back! Here's an overview of your exam progress.
                 </p>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {/* Available Exams */}
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Exams</CardTitle>
-                        <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium">Available Exams</CardTitle>
+                        <BookOpen className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{totalExamsTaken}</div>
-                        <p className="text-xs text-muted-foreground">Exam attempts</p>
+                        {examsLoading ? (
+                            <Skeleton className="h-8 w-16" />
+                        ) : (
+                            <div className="text-2xl font-bold">{examsStats?.availableExams || 0}</div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">Ready to take</p>
                     </CardContent>
                 </Card>
 
+                {/* Completed Exams */}
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Completed</CardTitle>
-                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium">Completed Exams</CardTitle>
+                        <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{completedExams}</div>
-                        <p className="text-xs text-muted-foreground">Finished exams</p>
+                        {statsLoading ? (
+                            <Skeleton className="h-8 w-16" />
+                        ) : (
+                            <div className="text-2xl font-bold">{myStats?.totalCompleted || 0}</div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">Exams finished</p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{inProgressExams}</div>
-                        <p className="text-xs text-muted-foreground">Active sessions</p>
-                    </CardContent>
-                </Card>
-
+                {/* Average Score */}
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Average Score</CardTitle>
-                        <Trophy className="h-4 w-4 text-muted-foreground" />
+                        <Award className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{avgScore}</div>
-                        <p className="text-xs text-muted-foreground">Points average</p>
+                        {statsLoading ? (
+                            <Skeleton className="h-8 w-16" />
+                        ) : (
+                            <div className="text-2xl font-bold">
+                                {myStats?.averageScore ? myStats.averageScore.toFixed(1) : '0.0'}
+                            </div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">Out of 100</p>
+                    </CardContent>
+                </Card>
+
+                {/* Total Time Spent */}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Time Spent</CardTitle>
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        {statsLoading ? (
+                            <Skeleton className="h-8 w-16" />
+                        ) : (
+                            <div className="text-2xl font-bold">
+                                {myStats?.totalTimeSpent
+                                    ? `${Math.floor(myStats.totalTimeSpent / 60)}h`
+                                    : '0h'}
+                            </div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">In minutes</p>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Available Exams */}
-            <div>
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-2xl font-bold text-foreground">Available Exams</h2>
-                    <Button asChild variant="outline">
-                        <Link href="/exams">
+            {/* Recent Sessions */}
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <CardTitle>Recent Exam Sessions</CardTitle>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push('/exam-sessions')}
+                        >
                             View All
-                            <ArrowRight className="h-4 w-4 ml-2" />
-                        </Link>
-                    </Button>
-                </div>
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    {sessionsLoading ? (
+                        <div className="space-y-3">
+                            {[1, 2, 3].map((i) => (
+                                <Skeleton key={i} className="h-20 w-full" />
+                            ))}
+                        </div>
+                    ) : filteredSessions.length === 0 ? (
+                        <Alert>
+                            <AlertDescription>
+                                No exam sessions yet. Start by taking an exam!
+                            </AlertDescription>
+                        </Alert>
+                    ) : (
+                        <div className="space-y-3">
+                            {/* ✅ FIXED: Type the session parameter properly */}
+                            {sessions.slice(0, 6).map((session: UserExam) => {
+                                const config = statusConfig[session.status];
+                                const StatusIcon = config.icon;
 
-                {examsLoading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {[...Array(3)].map((_, i) => (
-                            <Skeleton key={i} className="h-40" />
-                        ))}
-                    </div>
-                ) : exams.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {exams.map((exam) => (
-                            <ExamQuickCard key={exam.id} exam={exam} />
-                        ))}
-                    </div>
-                ) : (
-                    <Card>
-                        <CardContent className="py-12 text-center">
-                            <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                            <p className="text-muted-foreground">No exams available at the moment</p>
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
+                                return (
+                                    <div
+                                        key={session.id}
+                                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+                                        onClick={() => {
+                                            if (session.status === 'IN_PROGRESS') {
+                                                router.push(`/exam-sessions/${session.id}/take`);
+                                            } else if (['FINISHED', 'COMPLETED', 'TIMEOUT', 'CANCELLED'].includes(session.status)) {
+                                                router.push(`/results/${session.id}`);
+                                            }
+                                        }}
+                                    >
+                                        <div className="flex-1">
+                                            <h4 className="font-medium">{session.exam?.title || 'Exam'}</h4>
+                                            <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                                                {/* ✅ FIXED: Add null check before new Date() */}
+                                                {session.startedAt && (
+                                                    <>
+                                                        <Clock4 className="h-3 w-3" />
+                                                        <span>{new Date(session.startedAt).toLocaleDateString()}</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
 
-            {/* Recent Activity */}
-            <div>
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-2xl font-bold text-foreground">Recent Activity</h2>
-                    <Button asChild variant="outline">
-                        <Link href="/exam-sessions">
-                            View All Sessions
-                            <ArrowRight className="h-4 w-4 ml-2" />
-                        </Link>
-                    </Button>
-                </div>
+                                        <div className="flex items-center gap-3">
+                                            {session.totalScore !== null && (
+                                                <div className="text-right">
+                                                    <div className="text-2xl font-bold">{session.totalScore}</div>
+                                                    <div className="text-xs text-muted-foreground">Score</div>
+                                                </div>
+                                            )}
+                                            <Badge variant={config.variant}>
+                                                <StatusIcon className="h-3 w-3 mr-1" />
+                                                {config.label}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
-                {sessionsLoading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[...Array(6)].map((_, i) => (
-                            <Skeleton key={i} className="h-40" />
-                        ))}
-                    </div>
-                ) : sessions.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {sessions.slice(0, 6).map((session) => (
-                            <SessionCard key={session.id} session={session} />
-                        ))}
-                    </div>
-                ) : (
-                    <Card>
-                        <CardContent className="py-12 text-center">
-                            <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                            <p className="text-muted-foreground">No exam sessions yet</p>
-                            <Button asChild className="mt-4">
-                                <Link href="/exams">
-                                    Browse Exams
-                                    <ArrowRight className="h-4 w-4 ml-2" />
-                                </Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-                )}
+            {/* Quick Actions */}
+            <div className="grid gap-4 md:grid-cols-2">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push('/exams')}>
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-primary/10 rounded-lg">
+                                <BookOpen className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold">Browse Exams</h3>
+                                <p className="text-sm text-muted-foreground">Find and start new exams</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push('/results')}>
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-green-500/10 rounded-lg">
+                                <TrendingUp className="h-6 w-6 text-green-600" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold">View Results</h3>
+                                <p className="text-sm text-muted-foreground">Check your past exam scores</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );

@@ -1,21 +1,16 @@
 // src/features/exam-sessions/hooks/useExamSession.ts
+import { useQuery } from '@tanstack/react-query';
+import { examSessionsApi } from '../api/exam-sessions.api';
+import type { ExamSessionDetailResponse } from '../types/exam-sessions.types';
 
 /**
  * Hook to fetch exam session details
- *
- * ✅ Returns session with exam details
- * ✅ Proper type handling
+ * GET /api/v1/exam-sessions/:id
  */
-
-import { useQuery } from '@tanstack/react-query';
-import { examSessionsApi } from '../api/exam-sessions.api';
-import type { ExamSessionPayload } from '../types/exam-sessions.types';
-
-export function useExamSession(sessionId: number, enabled = true) {
-    return useQuery<ExamSessionPayload>({
+export function useExamSession(sessionId: number) {
+    return useQuery<ExamSessionDetailResponse>({
         queryKey: ['exam-session', sessionId],
         queryFn: () => examSessionsApi.getExamSession(sessionId),
-        enabled: enabled && sessionId > 0,
-        staleTime: 1000 * 60, // 1 minute
+        enabled: !!sessionId,
     });
 }

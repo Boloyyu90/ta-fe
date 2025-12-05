@@ -75,11 +75,11 @@ export function UserExamCard({ userExam }: UserExamCardProps) {
             ? (userExam.correctAnswers / userExam.totalQuestions) * 100
             : 0;
 
-    const isCompleted =
-        userExam.status === 'COMPLETED' || userExam.status === 'FINISHED';
+    const isInProgress = userExam.status === 'IN_PROGRESS';
+    const isCompleted = ['FINISHED', 'COMPLETED', 'TIMEOUT', 'CANCELLED'].includes(userExam.status);
 
-    const handleClick = () => {
-        if (userExam.status === 'IN_PROGRESS') {
+    const handleAction = () => {
+        if (isInProgress) {
             router.push(`/exam-sessions/${userExam.id}/take`);
         } else if (isCompleted) {
             router.push(`/results/${userExam.id}`);
@@ -87,123 +87,109 @@ export function UserExamCard({ userExam }: UserExamCardProps) {
     };
 
     return (
-        <Card className="hover:shadow-lg transition-all duration-200">
+        <Card className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-foreground mb-1">
-                            {userExam.exam.title}
-                        </h3>
-                        <Badge className={status.color}>
-                            <StatusIcon className="h-3 w-3 mr-1" />
-                            {status.label}
-                        </Badge>
+                <div className="space-y-4">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                            {/* ✅ FIXED: Add null check for userExam.exam */}
+                            <h3 className="font-semibold text-lg text-foreground line-clamp-2">
+                                {userExam.exam?.title || 'Exam Title Not Available'}
+                            </h3>
+                            <Badge className={`mt-2 ${status.color}`}>
+                                <StatusIcon className="h-3 w-3 mr-1" />
+                                {status.label}
+                            </Badge>
+                        </div>
+
+                        {isCompleted && userExam.totalScore !== null && (
+                            <div className="flex flex-col items-end">
+                                <span className="text-sm text-muted-foreground">Score</span>
+                                <span className="text-2xl font-bold text-foreground">
+                                    {userExam.totalScore}
+                                </span>
+                            </div>
+                        )}
                     </div>
 
-                    {isCompleted && userExam.totalScore !== null && (
-                        <div className="text-right ml-4">
-                            <div className="text-2xl font-bold text-primary">
-                                {userExam.totalScore}
+                    {/* Info Grid */}
+                    <div className="space-y-2 text-sm">
+                        {isInProgress && userExam.startedAt && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <Calendar className="h-4 w-4" />
+                                <span>
+                                    Started:{' '}
+                                    {new Date(userExam.startedAt).toLocaleDateString('id-ID', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                    })}
+                                </span>
                             </div>
-                            <p className="text-xs text-muted-foreground">Score</p>
-                        </div>
-                    )}
-                </div>
+                        )}
 
-                {/* Exam Info */}
-                <div className="space-y-2 mb-4">
-                    {userExam.startedAt && (
+                        {/* ✅ FIXED: Add null check for userExam.exam */}
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span>
-                Started:{' '}
-                                {new Date(userExam.startedAt).toLocaleDateString('id-ID', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                })}
-              </span>
+                            <Clock className="h-4 w-4" />
+                            <span>Duration: {userExam.exam?.durationMinutes || 0} minutes</span>
                         </div>
-                    )}
 
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        <span>Duration: {userExam.exam.durationMinutes} minutes</span>
+                        {isCompleted && userExam.completedAt && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <CheckCircle className="h-4 w-4" />
+                                <span>
+                                    Completed:{' '}
+                                    {new Date(userExam.completedAt).toLocaleDateString('id-ID', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                    })}
+                                </span>
+                            </div>
+                        )}
                     </div>
 
-                    {isCompleted && userExam.completedAt && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <CheckCircle className="h-4 w-4" />
-                            <span>
-                Completed:{' '}
-                                {new Date(userExam.completedAt).toLocaleDateString('id-ID', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                })}
-              </span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Progress Bar for Completed Exams */}
-                {isCompleted &&
-                    userExam.correctAnswers !== null &&
-                    userExam.correctAnswers !== undefined &&
-                    userExam.totalQuestions !== null &&
-                    userExam.totalQuestions !== undefined && (
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Accuracy</span>
-                                <span className="font-semibold">
-                  {userExam.correctAnswers}/{userExam.totalQuestions} (
-                                    {progressPercentage.toFixed(0)}%)
-                </span>
+                    {/* Progress Bar for Completed Exams */}
+                    {isCompleted &&
+                        userExam.correctAnswers !== null &&
+                        userExam.correctAnswers !== undefined &&
+                        userExam.totalQuestions !== null &&
+                        userExam.totalQuestions !== undefined && (
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">
+                                        Correct: {userExam.correctAnswers}/{userExam.totalQuestions}
+                                    </span>
+                                    <span className="font-medium">{Math.round(progressPercentage)}%</span>
+                                </div>
+                                <Progress value={progressPercentage} className="h-2" />
                             </div>
-                            <Progress value={progressPercentage} className="h-2" />
-                        </div>
-                    )}
+                        )}
+                </div>
             </CardContent>
 
             <CardFooter className="p-6 pt-0">
                 <Button
+                    onClick={handleAction}
+                    variant={isInProgress ? 'default' : 'outline'}
                     className="w-full"
-                    onClick={handleClick}
-                    disabled={
-                        userExam.status === 'NOT_STARTED' ||
-                        userExam.status === 'CANCELLED' ||
-                        userExam.status === 'TIMEOUT'
-                    }
                 >
-                    {userExam.status === 'IN_PROGRESS' && (
+                    {isInProgress ? (
                         <>
                             <PlayCircle className="h-4 w-4 mr-2" />
                             Continue Exam
                         </>
-                    )}
-
-                    {isCompleted && (
+                    ) : (
                         <>
-                            View Results
-                            <ChevronRight className="h-4 w-4 ml-2" />
+                            <ChevronRight className="h-4 w-4 mr-2" />
+                            View Details
                         </>
                     )}
-
-                    {userExam.status === 'CANCELLED' && !isCompleted && (
-                        <>
-                            <AlertTriangle className="h-4 w-4 mr-2" />
-                            Cancelled
-                        </>
-                    )}
-
-                    {userExam.status === 'NOT_STARTED' && 'Not Available'}
-
-                    {userExam.status === 'TIMEOUT' && !isCompleted && 'Timeout'}
                 </Button>
             </CardFooter>
         </Card>

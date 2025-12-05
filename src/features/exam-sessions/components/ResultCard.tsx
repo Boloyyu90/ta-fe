@@ -61,90 +61,72 @@ export function ResultCard({ result }: ResultCardProps) {
             day: 'numeric',
             month: 'short',
             year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
         })
         : 'N/A';
 
-    const isCompleted = result.status === 'COMPLETED' || result.status === 'FINISHED';
+    const handleViewResult = () => {
+        router.push(`/results/${result.id}`);
+    };
 
     return (
         <Card className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-foreground mb-1">
-                            {result.exam.title}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                            <Badge className={status.color}>
+                <div className="space-y-4">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                            {/* ✅ FIXED: Add null check for result.exam */}
+                            <h3 className="font-semibold text-lg text-foreground">
+                                {result.exam?.title || 'Exam Title Not Available'}
+                            </h3>
+                            <Badge className={`mt-2 ${status.color}`}>
                                 <StatusIcon className="h-3 w-3 mr-1" />
                                 {status.label}
                             </Badge>
                         </div>
-                    </div>
 
-                    {isCompleted && (
-                        <div className="text-right">
-                            <div className="text-2xl font-bold text-primary">
-                                {result.totalScore || 0}
+                        {result.totalScore !== null && (
+                            <div className="flex flex-col items-end">
+                                <span className="text-sm text-muted-foreground">Score</span>
+                                <span className="text-2xl font-bold text-foreground">
+                                    {result.totalScore}
+                                </span>
                             </div>
-                            <p className="text-xs text-muted-foreground">Score</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Exam Info */}
-                <div className="space-y-2 mb-4">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>Completed: {completedAt}</span>
+                        )}
                     </div>
 
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        <span>Duration: {result.exam.durationMinutes} minutes</span>
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>{completedAt}</span>
+                        </div>
+
+                        {/* ✅ FIXED: Add null check for result.exam */}
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Clock className="h-4 w-4" />
+                            <span>Duration: {result.exam?.durationMinutes || 0} minutes</span>
+                        </div>
+
+                        {result.correctAnswers !== null && result.totalQuestions !== null && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <Award className="h-4 w-4" />
+                                <span>
+                                    Correct: {result.correctAnswers}/{result.totalQuestions}
+                                </span>
+                            </div>
+                        )}
                     </div>
 
-                    {isCompleted && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Award className="h-4 w-4" />
-                            <span>
-                                {result.correctAnswers || 0}/{result.totalQuestions || 0} Correct
-                            </span>
-                        </div>
-                    )}
-
-                    {result.status === 'CANCELLED' && (
-                        <div className="flex items-center gap-2 text-sm text-red-600">
-                            <AlertTriangle className="h-4 w-4" />
-                            <span>Exam cancelled due to violations</span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
+                    {/* Actions */}
                     <Button
+                        onClick={handleViewResult}
                         variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => router.push(`/results/${result.id}`)}
+                        className="w-full"
                     >
                         <Eye className="h-4 w-4 mr-2" />
                         View Details
                     </Button>
-
-                    {isCompleted && (
-                        <Button
-                            variant="default"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => router.push(`/exam-sessions/${result.id}/review`)}
-                        >
-                            Review Answers
-                        </Button>
-                    )}
                 </div>
             </CardContent>
         </Card>

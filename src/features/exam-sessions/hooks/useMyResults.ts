@@ -1,19 +1,15 @@
 // src/features/exam-sessions/hooks/useMyResults.ts
+import { useQuery } from '@tanstack/react-query';
+import { examSessionsApi } from '../api/exam-sessions.api';
+import type { MyResultsResponse, MyResultsParams } from '../types/exam-sessions.types';
 
 /**
  * Hook to fetch my exam results
- *
- * ✅ Returns correct payload structure
+ * GET /api/v1/results
  */
-
-import { useQuery } from '@tanstack/react-query';
-import { examSessionsApi } from '../api/exam-sessions.api';
-import type { GetUserExamsParams } from '../types/exam-sessions.types';
-
-export function useMyResults(params?: GetUserExamsParams) {
-    return useQuery({
+export function useMyResults(params?: MyResultsParams) {
+    return useQuery<MyResultsResponse>({
         queryKey: ['my-results', params],
         queryFn: () => examSessionsApi.getMyResults(params),
-        staleTime: 1000 * 60, // 1 minute
     });
 }
