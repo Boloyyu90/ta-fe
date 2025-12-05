@@ -1,61 +1,49 @@
 // src/features/users/api/users.api.ts
 import { apiClient } from '@/shared/lib/api';
+import type { ApiResponse } from '@/shared/types/api.types';
 import type {
     UsersListResponse,
     UserDetailResponse,
     CreateUserRequest,
     CreateUserResponse,
     UpdateUserRequest,
-    UpdateUserResponse,
-    DeleteUserResponse,
-    ProfileResponse,
     UpdateProfileRequest,
-    UpdateProfileResponse,
     UsersQueryParams,
 } from '../types/users.types';
 
-/**
- * Users API Client
- * Implements all 7 user-related endpoints from backend
- *
- * NOTE: apiClient.get() returns the unwrapped response body via interceptor
- * Backend response: { success: true, data: {...}, message: string, timestamp: string }
- * Interceptor unwraps to: { success: true, data: {...}, message: string, timestamp: string }
- * We access .data to get the actual payload
- */
 export const usersApi = {
     // ============================================================================
-    // PARTICIPANT ENDPOINTS (2)
+    // PARTICIPANT ENDPOINTS
     // ============================================================================
 
     /**
      * Get my profile
      * GET /me
      */
-    async getProfile(): Promise<ProfileResponse> {
-        const response = await apiClient.get<{ success: boolean; data: ProfileResponse }>('/me');
-        return response.data;
+    getProfile: async () => {
+        const response = await apiClient.get<ApiResponse<{ user: any }>>('/me');
+        return response.data; // Returns { user: {...} }
     },
 
     /**
      * Update my profile
      * PATCH /me
      */
-    async updateProfile(data: UpdateProfileRequest): Promise<UpdateProfileResponse> {
-        const response = await apiClient.patch<{ success: boolean; data: UpdateProfileResponse }>('/me', data);
-        return response.data;
+    updateProfile: async (data: UpdateProfileRequest) => {
+        const response = await apiClient.patch<ApiResponse<{ user: any }>>('/me', data);
+        return response.data; // Returns { user: {...} }
     },
 
     // ============================================================================
-    // ADMIN ENDPOINTS (5)
+    // ADMIN ENDPOINTS
     // ============================================================================
 
     /**
      * Create user (admin only)
      * POST /admin/users
      */
-    async createUser(data: CreateUserRequest): Promise<CreateUserResponse> {
-        const response = await apiClient.post<{ success: boolean; data: CreateUserResponse }>('/admin/users', data);
+    createUser: async (data: CreateUserRequest) => {
+        const response = await apiClient.post<ApiResponse<{ user: any }>>('/admin/users', data);
         return response.data;
     },
 
@@ -63,8 +51,8 @@ export const usersApi = {
      * Get all users (admin only)
      * GET /admin/users
      */
-    async getUsers(params?: UsersQueryParams): Promise<UsersListResponse> {
-        const response = await apiClient.get<{ success: boolean; data: UsersListResponse }>('/admin/users', { params });
+    getUsers: async (params?: UsersQueryParams) => {
+        const response = await apiClient.get<ApiResponse<UsersListResponse>>('/admin/users', { params });
         return response.data;
     },
 
@@ -72,8 +60,8 @@ export const usersApi = {
      * Get user by ID (admin only)
      * GET /admin/users/:id
      */
-    async getUser(userId: number): Promise<UserDetailResponse> {
-        const response = await apiClient.get<{ success: boolean; data: UserDetailResponse }>(`/admin/users/${userId}`);
+    getUser: async (userId: number) => {
+        const response = await apiClient.get<ApiResponse<UserDetailResponse>>(`/admin/users/${userId}`);
         return response.data;
     },
 
@@ -81,8 +69,8 @@ export const usersApi = {
      * Update user (admin only)
      * PATCH /admin/users/:id
      */
-    async updateUser(userId: number, data: UpdateUserRequest): Promise<UpdateUserResponse> {
-        const response = await apiClient.patch<{ success: boolean; data: UpdateUserResponse }>(
+    updateUser: async (userId: number, data: UpdateUserRequest) => {
+        const response = await apiClient.patch<ApiResponse<{ user: any }>>(
             `/admin/users/${userId}`,
             data
         );
@@ -93,10 +81,8 @@ export const usersApi = {
      * Delete user (admin only)
      * DELETE /admin/users/:id
      */
-    async deleteUser(userId: number): Promise<DeleteUserResponse> {
-        const response = await apiClient.delete<{ success: boolean; data: DeleteUserResponse }>(
-            `/admin/users/${userId}`
-        );
+    deleteUser: async (userId: number) => {
+        const response = await apiClient.delete<ApiResponse<{ success: boolean }>>(`/admin/users/${userId}`);
         return response.data;
     },
 };

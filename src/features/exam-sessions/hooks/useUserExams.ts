@@ -1,18 +1,19 @@
-// src/features/exam-sessions/hooks/useUserExams.ts
 import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/shared/lib/api';
-import type { UserExam } from '../types/exam-sessions.types';
+import { examSessionsApi } from '../api/exam-sessions.api';
 
-interface UserExamsResponse {
-    userExams: UserExam[];
-}
-
-export function useUserExams() {
-    return useQuery<UserExamsResponse>({
-        queryKey: ['user-exams'],
+/**
+ * Hook to fetch user's exam sessions
+ *
+ * Uses GET /api/v1/exam-sessions (NOT /exam-sessions/my-exams)
+ * Backend automatically filters sessions by authenticated user
+ */
+export function useUserExams(params?: { page?: number; limit?: number; status?: string }) {
+    return useQuery({
+        queryKey: ['user-exams', params],
         queryFn: async () => {
-            const response = await apiClient.get('/exam-sessions/my-exams');
-            return response.data;
+            // The /exam-sessions endpoint automatically filters by authenticated user
+            const response = await examSessionsApi.getUserExams(params);
+            return response;
         },
         staleTime: 1000 * 30, // 30 seconds
     });
