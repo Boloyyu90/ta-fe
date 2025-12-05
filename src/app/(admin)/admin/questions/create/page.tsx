@@ -1,40 +1,53 @@
-/**
- * CREATE QUESTION PAGE
- *
- * PURPOSE:
- * - Form to create new question for question bank
- * - Input content, 5 options, select correct answer
- *
- * BACKEND INTEGRATION:
- * - POST /api/v1/admin/questions
- *
- * REQUEST:
- * {
- *   content: string, // Min 10 chars, max 5000
- *   options: {
- *     A: string, // Cannot be empty
- *     B: string,
- *     C: string,
- *     D: string,
- *     E: string
- *   },
- *   correctAnswer: "A" | "B" | "C" | "D" | "E",
- *   questionType: "TIU" | "TWK" | "TKP",
- *   defaultScore: number // Optional, default 1, min 1, max 100
- * }
- *
- * VALIDATION:
- * - Content: Min 10 chars, max 5000 (long question support)
- * - Options: Must have exactly 5 keys (A-E), all non-empty
- * - Correct answer: Must be one of A, B, C, D, E
- * - Score: Integer, positive, 1-100
- *
- * IMPLEMENTATION:
- * - Use features/admin/components/questions/QuestionForm.tsx
- * - Rich text editor for content (optional, or textarea)
- * - 5 input fields for options (A-E)
- * - Radio buttons to select correct answer
- * - Question type selector (dropdown or radio)
- * - Score input (number field, default 5)
- * - On success: Redirect to /admin/questions
- */
+// src/app/admin/questions/create/page.tsx
+'use client';
+
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { useCreateQuestion } from '@/features/questions/hooks';
+import { QuestionForm } from '@/features/questions/components';
+
+export default function CreateQuestionPage() {
+    const { mutate: createQuestion, isPending } = useCreateQuestion();
+
+    const handleSubmit = (data: any) => {
+        createQuestion(data);
+    };
+
+    return (
+        <div className="min-h-screen bg-muted/30">
+            {/* Header */}
+            <div className="bg-background border-b border-border">
+                <div className="container mx-auto px-4 py-6">
+                    <Link href="/admin/questions">
+                        <Button variant="ghost" className="mb-4">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Questions
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="container mx-auto px-4 py-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl">Create New Question</CardTitle>
+                        <CardDescription>
+                            Add a new question to the question bank. Make sure to fill all required
+                            fields.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <QuestionForm
+                            onSubmit={handleSubmit}
+                            isSubmitting={isPending}
+                            mode="create"
+                        />
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}
