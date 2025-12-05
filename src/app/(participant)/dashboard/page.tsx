@@ -36,16 +36,16 @@ export default function ParticipantDashboard() {
 
     // Calculate statistics
     const stats = {
-        availableExams: examsData?.data.length || 0,
-        totalExams: examsData?.pagination.total || 0,
-        completedExams: resultsData?.data.filter(r => r.status === 'FINISHED').length || 0,
-        inProgressExams: sessionsData?.data.filter(s => s.status === 'IN_PROGRESS').length || 0,
-        averageScore: resultsData?.data.length
+        availableExams: examsData?.data?.length || 0, // ✅ Access .data array
+        totalExams: examsData?.pagination?.totalItems || 0, // ✅ totalItems, not total
+        completedExams: resultsData?.data?.filter((r: ExamResult) => r.status === 'FINISHED').length || 0,
+        inProgressExams: sessionsData?.data?.filter((s: any) => s.status === 'IN_PROGRESS').length || 0,
+        averageScore: resultsData?.data && resultsData.data.length > 0
             ? Math.round(
                 resultsData.data
-                    .filter(r => r.totalScore !== null)
-                    .reduce((sum, r) => sum + (r.totalScore || 0), 0) /
-                (resultsData.data.filter(r => r.totalScore !== null).length || 1)
+                    .filter((r: ExamResult) => r.totalScore !== null)
+                    .reduce((sum: number, r: ExamResult) => sum + (r.totalScore || 0), 0) /
+                (resultsData.data.filter((r: ExamResult) => r.totalScore !== null).length || 1)
             )
             : 0,
     };

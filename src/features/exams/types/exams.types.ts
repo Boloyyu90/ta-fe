@@ -1,31 +1,33 @@
 // src/features/exams/types/exams.types.ts
 
+import type { PaginationMeta } from '@/shared/types/api.types';
+
 // ============================================================================
-// EXISTING TYPES
+// EXAM TYPES
 // ============================================================================
+
 export interface Exam {
     id: number;
     title: string;
     description: string | null;
     durationMinutes: number;
-    startTime: string | null;
-    endTime: string | null;
     isActive: boolean;
+    createdBy: number;
     createdAt: string;
     updatedAt: string;
     _count?: {
         examQuestions: number;
+        userExams: number;
     };
 }
 
 export interface ExamsResponse {
-    exams: Exam[];
-    pagination: {
-        currentPage: number;
-        totalPages: number;
-        totalItems: number;
-        itemsPerPage: number;
-    };
+    data: Exam[]; // ✅ Array of exams
+    pagination: PaginationMeta;
+}
+
+export interface ExamDetailResponse {
+    exam: Exam;
 }
 
 export interface ExamsQueryParams {
@@ -36,43 +38,16 @@ export interface ExamsQueryParams {
 }
 
 // ============================================================================
-// NEW TYPES FOR PART 3
+// START EXAM TYPES
 // ============================================================================
 
-// For Exam Detail Page
-export interface ExamDetail {
-    id: number;
-    title: string;
-    description: string | null;
-    durationMinutes: number;
-    startTime: string | null;
-    endTime: string | null;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
-    _count: {
-        examQuestions: number;
-    };
-}
-
-export interface ExamDetailResponse {
-    exam: ExamDetail;
-}
-
-// For Start Exam Response
 export interface StartExamResponse {
-    message: string;
     userExam: {
         id: number;
-        userId: number;
         examId: number;
-        status: 'IN_PROGRESS';
+        userId: number;
+        status: string;
         startedAt: string;
-        completedAt: null;
-        totalScore: null;
-        totalQuestions: number;
-        correctAnswers: null;
         createdAt: string;
-        updatedAt: string;
     };
 }

@@ -84,7 +84,7 @@ export default function ExamTakingPage({ params }: PageProps) {
 
     // Handle answer selection
     const handleSelectAnswer = useCallback(
-        (option: string) => {
+        (option: 'A' | 'B' | 'C' | 'D' | 'E') => {
             if (!currentQuestion || isSubmittingAnswer) return;
 
             const examQuestionId = currentQuestion.examQuestionId;

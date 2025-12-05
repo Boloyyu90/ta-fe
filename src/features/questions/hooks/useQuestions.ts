@@ -10,6 +10,6 @@ export function useQuestions(params: QuestionsQueryParams = {}) {
         queryKey: ['questions', { page, limit, type, search, sortBy, sortOrder }],
         queryFn: () => questionsApi.getQuestions({ page, limit, type, search, sortBy, sortOrder }),
         staleTime: 1000 * 60, // 1 minute
-        keepPreviousData: true, // Keep previous data while fetching new page
+        placeholderData: (previousData) => previousData,
     });
 }

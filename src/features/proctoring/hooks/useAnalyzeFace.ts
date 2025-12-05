@@ -8,12 +8,12 @@ import { useEffect } from 'react';
 
 interface UseAnalyzeFaceParams {
     sessionId: number;
-    onViolation?: (warningLevel: number) => void;
+    onViolation?: (severity: string) => void;
     onCancel?: () => void;
 }
 
 export function useAnalyzeFace({ sessionId, onViolation, onCancel }: UseAnalyzeFaceParams) {
-    const { addViolation, setWarningLevel } = useProctoringStore();
+    const { addViolation } = useProctoringStore();
 
     const mutation = useMutation({
         mutationFn: (data: AnalyzeFaceRequest) => proctoringApi.analyzeFace(sessionId, data),
@@ -22,39 +22,34 @@ export function useAnalyzeFace({ sessionId, onViolation, onCancel }: UseAnalyzeF
     // Handle success
     useEffect(() => {
         if (mutation.isSuccess && mutation.data) {
-            const { violations, warningLevel, shouldCancel, message } = mutation.data;
+            const { analysis, eventLogged } = mutation.data; // ✅ Correct structure
 
-            // Log violations to store
-            violations.forEach((violation) => addViolation(violation));
+            // Check for violations
+            const hasViolations = analysis.violations.some(v => v !== 'FACE_DETECTED');
 
-            // Update warning level
-            if (warningLevel !== undefined) {
-                setWarningLevel(warningLevel);
-                if (onViolation) onViolation(warningLevel);
-            }
+            if (hasViolations && eventLogged) {
+                // Add to local store
+                const violation = {
+                    type: analysis.violations[0],
+                    severity: 'HIGH' as const,
+                    timestamp: new Date().toISOString(),
+                    message: analysis.message,
+                };
 
-            // Show warnings
-            if (violations.length > 0) {
-                const highViolations = violations.filter((v) => v.severity === 'HIGH');
+                addViolation(violation);
 
-                if (highViolations.length > 0) {
-                    toast.error(`⚠️ Warning ${warningLevel}/3`, {
-                        description: message || highViolations[0].message,
-                        duration: 5000,
-                    });
+                // Show warning
+                toast.error('⚠️ Proctoring Warning', {
+                    description: analysis.message,
+                    duration: 5000,
+                });
+
+                if (onViolation) {
+                    onViolation('HIGH');
                 }
             }
-
-            // Handle auto-cancel
-            if (shouldCancel && onCancel) {
-                toast.error('Exam Cancelled', {
-                    description: 'Your exam has been cancelled due to multiple violations.',
-                    duration: 10000,
-                });
-                onCancel();
-            }
         }
-    }, [mutation.isSuccess, mutation.data, addViolation, setWarningLevel, onViolation, onCancel]);
+    }, [mutation.isSuccess, mutation.data, addViolation, onViolation]);
 
     // Handle errors (silent - don't block exam)
     useEffect(() => {

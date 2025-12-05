@@ -32,7 +32,7 @@ function AuthInit() {
             try {
                 const response = await authApi.getCurrentUser();
                 console.log("AuthInit: Token valid, user verified");
-                return response.data.user;
+                return response.user;
             } catch (error) {
                 console.error("AuthInit: Token verification failed", error);
                 throw error;

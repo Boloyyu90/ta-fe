@@ -16,22 +16,20 @@ export function useSubmitExam(sessionId: number) {
     // Handle success
     useEffect(() => {
         if (mutation.isSuccess && mutation.data) {
-            const { result } = mutation.data;
+            const { result } = mutation.data; // ✅ Correct - no double unwrap
 
             toast.success('Exam Submitted!', {
-                description: `Your score: ${result.totalScore || 0}`,
-                duration: 5000,
+                description: `Your score: ${result.totalScore}/${result.totalQuestions * 5}`,
             });
 
-            // Invalidate queries
-            queryClient.invalidateQueries({ queryKey: ['exam-session', sessionId] });
+            // Invalidate relevant queries
             queryClient.invalidateQueries({ queryKey: ['user-exams'] });
-            queryClient.invalidateQueries({ queryKey: ['my-results'] });
+            queryClient.invalidateQueries({ queryKey: ['exam-session', sessionId] });
 
-            // Redirect to review page
-            router.push(`/exam-sessions/${sessionId}/review`);
+            // Redirect to results page
+            router.push(`/results/${sessionId}`);
         }
-    }, [mutation.isSuccess, mutation.data, sessionId, router, queryClient]);
+    }, [mutation.isSuccess, mutation.data, router, queryClient, sessionId]);
 
     // Handle errors
     useEffect(() => {

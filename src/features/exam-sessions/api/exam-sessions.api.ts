@@ -1,6 +1,6 @@
 // src/features/exam-sessions/api/exam-sessions.api.ts
 import { apiClient } from '@/shared/lib/api';
-import type { ApiResponse } from '@/shared/types/api.types';  // ✅ ADD THIS IMPORT
+import type { ApiResponse } from '@/shared/types/api.types';
 import type {
     ExamSessionResponse,
     ExamQuestionsResponse,

@@ -1,90 +1,64 @@
 // src/features/proctoring/types/proctoring.types.ts
 
-// ============================================================================
-// EXISTING TYPES (from Part 2)
-// ============================================================================
-export type EventType =
-    | 'PROCTORING_STARTED'
-    | 'FACE_DETECTED'
-    | 'NO_FACE_DETECTED'
-    | 'MULTIPLE_FACES'
-    | 'LOOKING_AWAY'
-    | 'EXAM_AUTO_CANCELLED';
+import type { PaginationMeta } from '@/shared/types/api.types';
 
-export type Severity = 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH';
+// ============================================================================
+// PROCTORING REQUEST TYPES
+// ============================================================================
 
-export type ViolationType =
-    | 'NO_FACE'
-    | 'MULTIPLE_FACES'
-    | 'LOOKING_AWAY'
-    | 'UNAUTHORIZED_DEVICE'
-    | 'SUSPICIOUS_BEHAVIOR';
+export interface AnalyzeFaceRequest {
+    imageBase64: string; // ✅ Correct property name
+}
+
+// ============================================================================
+// PROCTORING RESPONSE TYPES
+// ============================================================================
+
+export interface AnalyzeFaceResponse {
+    analysis: {
+        status: string;
+        violations: string[];
+        confidence: number;
+        message: string;
+        metadata?: any;
+    };
+    eventLogged: boolean;
+    eventType: string | null;
+    usedFallback?: boolean;
+}
+
+// ============================================================================
+// VIOLATION TYPES
+// ============================================================================
+
+export interface Violation {
+    type: string;
+    severity: 'LOW' | 'MEDIUM' | 'HIGH';
+    timestamp: string;
+    message: string; // ✅ Added message property
+}
+
+// ============================================================================
+// PROCTORING EVENTS TYPES
+// ============================================================================
 
 export interface ProctoringEvent {
     id: number;
     userExamId: number;
-    eventType: EventType;
-    severity: Severity;
-    details: string | null;
-    mlConfidence: number | null;
+    eventType: 'FACE_DETECTED' | 'NO_FACE_DETECTED' | 'MULTIPLE_FACES' | 'LOOKING_AWAY';
+    severity: 'LOW' | 'MEDIUM' | 'HIGH';
+    metadata: Record<string, any> | null;
     timestamp: string;
-    createdAt: string;
 }
 
-export interface Violation {
-    id: number;
-    userExamId: number;
-    violationType: ViolationType;
-    severity: Severity;
-    description: string | null;
-    evidenceUrl: string | null;
-    timestamp: string;
-    createdAt: string;
-}
-
-export interface AnalyzeFaceRequest {
-    image: string; // Base64 encoded image
-}
-
-export interface AnalyzeFaceResponse {
-    success: boolean;
-    message: string;
-    data: {
-        faceDetected: boolean;
-        multipleFaces: boolean;
-        lookingAway: boolean;
-        confidence: number;
-        eventType: EventType;
-        severity: Severity;
-    };
-}
-
-// ============================================================================
-// NEW TYPES FOR PART 3
-// ============================================================================
-
-// For Proctoring Events List (with pagination)
 export interface ProctoringEventsResponse {
-    events: ProctoringEvent[];
-    pagination?: {
-        currentPage: number;
-        totalPages: number;
-        totalItems: number;
-        itemsPerPage: number;
-    };
+    data: ProctoringEvent[];
+    pagination: PaginationMeta;
 }
 
 export interface ProctoringEventsParams {
     page?: number;
     limit?: number;
-    eventType?: EventType;
-    severity?: Severity;
-}
-
-// Webcam state management
-export interface WebcamState {
-    isActive: boolean;
-    stream: MediaStream | null;
-    error: string | null;
-    lastCapture: string | null;
+    eventType?: string;
+    severity?: string;
 }

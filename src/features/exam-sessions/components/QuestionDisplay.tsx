@@ -1,40 +1,45 @@
 // src/features/exam-sessions/components/QuestionDisplay.tsx
-'use client';
-
 import { Badge } from '@/shared/components/ui/badge';
+import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
 import type { ExamQuestion } from '../types/exam-sessions.types';
 
 interface QuestionDisplayProps {
     question: ExamQuestion;
     questionNumber: number;
-    totalQuestions: number;
 }
 
-export function QuestionDisplay({ question, questionNumber, totalQuestions }: QuestionDisplayProps) {
+export function QuestionDisplay({ question, questionNumber }: QuestionDisplayProps) {
     const typeColors = {
-        TIU: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
-        TWK: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
-        TKP: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-400',
+        TIU: 'bg-blue-100 text-blue-800',
+        TWK: 'bg-green-100 text-green-800',
+        TKP: 'bg-purple-100 text-purple-800',
     };
 
     return (
-        <div className="space-y-4">
-            {/* Question Header */}
-            <div className="flex items-center gap-3">
-                <Badge variant="outline" className="text-sm">
-                    Question {questionNumber} of {totalQuestions}
-                </Badge>
-                <Badge className={typeColors[question.questionType]}>
-                    {question.questionType}
-                </Badge>
-            </div>
+        <Card>
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Question {questionNumber}</h3>
+                    {/* ✅ Access nested question.question.questionType */}
+                    <Badge className={typeColors[question.question.questionType]}>
+                        {question.question.questionType}
+                    </Badge>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <div className="prose max-w-none">
+                    {/* ✅ Access nested question.question.content */}
+                    <p className="text-base">{question.question.content}</p>
 
-            {/* Question Content */}
-            <div className="p-6 rounded-lg border border-border bg-card">
-                <p className="text-base leading-relaxed text-card-foreground whitespace-pre-wrap">
-                    {question.content}
-                </p>
-            </div>
-        </div>
+                    {question.question.imageUrl && (
+                        <img
+                            src={question.question.imageUrl}
+                            alt="Question illustration"
+                            className="mt-4 max-w-full rounded-lg"
+                        />
+                    )}
+                </div>
+            </CardContent>
+        </Card>
     );
 }
