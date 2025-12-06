@@ -1,138 +1,220 @@
-import { Card, CardContent, CardFooter, CardHeader } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
+// src/features/exam-sessions/components/UserExamCard.tsx
+
+'use client';
+
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
-import { Calendar, Clock, BookOpen, Play, Eye, CheckCircle, XCircle, Loader } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { Calendar, Clock, FileText, AlertCircle, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { format } from 'date-fns';
 import type { UserExam, UserExamStatus } from '../types/exam-sessions.types';
-import { formatDate, formatDuration } from '@/shared/lib/formatters';
+import { getStatusConfig } from '../utils/status-config';
+
+/**
+ * UserExamCard Component
+ *
+ * Displays a single user exam session with exam details and status
+ *
+ * ⚠️ CRITICAL: Exam now uses `durationMinutes` (integer) not `duration` (string)
+ * Backend contract: Exam.durationMinutes is a number representing minutes
+ */
 
 interface UserExamCardProps {
     userExam: UserExam;
-}
-
-interface StatusConfig {
-    label: string;
-    color: string;
-    icon: typeof Play;
+    onViewResults?: () => void;
+    onStartExam?: () => void;
+    showActions?: boolean;
 }
 
 /**
- * Displays a user exam session card
- *
- * CRITICAL: Use UserExamStatus (not ExamStatus) for status configuration
- * Valid statuses: NOT_STARTED, IN_PROGRESS, FINISHED, TIMEOUT, CANCELLED, COMPLETED
+ * Format duration from minutes to human-readable string
+ * @param minutes - Duration in minutes (integer)
+ * @returns Formatted string like "90 minutes" or "2 hours 30 minutes"
  */
-export function UserExamCard({ userExam }: UserExamCardProps) {
-    // Status configuration for USER EXAM statuses (not exam definition statuses)
-    const statusConfig: Record<UserExamStatus, StatusConfig> = {
-        NOT_STARTED: {
-            label: 'Belum Dimulai',
-            color: 'bg-gray-100 text-gray-800',
-            icon: Clock,
-        },
-        IN_PROGRESS: {
-            label: 'Sedang Berlangsung',
-            color: 'bg-blue-100 text-blue-800',
-            icon: Loader,
-        },
-        FINISHED: {
-            label: 'Selesai',
-            color: 'bg-green-100 text-green-800',
-            icon: CheckCircle,
-        },
-        COMPLETED: {
-            label: 'Selesai',
-            color: 'bg-green-100 text-green-800',
-            icon: CheckCircle,
-        },
-        TIMEOUT: {
-            label: 'Waktu Habis',
-            color: 'bg-orange-100 text-orange-800',
-            icon: Clock,
-        },
-        CANCELLED: {
-            label: 'Dibatalkan',
-            color: 'bg-red-100 text-red-800',
-            icon: XCircle,
-        },
-    };
+function formatDuration(minutes: number): string {
+    if (minutes < 60) {
+        return `${minutes} minutes`;
+    }
 
-    const status = statusConfig[userExam.status];
-    const StatusIcon = status.icon;
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
 
-    const canStart = userExam.status === 'NOT_STARTED';
-    const canContinue = userExam.status === 'IN_PROGRESS';
-    const canViewResult = ['FINISHED', 'COMPLETED', 'TIMEOUT'].includes(userExam.status);
+    if (remainingMinutes === 0) {
+        return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+    }
+
+    return `${hours} ${hours === 1 ? 'hour' : 'hours'} ${remainingMinutes} minutes`;
+}
+
+/**
+ * Format time spent in exam session
+ * @param seconds - Time spent in seconds
+ * @returns Formatted string like "45m 23s"
+ */
+function formatTimeSpent(seconds?: number): string {
+    if (!seconds) return 'N/A';
+
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+
+    return `${minutes}m ${remainingSeconds}s`;
+}
+
+export function UserExamCard({
+                                 userExam,
+                                 onViewResults,
+                                 onStartExam,
+                                 showActions = true,
+                             }: UserExamCardProps) {
+    const { exam, status, totalScore, startTime, endTime, timeSpent, violationCount } = userExam;
+    const statusConfig = getStatusConfig(status);
+
+    // Determine if results are available
+    const hasResults = ['FINISHED', 'TIMEOUT', 'COMPLETED'].includes(status);
+
+    // Determine if exam can be started
+    const canStart = status === 'NOT_STARTED';
+
+    // Determine if exam is in progress
+    const isInProgress = status === 'IN_PROGRESS';
 
     return (
-        <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-                <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                        <h3 className="text-xl font-bold mb-2">{userExam.exam.title}</h3>
-                        <p className="text-sm text-gray-600 line-clamp-2">
-                            {userExam.exam.description}
-                        </p>
+        <Card className="overflow-hidden transition-shadow hover:shadow-md">
+            <CardHeader className="border-b bg-muted/50 pb-4">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-1">
+                        <h3 className="text-xl font-semibold leading-tight">
+                            {exam.title}
+                        </h3>
+                        {exam.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                                {exam.description}
+                            </p>
+                        )}
                     </div>
-                    <Badge className={status.color}>
-                        <StatusIcon className="w-3 h-3 mr-1" />
-                        {status.label}
+                    <Badge
+                        variant={status === 'FINISHED' || status === 'COMPLETED' ? 'default' : 'secondary'}
+                        className="shrink-0"
+                    >
+                        {statusConfig.label}
                     </Badge>
                 </div>
             </CardHeader>
 
-            <CardContent className="space-y-3">
-                <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <span>Terdaftar: {formatDate(userExam.createdAt)}</span>
-                </div>
+            <CardContent className="pt-6">
+                <div className="grid gap-4 sm:grid-cols-2">
+                    {/* Exam Details */}
+                    <div className="space-y-3">
+                        <h4 className="text-sm font-medium text-muted-foreground">Exam Details</h4>
 
-                <div className="flex items-center text-sm text-gray-600">
-                    <Clock className="w-4 h-4 mr-2" />
-                    <span>Durasi: {formatDuration(userExam.exam.duration)}</span>
-                </div>
+                        <div className="flex items-center gap-2 text-sm">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <span>{exam.totalQuestions} questions</span>
+                        </div>
 
-                <div className="flex items-center text-sm text-gray-600">
-                    <BookOpen className="w-4 h-4 mr-2" />
-                    <span>{userExam.exam.totalQuestions} soal</span>
-                </div>
+                        <div className="flex items-center gap-2 text-sm">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            {/* ⚠️ FIXED: Use exam.durationMinutes (number) instead of exam.duration */}
+                            <span>Duration: {formatDuration(exam.durationMinutes)}</span>
+                        </div>
 
-                {userExam.totalScore !== null && userExam.totalScore !== undefined && (
-                    <div className="flex items-center text-sm font-semibold text-green-600">
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        <span>Skor: {userExam.totalScore}</span>
+                        {exam.examDate && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                <span>Date: {format(new Date(exam.examDate), 'PPP')}</span>
+                            </div>
+                        )}
+
+                        <div className="flex items-center gap-2 text-sm">
+                            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                            <span>Passing Score: {exam.passingScore}%</span>
+                        </div>
                     </div>
-                )}
+
+                    {/* Session Details */}
+                    <div className="space-y-3">
+                        <h4 className="text-sm font-medium text-muted-foreground">Your Session</h4>
+
+                        {startTime && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <span>Started: {format(new Date(startTime), 'PPp')}</span>
+                            </div>
+                        )}
+
+                        {endTime && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                                <span>Ended: {format(new Date(endTime), 'PPp')}</span>
+                            </div>
+                        )}
+
+                        {timeSpent !== undefined && timeSpent > 0 && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <span>Time Spent: {formatTimeSpent(timeSpent)}</span>
+                            </div>
+                        )}
+
+                        {hasResults && totalScore !== null && totalScore !== undefined && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                <span className="font-semibold">
+                                    Score: {totalScore.toFixed(2)}%
+                                </span>
+                            </div>
+                        )}
+
+                        {violationCount !== undefined && violationCount > 0 && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <XCircle className="h-4 w-4 text-red-600" />
+                                <span className="text-red-600">
+                                    {violationCount} violation{violationCount > 1 ? 's' : ''}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </CardContent>
 
-            <CardFooter>
-                {canStart && (
-                    <Link href={`/exam-sessions/${userExam.id}/take`} className="w-full">
-                        <Button className="w-full">
-                            <Play className="w-4 h-4 mr-2" />
-                            Mulai Ujian
-                        </Button>
-                    </Link>
-                )}
+            {showActions && (
+                <CardFooter className="border-t bg-muted/30 pt-4">
+                    <div className="flex w-full gap-2">
+                        {canStart && onStartExam && (
+                            <Button onClick={onStartExam} className="flex-1">
+                                Start Exam
+                            </Button>
+                        )}
 
-                {canContinue && (
-                    <Link href={`/exam-sessions/${userExam.id}/take`} className="w-full">
-                        <Button className="w-full">
-                            <Loader className="w-4 h-4 mr-2" />
-                            Lanjutkan Ujian
-                        </Button>
-                    </Link>
-                )}
+                        {isInProgress && (
+                            <Button asChild className="flex-1">
+                                <Link href={`/exam-session/${userExam.id}`}>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Continue Exam
+                                </Link>
+                            </Button>
+                        )}
 
-                {canViewResult && (
-                    <Link href={`/results/${userExam.id}`} className="w-full">
-                        <Button variant="outline" className="w-full">
-                            <Eye className="w-4 h-4 mr-2" />
-                            Lihat Hasil
-                        </Button>
-                    </Link>
-                )}
-            </CardFooter>
+                        {hasResults && (
+                            <Button
+                                variant="default"
+                                onClick={onViewResults}
+                                className="flex-1"
+                            >
+                                View Results
+                            </Button>
+                        )}
+
+                        {!canStart && !isInProgress && !hasResults && (
+                            <div className="flex-1 text-center text-sm text-muted-foreground">
+                                {status === 'CANCELLED' && 'Exam was cancelled'}
+                                {status === 'NOT_STARTED' && 'Waiting to start'}
+                            </div>
+                        )}
+                    </div>
+                </CardFooter>
+            )}
         </Card>
     );
 }

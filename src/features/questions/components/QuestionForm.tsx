@@ -9,6 +9,7 @@ import { Button } from '@/shared/components/ui/button';
 import {
     Form,
     FormControl,
+    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -23,11 +24,25 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/shared/components/ui/select';
-import type { Question, QuestionType } from '../types/questions.types';
+import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group';
+import { Loader2 } from 'lucide-react';
+import type { QuestionType, Question } from '../types/questions.types';
 
-// ✅ FIXED: Validation schema uses options object
+/**
+ * QuestionForm Component
+ *
+ * Form for creating and editing questions in the question bank
+ *
+ * ⚠️ CRITICAL: Backend Question does NOT have imageUrl field!
+ * Backend Question schema: { id, content, options, correctAnswer, questionType, defaultScore, createdAt, updatedAt }
+ *
+ * This form includes imageUrl as an optional field for future enhancement,
+ * but it's NOT currently supported by the backend API.
+ */
+
+// Form validation schema
 const questionFormSchema = z.object({
-    content: z.string().min(10, 'Question must be at least 10 characters'),
+    content: z.string().min(10, 'Question content must be at least 10 characters'),
     options: z.object({
         A: z.string().min(1, 'Option A is required'),
         B: z.string().min(1, 'Option B is required'),
@@ -37,46 +52,93 @@ const questionFormSchema = z.object({
     }),
     correctAnswer: z.enum(['A', 'B', 'C', 'D', 'E']),
     questionType: z.enum(['TIU', 'TWK', 'TKP']),
-    imageUrl: z.string().optional(),
+    imageUrl: z.string().url().optional().or(z.literal('')), // Optional for future use
 });
 
-type QuestionFormValues = z.infer<typeof questionFormSchema>;
+export type QuestionFormValues = z.infer<typeof questionFormSchema>;
 
 interface QuestionFormProps {
-    defaultValues?: Partial<Question>;
+    defaultValues?: Partial<QuestionFormValues>;
     onSubmit: (data: QuestionFormValues) => void;
-    isLoading?: boolean;
+    isSubmitting?: boolean;
+    submitLabel?: string;
 }
 
-/**
- * Form for creating/editing questions
- *
- * ⚠️ FIXED:
- * - Uses options object (options.A-E) not individual optionA-E fields
- * - Removed defaultScore (not part of Question model)
- */
-export function QuestionForm({ defaultValues, onSubmit, isLoading }: QuestionFormProps) {
+export function QuestionForm({
+                                 defaultValues,
+                                 onSubmit,
+                                 isSubmitting = false,
+                                 submitLabel = 'Submit',
+                             }: QuestionFormProps) {
+    /**
+     * Initialize form with react-hook-form
+     *
+     * ⚠️ FIXED: Don't access imageUrl from defaultValues since Question type doesn't have it
+     * Instead, set imageUrl to empty string (default for optional field)
+     */
     const form = useForm<QuestionFormValues>({
         resolver: zodResolver(questionFormSchema),
         defaultValues: {
             content: defaultValues?.content || '',
-            // ✅ FIXED: Default values use options object
-            options: {
-                A: defaultValues?.options?.A || '',
-                B: defaultValues?.options?.B || '',
-                C: defaultValues?.options?.C || '',
-                D: defaultValues?.options?.D || '',
-                E: defaultValues?.options?.E || '',
+            options: defaultValues?.options || {
+                A: '',
+                B: '',
+                C: '',
+                D: '',
+                E: '',
             },
             correctAnswer: defaultValues?.correctAnswer || 'A',
-            questionType: (defaultValues?.questionType as QuestionType) || 'TIU',
-            imageUrl: defaultValues?.imageUrl || '',
+            questionType: defaultValues?.questionType || 'TIU',
+            // ⚠️ FIXED: Don't try to access defaultValues?.imageUrl since Question doesn't have this field
+            // Just set to empty string (will be omitted in API call anyway)
+            imageUrl: '', // Not supported by backend yet
         },
     });
+
+    const questionType = form.watch('questionType');
+
+    // Question type labels for display
+    const questionTypeLabels: Record<QuestionType, string> = {
+        TIU: 'Tes Intelegensia Umum',
+        TWK: 'Tes Wawasan Kebangsaan',
+        TKP: 'Tes Karakteristik Pribadi',
+    };
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Question Type Selection */}
+                <FormField
+                    control={form.control}
+                    name="questionType"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Question Type</FormLabel>
+                            <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                            >
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select question type" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {(['TIU', 'TWK', 'TKP'] as const).map((type) => (
+                                        <SelectItem key={type} value={type}>
+                                            {type} - {questionTypeLabels[type]}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormDescription>
+                                Select the category for this question
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
                 {/* Question Content */}
                 <FormField
                     control={form.control}
@@ -86,85 +148,84 @@ export function QuestionForm({ defaultValues, onSubmit, isLoading }: QuestionFor
                             <FormLabel>Question Content</FormLabel>
                             <FormControl>
                                 <Textarea
-                                    placeholder="Enter the question..."
-                                    className="min-h-[100px]"
+                                    placeholder="Enter the question text..."
+                                    className="min-h-[120px] resize-none"
                                     {...field}
                                 />
                             </FormControl>
+                            <FormDescription>
+                                Write a clear and concise question (minimum 10 characters)
+                            </FormDescription>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
 
-                {/* Options A-E */}
-                {['A', 'B', 'C', 'D', 'E'].map((optionKey) => (
-                    <FormField
-                        key={optionKey}
-                        control={form.control}
-                        name={`options.${optionKey}` as any} // ✅ FIXED: Access nested options
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Option {optionKey}</FormLabel>
-                                <FormControl>
-                                    <Input placeholder={`Enter option ${optionKey}...`} {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                ))}
+                {/* Answer Options */}
+                <div className="space-y-4">
+                    <h3 className="text-sm font-medium">Answer Options</h3>
+                    {(['A', 'B', 'C', 'D', 'E'] as const).map((optionKey) => (
+                        <FormField
+                            key={optionKey}
+                            control={form.control}
+                            name={`options.${optionKey}`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Option {optionKey}</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            placeholder={`Enter option ${optionKey}...`}
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    ))}
+                </div>
 
-                {/* Correct Answer */}
+                {/* Correct Answer Selection */}
                 <FormField
                     control={form.control}
                     name="correctAnswer"
                     render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="space-y-3">
                             <FormLabel>Correct Answer</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select correct answer" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {['A', 'B', 'C', 'D', 'E'].map((option) => (
-                                        <SelectItem key={option} value={option}>
-                                            Option {option}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <FormControl>
+                                <RadioGroup
+                                    onValueChange={field.onChange}
+                                    defaultValue={field.value}
+                                    className="flex flex-col space-y-1"
+                                >
+                                    {(['A', 'B', 'C', 'D', 'E'] as const).map((optionKey) => {
+                                        const optionText = form.watch(`options.${optionKey}`);
+                                        return (
+                                            <FormItem
+                                                key={optionKey}
+                                                className="flex items-center space-x-3 space-y-0"
+                                            >
+                                                <FormControl>
+                                                    <RadioGroupItem value={optionKey} />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">
+                                                    Option {optionKey}
+                                                    {optionText && `: ${optionText}`}
+                                                </FormLabel>
+                                            </FormItem>
+                                        );
+                                    })}
+                                </RadioGroup>
+                            </FormControl>
+                            <FormDescription>
+                                Select which option is the correct answer
+                            </FormDescription>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
 
-                {/* Question Type */}
-                <FormField
-                    control={form.control}
-                    name="questionType"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Question Type</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select question type" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="TIU">TIU (Tes Intelegensi Umum)</SelectItem>
-                                    <SelectItem value="TWK">TWK (Tes Wawasan Kebangsaan)</SelectItem>
-                                    <SelectItem value="TKP">TKP (Tes Karakteristik Pribadi)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                {/* Image URL (Optional) */}
+                {/* Image URL (Optional - Not yet supported by backend) */}
                 <FormField
                     control={form.control}
                     name="imageUrl"
@@ -172,19 +233,27 @@ export function QuestionForm({ defaultValues, onSubmit, isLoading }: QuestionFor
                         <FormItem>
                             <FormLabel>Image URL (Optional)</FormLabel>
                             <FormControl>
-                                <Input placeholder="https://example.com/image.jpg" {...field} />
+                                <Input
+                                    placeholder="https://example.com/image.jpg"
+                                    {...field}
+                                />
                             </FormControl>
+                            <FormDescription>
+                                ⚠️ Note: Image upload is not yet supported by the backend.
+                                This field is for future enhancement.
+                            </FormDescription>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
 
-                {/* ✅ REMOVED: defaultScore field (not part of Question model) */}
-
                 {/* Submit Button */}
-                <Button type="submit" disabled={isLoading} className="w-full">
-                    {isLoading ? 'Saving...' : defaultValues ? 'Update Question' : 'Create Question'}
-                </Button>
+                <div className="flex justify-end gap-4">
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {submitLabel}
+                    </Button>
+                </div>
             </form>
         </Form>
     );
