@@ -6,6 +6,8 @@
  * ⚠️ CRITICAL: Backend uses `selectedOption` NOT `selectedAnswer`
  * See Backend API Contract page 22
  *
+ * ✅ INTEGRATION FIX: Added progress and scoresByType to match backend responses
+ *
  * DISTINCTIONS:
  * 1. ExamStatus: Status of exam definition (DRAFT, PUBLISHED, ARCHIVED)
  * 2. UserExamStatus: Status of participant's session (NOT_STARTED, IN_PROGRESS, etc.)
@@ -101,6 +103,30 @@ export interface UserExam {
 }
 
 // ============================================================================
+// SCORE BREAKDOWN (NEW - for results display)
+// ============================================================================
+
+/**
+ * Score breakdown by question type
+ * ✅ NEW: Matches backend API contract page 23-24
+ */
+export interface ScoreByType {
+    type: QuestionType; // 'TIU' | 'TWK' | 'TKP'
+    score: number;
+    maxScore: number;
+    correctAnswers: number;
+    totalQuestions: number;
+}
+
+/**
+ * Extended UserExam with score breakdown
+ * ✅ NEW: For results pages that need detailed score analysis
+ */
+export interface ExamResult extends UserExam {
+    scoresByType: ScoreByType[];
+}
+
+// ============================================================================
 // ANSWER MODELS (⚠️ Backend uses selectedOption, not selectedAnswer!)
 // ============================================================================
 
@@ -166,12 +192,25 @@ export interface ExamAnswersResponse {
     total: number;
 }
 
+/**
+ * ✅ INTEGRATION FIX: Added progress field
+ * Backend API Contract page 22
+ */
 export interface SubmitAnswerResponse {
     answer: ExamAnswer;
+    progress: {
+        answered: number;
+        total: number;
+        percentage: number;
+    };
 }
 
+/**
+ * ✅ INTEGRATION FIX: Changed to use ExamResult (includes scoresByType)
+ * Backend API Contract page 23
+ */
 export interface SubmitExamResponse {
-    result: UserExam;
+    result: ExamResult; // ✅ Changed from UserExam
 }
 
 export interface ExamSessionsListResponse {
@@ -184,8 +223,12 @@ export interface ExamSessionsListResponse {
     };
 }
 
+/**
+ * ✅ INTEGRATION FIX: Changed to use ExamResult (includes scoresByType)
+ * Backend API Contract page 27
+ */
 export interface MyResultsResponse {
-    data: UserExam[];
+    data: ExamResult[]; // ✅ Changed from UserExam[]
     pagination: {
         currentPage: number;
         totalPages: number;
