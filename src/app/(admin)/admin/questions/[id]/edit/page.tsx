@@ -1,162 +1,133 @@
 // src/app/(admin)/admin/questions/[id]/edit/page.tsx
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { QuestionForm } from '@/features/questions/components/QuestionForm';
 import { useQuestion } from '@/features/questions/hooks/useQuestion';
 import { useUpdateQuestion } from '@/features/questions/hooks/useUpdateQuestion';
-import { QuestionForm } from '@/features/questions/components/QuestionForm';
-import { Card } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
-import { Loader2, ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
-import type { QuestionType } from '@/features/questions/types/questions.types';
-
-/**
- * Admin Question Edit Page
- *
- * Transforms between:
- * - Backend Question format: { content, options: {A, B, C, D, E}, correctAnswer, questionType, defaultScore }
- * - QuestionForm format: { content, options: {A, B, C, D, E}, correctAnswer, questionType, imageUrl? }
- *
- * Note: Backend Question does NOT have imageUrl field (removed in alignment)
- */
-
-// Form values expected by QuestionForm component
-interface QuestionFormValues {
-    content: string;
-    options: {
-        A: string;
-        B: string;
-        C: string;
-        D: string;
-        E: string;
-    };
-    correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
-    questionType: QuestionType;
-    imageUrl?: string; // Optional for form, but not in backend Question
-}
+import type { QuestionFormData } from '@/features/questions/components/QuestionForm';
 
 export default function EditQuestionPage() {
     const params = useParams();
     const router = useRouter();
     const questionId = params.id as string;
 
-    // Fetch existing question
-    const { data: question, isLoading, isError } = useQuestion(questionId);
+    // Fetch question data
+    const { data: questionResponse, isLoading, error } = useQuestion(questionId);
 
     // Update mutation
     const updateMutation = useUpdateQuestion(questionId);
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    /**
-     * Transform QuestionFormValues to backend UpdateQuestionRequest
-     * ⚠️ Backend expects: content, options, correctAnswer, questionType, defaultScore
-     * 🚫 Backend does NOT accept imageUrl
-     */
-    const handleSubmit = async (formData: QuestionFormValues) => {
+    const handleSubmit = async (data: QuestionFormData) => {
         try {
-            setIsSubmitting(true);
+            await updateMutation.mutateAsync({
+                content: data.content,
+                options: {
+                    A: data.optionA,
+                    B: data.optionB,
+                    C: data.optionC,
+                    D: data.optionD,
+                    E: data.optionE,
+                },
+                correctAnswer: data.correctAnswer,
+                questionType: data.questionType,
+                defaultScore: data.defaultScore,
+            });
 
-            // Extract only fields that backend accepts
-            const updateData = {
-                content: formData.content,
-                options: formData.options,
-                correctAnswer: formData.correctAnswer,
-                questionType: formData.questionType,
-                // Note: defaultScore not changed during edit (backend doesn't require it)
-                // imageUrl is ignored - backend Question doesn't have this field
-            };
-
-            await updateMutation.mutateAsync(updateData);
-
-            toast.success('Question updated successfully');
             router.push('/admin/questions');
-        } catch (error: any) {
+        } catch (error) {
             console.error('Failed to update question:', error);
-            toast.error(error.message || 'Failed to update question');
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
-    // Loading state
     if (isLoading) {
         return (
-            <div className="flex min-h-screen items-center justify-center">
-                <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Loading question...</p>
-                </div>
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         );
     }
 
-    // Error state
-    if (isError || !question) {
+    if (error) {
         return (
-            <div className="container mx-auto py-8">
-                <Card className="p-6">
-                    <div className="text-center">
-                        <h2 className="text-xl font-semibold text-destructive mb-2">
-                            Failed to Load Question
-                        </h2>
-                        <p className="text-muted-foreground mb-4">
-                            The question could not be found or you don't have permission to edit it.
-                        </p>
-                        <Button asChild>
-                            <Link href="/admin/questions">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back to Questions
-                            </Link>
-                        </Button>
-                    </div>
-                </Card>
-            </div>
-        );
-    }
-
-    /**
-     * Transform backend Question to QuestionFormValues
-     * Backend Question: { id, content, options, correctAnswer, questionType, defaultScore, ... }
-     * Form expects: { content, options, correctAnswer, questionType, imageUrl? }
-     */
-    const defaultValues: Partial<QuestionFormValues> = {
-        content: question.content,
-        options: question.options,
-        correctAnswer: question.correctAnswer,
-        questionType: question.questionType,
-        // imageUrl: undefined (backend Question doesn't have this field)
-    };
-
-    return (
-        <div className="container mx-auto py-8">
-            <div className="mb-6 flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold">Edit Question</h1>
-                    <p className="text-muted-foreground">
-                        Update question details
+            <div className="container mx-auto px-4 py-8">
+                <div className="bg-destructive/10 text-destructive rounded-lg p-4">
+                    <p className="font-medium">Failed to load question</p>
+                    <p className="text-sm mt-1">
+                        {error instanceof Error ? error.message : 'Unknown error occurred'}
                     </p>
                 </div>
-                <Button variant="outline" asChild>
-                    <Link href="/admin/questions">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Questions
-                    </Link>
+                <Button
+                    variant="outline"
+                    onClick={() => router.push('/admin/questions')}
+                    className="mt-4"
+                >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Questions
                 </Button>
             </div>
+        );
+    }
 
-            <Card className="p-6">
+    if (!questionResponse?.data) {
+        return (
+            <div className="container mx-auto px-4 py-8">
+                <div className="bg-muted rounded-lg p-4">
+                    <p>Question not found</p>
+                </div>
+                <Button
+                    variant="outline"
+                    onClick={() => router.push('/admin/questions')}
+                    className="mt-4"
+                >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Questions
+                </Button>
+            </div>
+        );
+    }
+
+    // ✅ FIXED: Access nested data property
+    const question = questionResponse.data;
+
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <div className="mb-6">
+                <Button
+                    variant="outline"
+                    onClick={() => router.push('/admin/questions')}
+                    className="mb-4"
+                >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Questions
+                </Button>
+                <h1 className="text-3xl font-bold">Edit Question</h1>
+                <p className="text-muted-foreground mt-2">
+                    Update the question details below
+                </p>
+            </div>
+
+            <div className="bg-card rounded-lg border p-6">
                 <QuestionForm
-                    defaultValues={defaultValues}
+                    mode="edit"
+                    defaultValues={{
+                        // ✅ FIXED: Access properties from nested data object
+                        content: question.content,
+                        optionA: question.options.A,
+                        optionB: question.options.B,
+                        optionC: question.options.C,
+                        optionD: question.options.D,
+                        optionE: question.options.E,
+                        correctAnswer: question.correctAnswer,
+                        questionType: question.questionType,
+                        defaultScore: question.defaultScore,
+                    }}
                     onSubmit={handleSubmit}
-                    isSubmitting={isSubmitting}
-                    submitLabel="Update Question"
+                    isSubmitting={updateMutation.isPending}
                 />
-            </Card>
+            </div>
         </div>
     );
 }
