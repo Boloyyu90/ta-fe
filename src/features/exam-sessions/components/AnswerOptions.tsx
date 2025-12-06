@@ -1,49 +1,57 @@
-// src/features/exam-sessions/components/AnswerOptions.tsx
-import { cn } from '@/shared/lib/utils';
+import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group';
+import { Label } from '@/shared/components/ui/label';
 import type { ExamQuestion } from '../types/exam-sessions.types';
 
 interface AnswerOptionsProps {
     question: ExamQuestion;
-    selectedAnswer: string | null;
-    onSelectAnswer: (option: 'A' | 'B' | 'C' | 'D' | 'E') => void;
+    selectedAnswer?: 'A' | 'B' | 'C' | 'D' | 'E';
+    onAnswerChange: (answer: 'A' | 'B' | 'C' | 'D' | 'E') => void;
     disabled?: boolean;
 }
 
+/**
+ * Displays answer options for a question
+ *
+ * CRITICAL: Options structure is:
+ * question.options = { A: "text", B: "text", ... }
+ *
+ * NOT: question.question.optionA
+ */
 export function AnswerOptions({
                                   question,
                                   selectedAnswer,
-                                  onSelectAnswer,
+                                  onAnswerChange,
                                   disabled = false,
                               }: AnswerOptionsProps) {
-    const options: Array<'A' | 'B' | 'C' | 'D' | 'E'> = ['A', 'B', 'C', 'D', 'E'];
+    const optionKeys: ('A' | 'B' | 'C' | 'D' | 'E')[] = ['A', 'B', 'C', 'D', 'E'];
 
     return (
-        <div className="space-y-3">
-            {options.map((optionKey) => {
-                // ✅ Access nested question properties correctly
-                const optionText = question.question[`option${optionKey}` as keyof typeof question.question];
-                const isSelected = selectedAnswer === optionKey;
+        <RadioGroup
+            value={selectedAnswer}
+            onValueChange={(value) => onAnswerChange(value as 'A' | 'B' | 'C' | 'D' | 'E')}
+            disabled={disabled}
+            className="space-y-3"
+        >
+            {optionKeys.map((optionKey) => {
+                // Access via question.options.A (not question.question.optionA)
+                const optionText = question.options[optionKey];
 
                 return (
-                    <button
+                    <div
                         key={optionKey}
-                        type="button"
-                        onClick={() => onSelectAnswer(optionKey)}
-                        disabled={disabled}
-                        className={cn(
-                            'w-full p-4 text-left border-2 rounded-lg transition-all',
-                            'hover:bg-accent hover:border-primary',
-                            isSelected && 'bg-primary text-primary-foreground border-primary',
-                            disabled && 'opacity-50 cursor-not-allowed'
-                        )}
+                        className="flex items-center space-x-3 p-4 rounded-lg border hover:bg-gray-50"
                     >
-                        <div className="flex items-start gap-3">
-                            <span className="font-bold">{optionKey}.</span>
-                            <span>{optionText as string}</span>
-                        </div>
-                    </button>
+                        <RadioGroupItem value={optionKey} id={`option-${optionKey}`} />
+                        <Label
+                            htmlFor={`option-${optionKey}`}
+                            className="flex-1 cursor-pointer font-normal"
+                        >
+                            <span className="font-semibold mr-2">{optionKey}.</span>
+                            {optionText}
+                        </Label>
+                    </div>
                 );
             })}
-        </div>
+        </RadioGroup>
     );
 }

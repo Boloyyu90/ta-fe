@@ -1,140 +1,225 @@
-// src/features/exam-sessions/api/exam-sessions.api.ts
-
 /**
- * EXAM SESSIONS API CLIENT
+ * Exam Sessions API Client
  *
- * ✅ Correct response unwrapping for ApiResponse wrapper
- * ✅ Returns actual data payload, not wrapped response
+ * CRITICAL: This file handles API responses from the backend which follow this structure:
+ * {
+ *   success: true,
+ *   message: "...",
+ *   data: {
+ *     data: [...],      // The actual array of items
+ *     pagination: {...} // Pagination metadata
+ *   }
+ * }
+ *
+ * Our apiClient interceptor unwraps the first level (response.data),
+ * so we receive: { data: [...], pagination: {...} }
+ *
+ * We return this FULL object so components can access .data and .pagination
  */
 
 import { apiClient } from '@/shared/lib/api';
-import type { ApiResponse } from '@/shared/types/api.types';
+import type { ApiResponse } from '@/features/exam-sessions/types/exam-sessions.types';
 import type {
+    UserExam,
     ExamSessionDetailResponse,
     ExamQuestionsResponse,
+    ExamAnswersResponse,
     SubmitAnswerRequest,
     SubmitAnswerResponse,
     SubmitExamResponse,
-    ExamAnswersResponse,
+    UserExamStatus,
     MyResultsResponse,
-    MyResultsParams,
-    GetUserExamsParams,
-    UserExam,
-    PaginationMeta,
 } from '../types/exam-sessions.types';
 
-export const examSessionsApi = {
-    /**
-     * Get user's exam sessions
-     * GET /api/v1/exam-sessions
-     */
-    getUserExams: async (params?: GetUserExamsParams) => {
-        const queryParams = new URLSearchParams();
+/**
+ * Get all exam sessions for the current user
+ * @param params - Filter parameters
+ * @returns Promise with { data: UserExam[], pagination: PaginationMeta }
+ */
+export const getUserExams = async (params?: {
+    status?: UserExamStatus;
+    page?: number;
+    limit?: number;
+}): Promise<{ data: UserExam[]; pagination: any }> => {
+    try {
+        // Backend returns: { success, message, data: { data: [...], pagination: {...} } }
+        // apiClient unwraps to: { data: [...], pagination: {...} }
+        const response = await apiClient.get<ApiResponse<{ data: UserExam[]; pagination: any }>>(
+            '/exam-sessions',
+            { params }
+        );
 
-        if (params?.page) queryParams.append('page', params.page.toString());
-        if (params?.limit) queryParams.append('limit', params.limit.toString());
-        if (params?.status) queryParams.append('status', params.status);
+        // Return the full data object with array and pagination
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching user exams:', error);
+        throw error;
+    }
+};
 
-        const queryString = queryParams.toString();
-        const url = queryString ? `/exam-sessions?${queryString}` : '/exam-sessions';
-
-        const response = await apiClient.get<ApiResponse<{ data: UserExam[], pagination: PaginationMeta }>>(url);
-        // Backend returns: { success: true, data: { data: [...], pagination: {...} } }
-        return response.data.data; // Unwrap to get { data: [...], pagination: {...} }
-    },
-
-    /**
-     * Get exam session details
-     * GET /api/v1/exam-sessions/:id
-     */
-    getExamSession: async (sessionId: number) => {
+/**
+ * Get a specific exam session detail
+ * @param sessionId - User exam ID
+ * @returns Promise with { userExam: UserExam }
+ */
+export const getExamSession = async (sessionId: number): Promise<ExamSessionDetailResponse> => {
+    try {
+        // Backend returns: { success, message, data: { userExam: {...} } }
+        // apiClient unwraps to: { userExam: {...} }
         const response = await apiClient.get<ApiResponse<ExamSessionDetailResponse>>(
             `/exam-sessions/${sessionId}`
         );
-        // Backend returns: { success: true, data: { data: { userExam: {...}, questions: [...], answers: [...] } } }
-        return response.data.data; // Unwrap to get the data object
-    },
 
-    /**
-     * Get exam questions for a session
-     * GET /api/v1/exam-sessions/:id/questions
-     */
-    getExamQuestions: async (sessionId: number) => {
+        // Return the full data object
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching exam session:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get questions for an exam session
+ * @param sessionId - User exam ID
+ * @returns Promise with { questions: ExamQuestion[], total: number }
+ */
+export const getExamQuestions = async (sessionId: number): Promise<ExamQuestionsResponse> => {
+    try {
+        // Backend returns: { success, message, data: { questions: [...], total: number } }
+        // apiClient unwraps to: { questions: [...], total: number }
         const response = await apiClient.get<ApiResponse<ExamQuestionsResponse>>(
             `/exam-sessions/${sessionId}/questions`
         );
-        // Backend returns: { success: true, data: { data: [...questions...] } }
-        return response.data.data; // Unwrap to get the data object
-    },
 
-    /**
-     * Submit answer for a question (auto-save)
-     * POST /api/v1/exam-sessions/:id/answers
-     */
-    submitAnswer: async (
-        sessionId: number,
-        data: SubmitAnswerRequest
-    ) => {
+        // Return the full data object
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching exam questions:', error);
+        throw error;
+    }
+};
+
+/**
+ * Submit an answer for a question
+ * @param sessionId - User exam ID
+ * @param data - Answer submission data
+ * @returns Promise with { answer: ExamAnswer }
+ */
+export const submitAnswer = async (
+    sessionId: number,
+    data: SubmitAnswerRequest
+): Promise<SubmitAnswerResponse> => {
+    try {
+        // Backend returns: { success, message, data: { answer: {...} } }
+        // apiClient unwraps to: { answer: {...} }
         const response = await apiClient.post<ApiResponse<SubmitAnswerResponse>>(
             `/exam-sessions/${sessionId}/answers`,
             data
         );
-        // Backend returns: { success: true, data: { data: { answer: {...} } } }
-        return response.data.data; // Unwrap to get { data: {...} }
-    },
 
-    /**
-     * Submit entire exam (finalize)
-     * POST /api/v1/exam-sessions/:id/submit
-     */
-    submitExam: async (sessionId: number) => {
+        // Return the full data object
+        return response.data;
+    } catch (error) {
+        console.error('Error submitting answer:', error);
+        throw error;
+    }
+};
+
+/**
+ * Submit (finish) an exam session
+ * @param sessionId - User exam ID
+ * @returns Promise with { result: UserExam }
+ */
+export const submitExam = async (sessionId: number): Promise<SubmitExamResponse> => {
+    try {
+        // Backend returns: { success, message, data: { result: {...} } }
+        // apiClient unwraps to: { result: {...} }
         const response = await apiClient.post<ApiResponse<SubmitExamResponse>>(
             `/exam-sessions/${sessionId}/submit`
         );
-        // Backend returns: { success: true, data: { data: { result: {...} } } }
-        return response.data.data; // Unwrap to get { data: { result: {...} } }
-    },
 
-    /**
-     * Get exam answers with correctness (for review page)
-     * GET /api/v1/exam-sessions/:id/answers
-     */
-    getExamAnswers: async (sessionId: number) => {
+        // Return the full data object
+        return response.data;
+    } catch (error) {
+        console.error('Error submitting exam:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get submitted answers for an exam session
+ * @param sessionId - User exam ID
+ * @returns Promise with { answers: AnswerWithQuestion[], total: number }
+ */
+export const getExamAnswers = async (sessionId: number): Promise<ExamAnswersResponse> => {
+    try {
+        // Backend returns: { success, message, data: { answers: [...], total: number } }
+        // apiClient unwraps to: { answers: [...], total: number }
         const response = await apiClient.get<ApiResponse<ExamAnswersResponse>>(
             `/exam-sessions/${sessionId}/answers`
         );
-        // Backend returns: { success: true, data: { data: [...answers...] } }
-        return response.data.data; // Unwrap to get { data: [...] }
-    },
 
-    /**
-     * Get my results (completed exams)
-     * GET /api/v1/results
-     */
-    getMyResults: async (params?: MyResultsParams) => {
-        const queryParams = new URLSearchParams();
+        // Return the full data object
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching exam answers:', error);
+        throw error;
+    }
+};
 
-        if (params?.page) queryParams.append('page', params.page.toString());
-        if (params?.limit) queryParams.append('limit', params.limit.toString());
-        if (params?.status) queryParams.append('status', params.status);
-
-        const queryString = queryParams.toString();
-        const url = queryString ? `/results?${queryString}` : '/results';
-
-        const response = await apiClient.get<ApiResponse<MyResultsResponse>>(url);
-        // Backend returns: { success: true, data: { data: [...], pagination: {...} } }
-        return response.data.data; // Unwrap to get { data: [...], pagination: {...} }
-    },
-
-    /**
-     * Get result detail
-     * GET /api/v1/results/:id
-     */
-    getResultDetail: async (sessionId: number) => {
-        const response = await apiClient.get<ApiResponse<ExamSessionDetailResponse>>(
-            `/results/${sessionId}`
+/**
+ * Get user's completed exam results
+ * @param params - Filter parameters
+ * @returns Promise with { data: UserExam[], pagination: PaginationMeta }
+ */
+export const getMyResults = async (params?: {
+    page?: number;
+    limit?: number;
+}): Promise<MyResultsResponse> => {
+    try {
+        // Backend returns: { success, message, data: { data: [...], pagination: {...} } }
+        // apiClient unwraps to: { data: [...], pagination: {...} }
+        const response = await apiClient.get<ApiResponse<MyResultsResponse>>(
+            '/exam-sessions/my-results',
+            { params }
         );
-        // Backend returns: { success: true, data: { data: { userExam: {...} } } }
-        return response.data.data; // Unwrap to get { data: { userExam: {...} } }
-    },
+
+        // Return the full data object with array and pagination
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching my results:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get a specific result detail
+ * @param sessionId - User exam ID
+ * @returns Promise with { userExam: UserExam }
+ */
+export const getResultDetail = async (sessionId: number): Promise<ExamSessionDetailResponse> => {
+    try {
+        // Same as getExamSession - backend returns: { success, message, data: { userExam: {...} } }
+        const response = await apiClient.get<ApiResponse<ExamSessionDetailResponse>>(
+            `/exam-sessions/${sessionId}`
+        );
+
+        // Return the full data object
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching result detail:', error);
+        throw error;
+    }
+};
+
+// Export all functions
+export const examSessionsApi = {
+    getUserExams,
+    getExamSession,
+    getExamQuestions,
+    submitAnswer,
+    submitExam,
+    getExamAnswers,
+    getMyResults,
+    getResultDetail,
 };

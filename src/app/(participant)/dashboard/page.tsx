@@ -1,109 +1,160 @@
-// src/app/(participant)/dashboard/page.tsx
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
-import { useExamsStats } from '@/features/exams/hooks/useExamsStats';
-import { useMyStats } from '@/features/exam-sessions/hooks/useMyStats';
 import { useUserExams } from '@/features/exam-sessions/hooks/useUserExams';
-import { Skeleton } from '@/shared/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/shared/components/ui/alert';
-import { BookOpen, CheckCircle, Clock, Target } from 'lucide-react';
+import { useExamsStats } from '@/features/exam-sessions/hooks/useExamsStats';
+import { useMyStats } from '@/features/exam-sessions/hooks/useMyStats';
+import { UserExamCard } from '@/features/exam-sessions/components/UserExamCard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { BookOpen, Clock, TrendingUp, Award } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/shared/components/ui/button';
 
-export default function ParticipantDashboardPage() {
-    const { data: examsStats, isLoading: isLoadingExams } = useExamsStats();
-    const { data: myStats, isLoading: isLoadingStats } = useMyStats();
-    const { data: sessionsData, isLoading: isLoadingSessions } = useUserExams({ limit: 5 });
+/**
+ * Participant Dashboard Page
+ *
+ * Shows:
+ * - Personal statistics
+ * - Available exams statistics
+ * - Recent exam sessions
+ */
+export default function DashboardPage() {
+    // Fetch user's exam sessions with proper generics
+    // Returns: { data: { data: UserExam[], pagination: {...} } }
+    const { data: sessionsData, isLoading: sessionsLoading } = useUserExams({
+        page: 1,
+        limit: 6,
+    });
 
+    // Fetch personal statistics
+    const { data: myStats, isLoading: statsLoading } = useMyStats();
+
+    // Fetch exams statistics
+    const { data: examsStats, isLoading: examsStatsLoading } = useExamsStats();
+
+    // Access the sessions array from the data wrapper
+    // sessionsData is { data: UserExam[], pagination: {...} }
     const sessions = sessionsData?.data || [];
 
-    if (isLoadingExams || isLoadingStats || isLoadingSessions) {
-        return (
-            <div className="space-y-6">
-                <h1 className="text-3xl font-bold">Dashboard</h1>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    {[...Array(4)].map((_, i) => (
-                        <Skeleton key={i} className="h-32" />
-                    ))}
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="space-y-6">
-            <h1 className="text-3xl font-bold">Dashboard</h1>
+        <div className="container mx-auto py-8 space-y-8">
+            <div>
+                <h1 className="text-3xl font-bold">Dashboard</h1>
+                <p className="text-gray-600 mt-2">
+                    Selamat datang di platform tryout CPNS
+                </p>
+            </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {/* Statistics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Available Exams */}
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Available Exams</CardTitle>
-                        <BookOpen className="h-4 w-4 text-muted-foreground" />
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-gray-600">
+                            Ujian Tersedia
+                        </CardTitle>
+                        <BookOpen className="w-4 h-4 text-blue-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{examsStats?.availableExams || 0}</div>
+                        <div className="text-2xl font-bold">
+                            {examsStatsLoading ? '...' : examsStats?.totalExams || 0}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Siap dikerjakan
+                        </p>
                     </CardContent>
                 </Card>
 
+                {/* Completed Exams */}
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Completed Exams</CardTitle>
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-gray-600">
+                            Ujian Selesai
+                        </CardTitle>
+                        <Award className="w-4 h-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{myStats?.completedExams || 0}</div>
+                        <div className="text-2xl font-bold">
+                            {statsLoading ? '...' : myStats?.completedExams || 0}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Total pengerjaan
+                        </p>
                     </CardContent>
                 </Card>
 
+                {/* Average Score */}
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Average Score</CardTitle>
-                        <Target className="h-4 w-4 text-muted-foreground" />
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-gray-600">
+                            Rata-rata Skor
+                        </CardTitle>
+                        <TrendingUp className="w-4 h-4 text-purple-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{myStats?.avgScore || 0}</div>
+                        <div className="text-2xl font-bold">
+                            {statsLoading ? '...' : myStats?.averageScore?.toFixed(1) || 0}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Dari semua ujian
+                        </p>
                     </CardContent>
                 </Card>
 
+                {/* Total Time */}
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Time</CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-gray-600">
+                            Total Waktu
+                        </CardTitle>
+                        <Clock className="w-4 h-4 text-orange-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{myStats?.totalTimeMinutes || 0} min</div>
+                        <div className="text-2xl font-bold">
+                            {statsLoading
+                                ? '...'
+                                : `${Math.floor((myStats?.totalTime || 0) / 60)}m`}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Waktu belajar
+                        </p>
                     </CardContent>
                 </Card>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Recent Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {sessions.length === 0 ? (
-                        <Alert>
-                            <AlertDescription>No recent exam activity</AlertDescription>
-                        </Alert>
-                    ) : (
-                        <div className="space-y-4">
-                            {sessions.map((session) => (
-                                <div key={session.id} className="flex items-center justify-between border-b pb-2">
-                                    <div>
-                                        <p className="font-medium">{session.exam?.title}</p>
-                                        <p className="text-sm text-muted-foreground">{session.status}</p>
-                                    </div>
-                                    {session.totalScore !== null && (
-                                        <div className="text-right">
-                                            <p className="font-bold">{session.totalScore}</p>
-                                            <p className="text-xs text-muted-foreground">Score</p>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+            {/* Recent Exam Sessions */}
+            <div>
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold">Ujian Terbaru</h2>
+                    <Link href="/exam-sessions">
+                        <Button variant="outline">Lihat Semua</Button>
+                    </Link>
+                </div>
+
+                {sessionsLoading ? (
+                    <div className="text-center py-12 text-gray-500">
+                        Memuat data...
+                    </div>
+                ) : sessions.length === 0 ? (
+                    <Card>
+                        <CardContent className="text-center py-12">
+                            <p className="text-gray-600">
+                                Belum ada ujian yang terdaftar
+                            </p>
+                            <Link href="/exams">
+                                <Button className="mt-4">
+                                    Jelajahi Ujian
+                                </Button>
+                            </Link>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {sessions.map((session) => (
+                            <UserExamCard key={session.id} userExam={session} />
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

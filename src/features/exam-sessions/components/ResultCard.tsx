@@ -1,133 +1,135 @@
-// src/features/exam-sessions/components/ResultCard.tsx
-'use client';
-
-import { useRouter } from 'next/navigation';
-import { Calendar, Clock, Award, Eye, AlertTriangle, CheckCircle, PlayCircle, Clock4, XCircle } from 'lucide-react';
-import { Card, CardContent } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
-import type { ExamSessionListItem, ExamStatus } from '../types/exam-sessions.types';
+import { Button } from '@/shared/components/ui/button';
+import { Calendar, Clock, CheckCircle, XCircle, Eye, TrendingUp, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import type { UserExam, UserExamStatus } from '../types/exam-sessions.types';
+import { formatDate, formatDuration } from '@/lib/utils/formatters';
 
 interface ResultCardProps {
-    result: ExamSessionListItem;
+    userExam: UserExam;
 }
 
-export function ResultCard({ result }: ResultCardProps) {
-    const router = useRouter();
-
-    // Define status config with ALL possible ExamStatus values
-    const statusConfig: Record<ExamStatus, {
-        label: string;
-        color: string;
-        icon: typeof CheckCircle;
-    }> = {
+/**
+ * Displays an exam result card
+ *
+ * CRITICAL: Use UserExamStatus (not ExamStatus) for status configuration
+ */
+export function ResultCard({ userExam }: ResultCardProps) {
+    // Status configuration for USER EXAM statuses
+    const statusConfig: Record<UserExamStatus, { label: string; color: string; icon: typeof CheckCircle }> = {
         NOT_STARTED: {
-            label: 'Not Started',
-            color: 'bg-gray-100 text-gray-700 dark:bg-gray-950 dark:text-gray-400',
-            icon: Clock4,
+            label: 'Belum Dimulai',
+            color: 'bg-gray-100 text-gray-800',
+            icon: Clock,
         },
         IN_PROGRESS: {
-            label: 'In Progress',
-            color: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
-            icon: PlayCircle,
+            label: 'Sedang Berlangsung',
+            color: 'bg-blue-100 text-blue-800',
+            icon: Clock,
         },
         FINISHED: {
-            label: 'Finished',
-            color: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
+            label: 'Selesai',
+            color: 'bg-green-100 text-green-800',
             icon: CheckCircle,
         },
         COMPLETED: {
-            label: 'Completed',
-            color: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
+            label: 'Selesai',
+            color: 'bg-green-100 text-green-800',
             icon: CheckCircle,
         },
         TIMEOUT: {
-            label: 'Timeout',
-            color: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400',
-            icon: Clock,
-        },
-        CANCELLED: {
-            label: 'Cancelled',
-            color: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400',
+            label: 'Waktu Habis',
+            color: 'bg-orange-100 text-orange-800',
             icon: AlertTriangle,
         },
+        CANCELLED: {
+            label: 'Dibatalkan',
+            color: 'bg-red-100 text-red-800',
+            icon: XCircle,
+        },
     };
 
-    const status = statusConfig[result.status];
+    const status = statusConfig[userExam.status];
     const StatusIcon = status.icon;
 
-    const completedAt = result.completedAt
-        ? new Date(result.completedAt).toLocaleDateString('id-ID', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-        })
-        : 'N/A';
-
-    const handleViewResult = () => {
-        router.push(`/results/${result.id}`);
-    };
+    const isPassed = (userExam.totalScore || 0) >= userExam.exam.passingScore;
 
     return (
-        <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-                <div className="space-y-4">
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                            {/* ✅ FIXED: Add null check for result.exam */}
-                            <h3 className="font-semibold text-lg text-foreground">
-                                {result.exam?.title || 'Exam Title Not Available'}
-                            </h3>
-                            <Badge className={`mt-2 ${status.color}`}>
-                                <StatusIcon className="h-3 w-3 mr-1" />
+        <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+                <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                        <h3 className="text-xl font-bold mb-2">{userExam.exam.title}</h3>
+                        <div className="flex items-center gap-2">
+                            <Badge className={status.color}>
+                                <StatusIcon className="w-3 h-3 mr-1" />
                                 {status.label}
                             </Badge>
+                            {userExam.totalScore !== null && userExam.totalScore !== undefined && (
+                                <Badge className={isPassed ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}>
+                                    {isPassed ? 'Lulus' : 'Tidak Lulus'}
+                                </Badge>
+                            )}
                         </div>
-
-                        {result.totalScore !== null && (
-                            <div className="flex flex-col items-end">
-                                <span className="text-sm text-muted-foreground">Score</span>
-                                <span className="text-2xl font-bold text-foreground">
-                                    {result.totalScore}
-                                </span>
-                            </div>
-                        )}
                     </div>
-
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span>{completedAt}</span>
-                        </div>
-
-                        {/* ✅ FIXED: Add null check for result.exam */}
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            <Clock className="h-4 w-4" />
-                            <span>Duration: {result.exam?.durationMinutes || 0} minutes</span>
-                        </div>
-
-                        {result.correctAnswers !== null && result.totalQuestions !== null && (
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                                <Award className="h-4 w-4" />
-                                <span>
-                                    Correct: {result.correctAnswers}/{result.totalQuestions}
-                                </span>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Actions */}
-                    <Button
-                        onClick={handleViewResult}
-                        variant="outline"
-                        className="w-full"
-                    >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View Details
-                    </Button>
                 </div>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+                {/* Score Section */}
+                {userExam.totalScore !== null && userExam.totalScore !== undefined && (
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-gray-600">Total Skor</span>
+                            <span className="text-2xl font-bold">{userExam.totalScore}</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-sm">
+                            <div>
+                                <span className="text-gray-600">TIU:</span>
+                                <span className="font-semibold ml-1">{userExam.tiuScore || 0}</span>
+                            </div>
+                            <div>
+                                <span className="text-gray-600">TWK:</span>
+                                <span className="font-semibold ml-1">{userExam.twkScore || 0}</span>
+                            </div>
+                            <div>
+                                <span className="text-gray-600">TKP:</span>
+                                <span className="font-semibold ml-1">{userExam.tkpScore || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Details */}
+                <div className="space-y-2">
+                    <div className="flex items-center text-sm text-gray-600">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        <span>Selesai: {formatDate(userExam.submittedAt || userExam.endTime || userExam.updatedAt)}</span>
+                    </div>
+
+                    {userExam.timeSpent && (
+                        <div className="flex items-center text-sm text-gray-600">
+                            <Clock className="w-4 h-4 mr-2" />
+                            <span>Waktu: {formatDuration(Math.floor(userExam.timeSpent / 60))}</span>
+                        </div>
+                    )}
+
+                    {userExam.violationCount !== undefined && userExam.violationCount > 0 && (
+                        <div className="flex items-center text-sm text-orange-600">
+                            <AlertTriangle className="w-4 h-4 mr-2" />
+                            <span>{userExam.violationCount} pelanggaran terdeteksi</span>
+                        </div>
+                    )}
+                </div>
+
+                {/* Action Button */}
+                <Link href={`/results/${userExam.id}`}>
+                    <Button variant="outline" className="w-full">
+                        <Eye className="w-4 h-4 mr-2" />
+                        Lihat Detail
+                    </Button>
+                </Link>
             </CardContent>
         </Card>
     );

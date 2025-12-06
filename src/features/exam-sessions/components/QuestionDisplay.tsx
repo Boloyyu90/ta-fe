@@ -1,6 +1,6 @@
-// src/features/exam-sessions/components/QuestionDisplay.tsx
+import Image from 'next/image';
 import { Badge } from '@/shared/components/ui/badge';
-import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
+import { Card, CardContent } from '@/shared/components/ui/card';
 import type { ExamQuestion } from '../types/exam-sessions.types';
 
 interface QuestionDisplayProps {
@@ -8,35 +8,52 @@ interface QuestionDisplayProps {
     questionNumber: number;
 }
 
+/**
+ * Displays a single exam question with its content and image
+ *
+ * CRITICAL: ExamQuestion structure is:
+ * {
+ *   id, examQuestionId, content, options: { A, B, C, D, E },
+ *   questionType, orderNumber, imageUrl
+ * }
+ *
+ * NOT: { question: { content, optionA, ... } }
+ */
 export function QuestionDisplay({ question, questionNumber }: QuestionDisplayProps) {
-    const typeColors = {
+    // Type color mapping
+    const typeColors: Record<'TIU' | 'TWK' | 'TKP', string> = {
         TIU: 'bg-blue-100 text-blue-800',
         TWK: 'bg-green-100 text-green-800',
         TKP: 'bg-purple-100 text-purple-800',
     };
 
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">Question {questionNumber}</h3>
-                    {/* ✅ Access nested question.question.questionType */}
-                    <Badge className={typeColors[question.question.questionType]}>
-                        {question.question.questionType}
+        <Card className="mb-6">
+            <CardContent className="pt-6">
+                <div className="flex items-start justify-between mb-4">
+                    <h3 className="text-lg font-semibold">
+                        Soal {questionNumber}
+                    </h3>
+                    {/* Access questionType directly, not question.question.questionType */}
+                    <Badge className={typeColors[question.questionType]}>
+                        {question.questionType}
                     </Badge>
                 </div>
-            </CardHeader>
-            <CardContent>
-                <div className="prose max-w-none">
-                    {/* ✅ Access nested question.question.content */}
-                    <p className="text-base">{question.question.content}</p>
 
-                    {question.question.imageUrl && (
-                        <img
-                            src={question.question.imageUrl}
-                            alt="Question illustration"
-                            className="mt-4 max-w-full rounded-lg"
-                        />
+                <div className="space-y-4">
+                    {/* Access content directly */}
+                    <p className="text-base">{question.content}</p>
+
+                    {/* Access imageUrl directly */}
+                    {question.imageUrl && (
+                        <div className="relative w-full h-64">
+                            <Image
+                                src={question.imageUrl}
+                                alt="Question illustration"
+                                fill
+                                className="object-contain rounded-md"
+                            />
+                        </div>
                     )}
                 </div>
             </CardContent>

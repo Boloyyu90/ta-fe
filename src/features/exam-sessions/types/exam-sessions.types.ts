@@ -1,160 +1,182 @@
-// src/features/exam-sessions/types/exam-sessions.types.ts
-
 /**
- * EXAM SESSIONS TYPES
+ * Exam Sessions Types
  *
- * ✅ Aligned with backend API responses
- * ✅ Matches actual controller response structure
+ * CRITICAL DISTINCTIONS:
+ * 1. ExamStatus: Status of the exam definition itself (DRAFT, PUBLISHED, ARCHIVED)
+ * 2. UserExamStatus: Status of a participant's exam session (NOT_STARTED, IN_PROGRESS, FINISHED, etc.)
+ *
+ * QUESTION STRUCTURE:
+ * - Backend sends: { id, content, options: { A, B, C, D, E }, questionType, ... }
+ * - NOT: { question: { optionA, optionB, ... } }
  */
 
 // ============================================================================
-// CORE DOMAIN TYPES
+// STATUS ENUMS
 // ============================================================================
 
+/**
+ * Status of the exam definition (admin perspective)
+ */
 export type ExamStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
-export type QuestionType = 'TWK' | 'TIU' | 'TKP';
-export type UserExamStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'FINISHED' | 'TIMEOUT' | 'CANCELLED' | 'COMPLETED';
 
 /**
- * Question data structure (without correct answer for active exams)
+ * Status of a user's exam session (participant perspective)
+ */
+export type UserExamStatus =
+    | 'NOT_STARTED'
+    | 'IN_PROGRESS'
+    | 'FINISHED'
+    | 'TIMEOUT'
+    | 'CANCELLED'
+    | 'COMPLETED';
+
+/**
+ * Question types in CPNS exams
+ */
+export type QuestionType = 'TIU' | 'TWK' | 'TKP';
+
+// ============================================================================
+// QUESTION MODELS
+// ============================================================================
+
+/**
+ * Question options structure (backend format)
+ */
+export interface QuestionOptions {
+    A: string;
+    B: string;
+    C: string;
+    D: string;
+    E: string;
+}
+
+/**
+ * Base Question model
  */
 export interface Question {
     id: number;
-    questionType: QuestionType;
     content: string;
-    options: {
-        A: string;
-        B: string;
-        C: string;
-        D: string;
-        E: string;
-    };
-    correctAnswer?: string; // Only present after submission
-    imageUrl?: string | null;
+    options: QuestionOptions; // NOT optionA, optionB, etc.
+    correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
+    questionType: QuestionType;
+    imageUrl?: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 /**
- * Exam question with order number
+ * Question as it appears in an exam session
+ * Note: This extends Question and adds exam-specific fields
  */
-export interface ExamQuestion extends Question {
+export interface ExamQuestion {
+    id: number;
     examQuestionId: number;
+    content: string;
+    options: QuestionOptions; // Access via question.options.A, not question.question.optionA
+    questionType: QuestionType;
     orderNumber: number;
+    imageUrl?: string;
 }
 
+// ============================================================================
+// EXAM MODELS
+// ============================================================================
+
 /**
- * User's exam session
+ * Exam definition (from exams module)
+ */
+export interface Exam {
+    id: number;
+    title: string;
+    description?: string;
+    duration: number; // in minutes
+    passingScore: number;
+    totalQuestions: number;
+    status: ExamStatus;
+    examDate?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+// ============================================================================
+// USER EXAM SESSION MODELS
+// ============================================================================
+
+/**
+ * User's exam session (participant's active/completed exam)
  */
 export interface UserExam {
     id: number;
     userId: number;
     examId: number;
-    status: UserExamStatus;
-    startedAt: string | null;
-    finishedAt: string | null;
-    submittedAt: string | null;
-    totalScore: number | null;
-    answeredQuestions: number;
-    totalQuestions: number;
-    durationMinutes: number;
-    remainingTimeMs: number | null;
-    completedAt?: string | null; // ✅ Added for frontend
-    timeSpent: number | null;
-    correctAnswers: number | null;
+    status: UserExamStatus; // NOT ExamStatus!
+    startTime?: string;
+    endTime?: string;
+    submittedAt?: string;
+    timeSpent?: number; // in seconds
+    totalScore?: number;
+    tiuScore?: number;
+    twkScore?: number;
+    tkpScore?: number;
+    violationCount?: number;
     createdAt: string;
-    exam?: {
-        id: number;
-        title: string;
-        durationMinutes: number;
-        passingScore?: number;
-    };
+    updatedAt: string;
+    exam: Exam; // Populated exam details
 }
 
+// ============================================================================
+// ANSWER MODELS
+// ============================================================================
+
 /**
- * User's answer to a question
+ * User's submitted answer
  */
 export interface ExamAnswer {
     id: number;
     userExamId: number;
-    questionId: number;
-    selectedOption: string | null;
-    isCorrect: boolean | null;
-    score: number | null;
-    question: Question;
-}
-
-/**
- * Answer with flattened question details for review UI
- */
-export interface AnswerWithQuestion {
-    id: number;
-    userExamId: number;
-    questionId: number;
-    selectedOption: string | null;
+    examQuestionId: number;
+    selectedAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
     isCorrect: boolean;
-    score: number;
-    // Flattened question properties
-    questionType: QuestionType;
-    questionContent: string;
-    correctAnswer: string;
-    options: {
-        A: string;
-        B: string;
-        C: string;
-        D: string;
-        E: string;
-    };
+    createdAt: string;
+    updatedAt: string;
 }
 
 /**
- * Exam session list item (EXPORTED - used by ResultCard, UserExamCard)
+ * Answer with associated question (for review)
  */
-export interface ExamSessionListItem {
-    id: number;
-    userId: number;
-    examId: number;
-    status: ExamStatus;
-    totalScore: number | null;
-    startedAt: string | null;
-    finishedAt: string | null;
-    completedAt?: string | null;
-    correctAnswers?: number | null;
-    totalQuestions?: number | null;
-    exam?: {
-        title: string;
-        durationMinutes: number;
-    };
+export interface AnswerWithQuestion extends ExamAnswer {
+    examQuestion: ExamQuestion;
 }
 
 // ============================================================================
-// PAGINATION
-// ============================================================================
-
-export interface PaginationMeta {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext?: boolean;
-    hasPrev?: boolean;
-}
-
-// ============================================================================
-// API RESPONSES (✅ CORRECTED to match backend controller responses)
+// API REQUEST TYPES
 // ============================================================================
 
 /**
- * GET /api/v1/exam-sessions/:id
- * Controller sends: { userExam: {...} }
+ * Request to submit an answer
+ */
+export interface SubmitAnswerRequest {
+    examQuestionId: number;
+    selectedAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
+}
+
+// ============================================================================
+// API RESPONSE TYPES
+// ============================================================================
+
+/**
+ * Response from GET /exam-sessions/:id
+ * Backend returns: { success, message, data: { userExam: {...} } }
+ * After apiClient unwrap: { userExam: {...} }
  */
 export interface ExamSessionDetailResponse {
     userExam: UserExam;
 }
 
-export type ExamSessionResponse = ExamSessionDetailResponse;
-
 /**
- * GET /api/v1/exam-sessions/:id/questions
- * Controller sends: { questions: [...], total: number }
+ * Response from GET /exam-sessions/:id/questions
+ * Backend returns: { success, message, data: { questions: [...], total: number } }
+ * After apiClient unwrap: { questions: [...], total: number }
  */
 export interface ExamQuestionsResponse {
     questions: ExamQuestion[];
@@ -162,8 +184,9 @@ export interface ExamQuestionsResponse {
 }
 
 /**
- * GET /api/v1/exam-sessions/:id/answers
- * Controller sends: { answers: [...], total: number }
+ * Response from GET /exam-sessions/:id/answers
+ * Backend returns: { success, message, data: { answers: [...], total: number } }
+ * After apiClient unwrap: { answers: [...], total: number }
  */
 export interface ExamAnswersResponse {
     answers: AnswerWithQuestion[];
@@ -171,55 +194,67 @@ export interface ExamAnswersResponse {
 }
 
 /**
- * GET /api/v1/exam-sessions OR GET /api/v1/results
- * Service returns: { data: [...], pagination: {...} }
+ * Response from POST /exam-sessions/:id/answers
+ * Backend returns: { success, message, data: { answer: {...} } }
+ * After apiClient unwrap: { answer: {...} }
  */
-export interface MyResultsResponse {
-    data: UserExam[];
-    pagination: PaginationMeta;
-}
-
-/**
- * POST /api/v1/exams/:id/start
- * Controller sends: { userExam: {...} }
- */
-export interface StartExamResponse {
-    userExam: UserExam;
-}
-
-/**
- * POST /api/v1/exam-sessions/:id/answers
- * Controller sends: { answer: {...} }
- */
-export interface SubmitAnswerRequest {
-    questionId: number;
-    selectedOption: string;
-}
-
 export interface SubmitAnswerResponse {
     answer: ExamAnswer;
 }
 
 /**
- * POST /api/v1/exam-sessions/:id/submit
- * Controller sends: { result: {...} }
+ * Response from POST /exam-sessions/:id/submit
+ * Backend returns: { success, message, data: { result: {...} } }
+ * After apiClient unwrap: { result: {...} }
  */
 export interface SubmitExamResponse {
     result: UserExam;
 }
 
-// ============================================================================
-// REQUEST PARAMS
-// ============================================================================
-
-export interface MyResultsParams {
-    page?: number;
-    limit?: number;
-    status?: 'COMPLETED' | 'CANCELLED' | 'FINISHED';
+/**
+ * Response from GET /exam-sessions (list)
+ * Backend returns: { success, message, data: { data: [...], pagination: {...} } }
+ * After apiClient unwrap: { data: [...], pagination: {...} }
+ */
+export interface ExamSessionsListResponse {
+    data: UserExam[];
+    pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        itemsPerPage: number;
+    };
 }
 
-export interface GetUserExamsParams {
-    page?: number;
-    limit?: number;
-    status?: UserExamStatus;
+/**
+ * Response from GET /exam-sessions/my-results
+ * Backend returns: { success, message, data: { data: [...], pagination: {...} } }
+ * After apiClient unwrap: { data: [...], pagination: {...} }
+ */
+export interface MyResultsResponse {
+    data: UserExam[];
+    pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalItems: number;
+        itemsPerPage: number;
+    };
 }
+
+// ============================================================================
+// UI HELPER TYPES
+// ============================================================================
+
+/**
+ * Status configuration for UI display
+ */
+export interface StatusConfig {
+    label: string;
+    color: string;
+    icon: any; // LucideIcon type
+}
+
+/**
+ * Map of user exam statuses to their UI configurations
+ */
+export type UserExamStatusConfig = Record<UserExamStatus, StatusConfig>;
