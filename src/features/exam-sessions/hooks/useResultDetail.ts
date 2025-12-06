@@ -2,44 +2,35 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { examSessionsApi } from '../api/exam-sessions.api';
-import type { ExamSessionDetailResponse } from '../types/exam-sessions.types';
+import type { UserExam } from '../types/exam-sessions.types';
 
 /**
- * Hook to fetch detailed result information for a completed exam session
+ * Hook to fetch detailed result for a specific exam session
  *
- * ⚠️ FIXED: Backend doesn't have getResultDetail endpoint
- * Solution: Use getExamSession which returns ExamSessionDetailResponse = { userExam: UserExam }
- *
- * Backend returns ExamSessionDetailResponse with nested userExam containing:
- * - totalScore, tiuScore, twkScore, tkpScore
- * - violationCount, timeSpent
- * - exam details (title, totalQuestions, etc.)
- * - status (FINISHED, COMPLETED, etc.)
+ * ✅ CRITICAL FIX: ExamSessionDetailResponse has nested structure: { userExam: UserExam }
+ * Backend response wraps the UserExam data inside a userExam property
  */
+
+interface ResultDetail extends UserExam {
+    // Add computed field
+    passed: boolean | null;
+}
+
 export function useResultDetail(sessionId: number) {
-    return useQuery({
-        queryKey: ['exam-session', sessionId, 'result'],
-        /**
-         * Use getExamSession which returns { userExam: UserExam }
-         * This returns the full UserExam object which contains all result data
-         */
-        queryFn: () => examSessionsApi.getExamSession(sessionId),
-        enabled: !!sessionId,
-        staleTime: 5 * 60 * 1000, // Results don't change often, cache for 5 minutes
-        /**
-         * ✅ FIXED: Access nested userExam property from ExamSessionDetailResponse
-         * ExamSessionDetailResponse = { userExam: UserExam }
-         */
-        select: (resp: ExamSessionDetailResponse) => {
-            // Extract the userExam from the response wrapper
-            const data = resp.userExam;
+    return useQuery<ResultDetail>({
+        queryKey: ['result', sessionId],
+        queryFn: async () => {
+            const response = await examSessionsApi.getExamSession(sessionId);
 
             /**
-             * Transform the UserExam data to a result-focused structure
-             * This is optional - you can also use the full UserExam object
+             * ✅ FIX: Access data.userExam instead of data directly
+             * ExamSessionDetailResponse structure: { userExam: UserExam }
+             * So all properties are under response.userExam, not response directly
              */
+            const data = response.userExam;
+
             return {
-                // User exam session data
+                // Session info
                 id: data.id,
                 userId: data.userId,
                 examId: data.examId,
@@ -50,30 +41,26 @@ export function useResultDetail(sessionId: number) {
                 createdAt: data.createdAt,
                 updatedAt: data.updatedAt,
 
-                // Result scores
+                // Scores
                 totalScore: data.totalScore,
                 tiuScore: data.tiuScore,
                 twkScore: data.twkScore,
                 tkpScore: data.tkpScore,
 
-                // Performance metrics
+                // Metrics
                 timeSpent: data.timeSpent,
                 violationCount: data.violationCount,
 
-                // Associated exam details
+                // Exam details
                 exam: data.exam,
 
-                // Derived data - check if passed based on passing score
-                passed: data.totalScore !== null && data.totalScore !== undefined
+                // Computed: Pass/fail status
+                passed: data.totalScore != null && data.totalScore !== undefined
                     ? data.totalScore >= data.exam.passingScore
                     : null,
             };
         },
+        enabled: !!sessionId,
+        staleTime: 1000 * 60 * 5, // 5 minutes
     });
 }
-
-/**
- * Type for the transformed result detail
- * This matches the structure returned by the select function above
- */
-export type ResultDetail = NonNullable<ReturnType<typeof useResultDetail>['data']>;
