@@ -1,27 +1,22 @@
+// src/features/exam-sessions/types/exam-sessions.types.ts
+
 /**
  * Exam Sessions Types
  *
- * CRITICAL DISTINCTIONS:
- * 1. ExamStatus: Status of the exam definition itself (DRAFT, PUBLISHED, ARCHIVED)
- * 2. UserExamStatus: Status of a participant's exam session (NOT_STARTED, IN_PROGRESS, FINISHED, etc.)
+ * ⚠️ CRITICAL: Backend uses `selectedOption` NOT `selectedAnswer`
+ * See Backend API Contract page 22
  *
- * QUESTION STRUCTURE:
- * - Backend sends: { id, content, options: { A, B, C, D, E }, questionType, ... }
- * - NOT: { question: { optionA, optionB, ... } }
+ * DISTINCTIONS:
+ * 1. ExamStatus: Status of exam definition (DRAFT, PUBLISHED, ARCHIVED)
+ * 2. UserExamStatus: Status of participant's session (NOT_STARTED, IN_PROGRESS, etc.)
  */
 
 // ============================================================================
 // STATUS ENUMS
 // ============================================================================
 
-/**
- * Status of the exam definition (admin perspective)
- */
 export type ExamStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 
-/**
- * Status of a user's exam session (participant perspective)
- */
 export type UserExamStatus =
     | 'NOT_STARTED'
     | 'IN_PROGRESS'
@@ -30,18 +25,12 @@ export type UserExamStatus =
     | 'CANCELLED'
     | 'COMPLETED';
 
-/**
- * Question types in CPNS exams
- */
 export type QuestionType = 'TIU' | 'TWK' | 'TKP';
 
 // ============================================================================
 // QUESTION MODELS
 // ============================================================================
 
-/**
- * Question options structure (backend format)
- */
 export interface QuestionOptions {
     A: string;
     B: string;
@@ -50,13 +39,10 @@ export interface QuestionOptions {
     E: string;
 }
 
-/**
- * Base Question model
- */
 export interface Question {
     id: number;
     content: string;
-    options: QuestionOptions; // NOT optionA, optionB, etc.
+    options: QuestionOptions;
     correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
     questionType: QuestionType;
     imageUrl?: string;
@@ -64,15 +50,11 @@ export interface Question {
     updatedAt: string;
 }
 
-/**
- * Question as it appears in an exam session
- * Note: This extends Question and adds exam-specific fields
- */
 export interface ExamQuestion {
     id: number;
     examQuestionId: number;
     content: string;
-    options: QuestionOptions; // Access via question.options.A, not question.question.optionA
+    options: QuestionOptions;
     questionType: QuestionType;
     orderNumber: number;
     imageUrl?: string;
@@ -82,14 +64,11 @@ export interface ExamQuestion {
 // EXAM MODELS
 // ============================================================================
 
-/**
- * Exam definition (from exams module)
- */
 export interface Exam {
     id: number;
     title: string;
     description?: string;
-    duration: number; // in minutes
+    durationMinutes: number; // ⚠️ Changed from 'duration' to 'durationMinutes'
     passingScore: number;
     totalQuestions: number;
     status: ExamStatus;
@@ -102,18 +81,15 @@ export interface Exam {
 // USER EXAM SESSION MODELS
 // ============================================================================
 
-/**
- * User's exam session (participant's active/completed exam)
- */
 export interface UserExam {
     id: number;
     userId: number;
     examId: number;
-    status: UserExamStatus; // NOT ExamStatus!
+    status: UserExamStatus;
     startTime?: string;
     endTime?: string;
     submittedAt?: string;
-    timeSpent?: number; // in seconds
+    timeSpent?: number;
     totalScore?: number;
     tiuScore?: number;
     twkScore?: number;
@@ -121,28 +97,29 @@ export interface UserExam {
     violationCount?: number;
     createdAt: string;
     updatedAt: string;
-    exam: Exam; // Populated exam details
+    exam: Exam;
 }
 
 // ============================================================================
-// ANSWER MODELS
+// ANSWER MODELS (⚠️ Backend uses selectedOption, not selectedAnswer!)
 // ============================================================================
 
 /**
  * User's submitted answer
+ * ⚠️ CRITICAL: Backend field is `selectedOption` not `selectedAnswer`
  */
 export interface ExamAnswer {
     id: number;
     userExamId: number;
     examQuestionId: number;
-    selectedAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
+    selectedOption: 'A' | 'B' | 'C' | 'D' | 'E' | null; // ⚠️ selectedOption!
     isCorrect: boolean;
     createdAt: string;
     updatedAt: string;
 }
 
 /**
- * Answer with associated question (for review)
+ * Answer with associated question (for review pages)
  */
 export interface AnswerWithQuestion extends ExamAnswer {
     examQuestion: ExamQuestion;
@@ -154,68 +131,49 @@ export interface AnswerWithQuestion extends ExamAnswer {
 
 /**
  * Request to submit an answer
+ * ⚠️ Backend expects `selectedOption` not `selectedAnswer`
  */
 export interface SubmitAnswerRequest {
     examQuestionId: number;
-    selectedAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
+    selectedOption: 'A' | 'B' | 'C' | 'D' | 'E' | null; // ⚠️ Changed to selectedOption!
+}
+
+/**
+ * Query params for getUserExams
+ * ✅ NOW EXPORTED (fixes TS2305 error)
+ */
+export interface GetUserExamsParams {
+    status?: UserExamStatus;
+    page?: number;
+    limit?: number;
 }
 
 // ============================================================================
 // API RESPONSE TYPES
 // ============================================================================
 
-/**
- * Response from GET /exam-sessions/:id
- * Backend returns: { success, message, data: { userExam: {...} } }
- * After apiClient unwrap: { userExam: {...} }
- */
 export interface ExamSessionDetailResponse {
     userExam: UserExam;
 }
 
-/**
- * Response from GET /exam-sessions/:id/questions
- * Backend returns: { success, message, data: { questions: [...], total: number } }
- * After apiClient unwrap: { questions: [...], total: number }
- */
 export interface ExamQuestionsResponse {
     questions: ExamQuestion[];
     total: number;
 }
 
-/**
- * Response from GET /exam-sessions/:id/answers
- * Backend returns: { success, message, data: { answers: [...], total: number } }
- * After apiClient unwrap: { answers: [...], total: number }
- */
 export interface ExamAnswersResponse {
     answers: AnswerWithQuestion[];
     total: number;
 }
 
-/**
- * Response from POST /exam-sessions/:id/answers
- * Backend returns: { success, message, data: { answer: {...} } }
- * After apiClient unwrap: { answer: {...} }
- */
 export interface SubmitAnswerResponse {
     answer: ExamAnswer;
 }
 
-/**
- * Response from POST /exam-sessions/:id/submit
- * Backend returns: { success, message, data: { result: {...} } }
- * After apiClient unwrap: { result: {...} }
- */
 export interface SubmitExamResponse {
     result: UserExam;
 }
 
-/**
- * Response from GET /exam-sessions (list)
- * Backend returns: { success, message, data: { data: [...], pagination: {...} } }
- * After apiClient unwrap: { data: [...], pagination: {...} }
- */
 export interface ExamSessionsListResponse {
     data: UserExam[];
     pagination: {
@@ -226,11 +184,6 @@ export interface ExamSessionsListResponse {
     };
 }
 
-/**
- * Response from GET /exam-sessions/my-results
- * Backend returns: { success, message, data: { data: [...], pagination: {...} } }
- * After apiClient unwrap: { data: [...], pagination: {...} }
- */
 export interface MyResultsResponse {
     data: UserExam[];
     pagination: {
@@ -245,16 +198,10 @@ export interface MyResultsResponse {
 // UI HELPER TYPES
 // ============================================================================
 
-/**
- * Status configuration for UI display
- */
 export interface StatusConfig {
     label: string;
     color: string;
-    icon: any; // LucideIcon type
+    icon: any;
 }
 
-/**
- * Map of user exam statuses to their UI configurations
- */
 export type UserExamStatusConfig = Record<UserExamStatus, StatusConfig>;

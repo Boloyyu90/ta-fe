@@ -1,10 +1,12 @@
-import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group';
+// src/features/exam-sessions/components/AnswerOptions.tsx
+
+import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group'; // ✅ Correct path
 import { Label } from '@/shared/components/ui/label';
 import type { ExamQuestion } from '../types/exam-sessions.types';
 
 interface AnswerOptionsProps {
     question: ExamQuestion;
-    selectedAnswer?: 'A' | 'B' | 'C' | 'D' | 'E';
+    selectedAnswer?: 'A' | 'B' | 'C' | 'D' | 'E' | null; // ✅ Allow null
     onAnswerChange: (answer: 'A' | 'B' | 'C' | 'D' | 'E') => void;
     disabled?: boolean;
 }
@@ -12,10 +14,7 @@ interface AnswerOptionsProps {
 /**
  * Displays answer options for a question
  *
- * CRITICAL: Options structure is:
- * question.options = { A: "text", B: "text", ... }
- *
- * NOT: question.question.optionA
+ * CRITICAL: Options structure is question.options = { A: "text", B: "text", ... }
  */
 export function AnswerOptions({
                                   question,
@@ -27,13 +26,12 @@ export function AnswerOptions({
 
     return (
         <RadioGroup
-            value={selectedAnswer}
-            onValueChange={(value) => onAnswerChange(value as 'A' | 'B' | 'C' | 'D' | 'E')}
+            value={selectedAnswer || ''}
+            onValueChange={(value: string) => onAnswerChange(value as 'A' | 'B' | 'C' | 'D' | 'E')} // ✅ Explicit type
             disabled={disabled}
             className="space-y-3"
         >
             {optionKeys.map((optionKey) => {
-                // Access via question.options.A (not question.question.optionA)
                 const optionText = question.options[optionKey];
 
                 return (

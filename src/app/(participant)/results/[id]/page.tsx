@@ -1,187 +1,138 @@
+// src/app/(participant)/results/[id]/page.tsx
+
 'use client';
 
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { useResultDetail } from '@/features/exam-sessions/hooks/useResultDetail';
+import { examSessionsApi } from '@/features/exam-sessions/api/exam-sessions.api';
 import { proctoringApi } from '@/features/proctoring/api/proctoring.api';
+import { formatDate, formatDuration } from '@/shared/lib/formatters';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
-import { Button } from '@/shared/components/ui/button';
-import { Calendar, Clock, CheckCircle, XCircle, AlertTriangle, Eye } from 'lucide-react';
-import Link from 'next/link';
-import { formatDate, formatDuration } from '@/lib/utils/formatters';
+import type { ProctoringEvent } from '@/features/proctoring/types/proctoring.types';
 
-/**
- * Result Detail Page
- *
- * Shows detailed exam results including:
- * - Score breakdown
- * - Time spent
- * - Proctoring events (violations)
- */
-export default function ResultDetailPage() {
+export default function ResultsDetailPage() {
     const params = useParams();
-    const sessionId = parseInt(params.id as string);
+    const sessionId = Number(params.id);
 
-    // Fetch result detail
-    // Returns: { userExam: UserExam }
-    const { data: resultData, isLoading: resultLoading } = useResultDetail(sessionId);
+    const { data: sessionData, isLoading: sessionLoading } = useQuery({
+        queryKey: ['exam-session', sessionId],
+        queryFn: () => examSessionsApi.getExamSession(sessionId),
+    });
 
-    // Fetch proctoring events (NOT getViolations - that doesn't exist!)
-    // Returns: { events: ProctoringEvent[], total: number }
     const { data: eventsData, isLoading: eventsLoading } = useQuery({
         queryKey: ['proctoring-events', sessionId],
         queryFn: () => proctoringApi.getEvents(sessionId),
-        enabled: !!sessionId,
     });
 
-    // Access the userExam from the wrapper
-    const userExam = resultData?.userExam;
-
-    // Access events array directly (NOT eventsData.data - it's just an array)
-    const events = eventsData?.events || [];
-
-    if (resultLoading) {
-        return (
-            <div className="container mx-auto py-8">
-                <div className="text-center py-12 text-gray-500">
-                    Memuat data...
-                </div>
-            </div>
-        );
+    if (sessionLoading || eventsLoading) {
+        return <div className="flex justify-center p-8">Loading results...</div>;
     }
 
-    if (!userExam) {
-        return (
-            <div className="container mx-auto py-8">
-                <Card>
-                    <CardContent className="text-center py-12">
-                        <p className="text-gray-600">Hasil ujian tidak ditemukan</p>
-                    </CardContent>
-                </Card>
-            </div>
-        );
+    if (!sessionData) {
+        return <div className="flex justify-center p-8">Results not found</div>;
     }
 
-    const isPassed = (userExam.totalScore || 0) >= userExam.exam.passingScore;
+    const { userExam } = sessionData;
+
+    // ✅ FIXED: eventsData is already an array of ProctoringEvent[]
+    const events = eventsData || [];
 
     return (
-        <div className="container mx-auto py-8 space-y-6">
-            {/* Header */}
+        <div className="space-y-6 p-6">
             <div>
-                <h1 className="text-3xl font-bold">{userExam.exam.title}</h1>
-                <p className="text-gray-600 mt-2">Detail hasil ujian</p>
+                <h1 className="text-2xl font-bold">Exam Results</h1>
+                <p className="text-muted-foreground">{userExam.exam.title}</p>
             </div>
 
             {/* Score Card */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                        <span>Hasil Ujian</span>
-                        <Badge className={isPassed ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}>
-                            {isPassed ? (
-                                <>
-                                    <CheckCircle className="w-4 h-4 mr-1" />
-                                    Lulus
-                                </>
-                            ) : (
-                                <>
-                                    <XCircle className="w-4 h-4 mr-1" />
-                                    Tidak Lulus
-                                </>
-                            )}
-                        </Badge>
-                    </CardTitle>
+                    <CardTitle>Your Score</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {/* Total Score */}
-                    <div className="bg-gray-50 p-6 rounded-lg text-center">
-                        <p className="text-sm text-gray-600 mb-2">Total Skor</p>
-                        <p className="text-5xl font-bold">{userExam.totalScore || 0}</p>
-                        <p className="text-sm text-gray-500 mt-2">
-                            Passing Score: {userExam.exam.passingScore}
-                        </p>
-                    </div>
-
-                    {/* Score Breakdown */}
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className="bg-blue-50 p-4 rounded-lg text-center">
-                            <p className="text-sm text-blue-600 mb-1">TIU</p>
-                            <p className="text-2xl font-bold text-blue-800">{userExam.tiuScore || 0}</p>
+                    <div className="text-4xl font-bold">{userExam.totalScore || 0}</div>
+                    <div className="space-y-2">
+                        <div className="flex justify-between">
+                            <span>TIU Score:</span>
+                            <span className="font-medium">{userExam.tiuScore || 0}</span>
                         </div>
-                        <div className="bg-green-50 p-4 rounded-lg text-center">
-                            <p className="text-sm text-green-600 mb-1">TWK</p>
-                            <p className="text-2xl font-bold text-green-800">{userExam.twkScore || 0}</p>
+                        <div className="flex justify-between">
+                            <span>TWK Score:</span>
+                            <span className="font-medium">{userExam.twkScore || 0}</span>
                         </div>
-                        <div className="bg-purple-50 p-4 rounded-lg text-center">
-                            <p className="text-sm text-purple-600 mb-1">TKP</p>
-                            <p className="text-2xl font-bold text-purple-800">{userExam.tkpScore || 0}</p>
+                        <div className="flex justify-between">
+                            <span>TKP Score:</span>
+                            <span className="font-medium">{userExam.tkpScore || 0}</span>
                         </div>
                     </div>
-
-                    {/* Exam Info */}
-                    <div className="space-y-2 pt-4 border-t">
-                        <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600 flex items-center">
-                                <Calendar className="w-4 h-4 mr-2" />
-                                Waktu Pengerjaan
-                            </span>
-                            <span className="font-medium">
-                                {formatDate(userExam.submittedAt || userExam.endTime || userExam.updatedAt)}
-                            </span>
-                        </div>
-
-                        {userExam.timeSpent && (
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-600 flex items-center">
-                                    <Clock className="w-4 h-4 mr-2" />
-                                    Durasi
-                                </span>
-                                <span className="font-medium">
-                                    {formatDuration(Math.floor(userExam.timeSpent / 60))} menit
-                                </span>
-                            </div>
-                        )}
-
-                        {userExam.violationCount !== undefined && (
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-600 flex items-center">
-                                    <AlertTriangle className="w-4 h-4 mr-2" />
-                                    Pelanggaran
-                                </span>
-                                <span className={`font-medium ${userExam.violationCount > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                                    {userExam.violationCount} kejadian
-                                </span>
-                            </div>
-                        )}
+                    <div className="flex justify-between pt-4 border-t">
+                        <span>Status:</span>
+                        <Badge variant={userExam.status === 'FINISHED' ? 'default' : 'secondary'}>
+                            {userExam.status}
+                        </Badge>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* Proctoring Events */}
+            {/* Exam Info Card */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Exam Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                    <div className="flex justify-between">
+                        <span>Started:</span>
+                        <span className="font-medium">{formatDate(userExam.startTime)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>Submitted:</span>
+                        <span className="font-medium">{formatDate(userExam.submittedAt)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>Duration:</span>
+                        <span className="font-medium">
+                            {formatDuration(userExam.exam.durationMinutes)}
+                        </span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>Time Spent:</span>
+                        <span className="font-medium">
+                            {formatDuration(userExam.timeSpent ? Math.round(userExam.timeSpent / 60) : 0)}
+                        </span>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Proctoring Events Card */}
             {events.length > 0 && (
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center">
-                            <AlertTriangle className="w-5 h-5 mr-2 text-orange-600" />
-                            Riwayat Proctoring
-                        </CardTitle>
+                        <CardTitle>Proctoring Events</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-2">
-                            {events.map((event) => (
+                            {events.map((event: ProctoringEvent) => ( // ✅ Explicit type annotation
                                 <div
                                     key={event.id}
-                                    className="flex items-start justify-between p-3 bg-orange-50 rounded-lg"
+                                    className="flex items-center justify-between p-3 rounded-lg border"
                                 >
                                     <div>
-                                        <p className="font-medium text-sm">{event.eventType}</p>
-                                        <p className="text-xs text-gray-600 mt-1">
+                                        <p className="font-medium">{event.eventType}</p>
+                                        <p className="text-sm text-muted-foreground">
                                             {formatDate(event.timestamp)}
                                         </p>
                                     </div>
-                                    <Badge variant="outline" className="text-orange-600">
-                                        Severity: {event.severity}
+                                    <Badge
+                                        variant={
+                                            event.severity === 'HIGH'
+                                                ? 'destructive'
+                                                : event.severity === 'MEDIUM'
+                                                    ? 'default'
+                                                    : 'secondary'
+                                        }
+                                    >
+                                        {event.severity}
                                     </Badge>
                                 </div>
                             ))}
@@ -189,16 +140,6 @@ export default function ResultDetailPage() {
                     </CardContent>
                 </Card>
             )}
-
-            {/* Review Answers Button */}
-            <div className="flex justify-center">
-                <Link href={`/exam-sessions/${sessionId}/review`}>
-                    <Button size="lg">
-                        <Eye className="w-4 h-4 mr-2" />
-                        Review Jawaban
-                    </Button>
-                </Link>
-            </div>
         </div>
     );
 }

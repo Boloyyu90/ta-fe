@@ -4,7 +4,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Calendar, Clock, BookOpen, Play, Eye, CheckCircle, XCircle, Loader } from 'lucide-react';
 import Link from 'next/link';
 import type { UserExam, UserExamStatus } from '../types/exam-sessions.types';
-import { formatDate, formatDuration } from '@/lib/utils/formatters';
+import { formatDate, formatDuration } from '@/shared/lib/formatters';
 
 interface UserExamCardProps {
     userExam: UserExam;

@@ -4,7 +4,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Calendar, Clock, CheckCircle, XCircle, Eye, TrendingUp, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import type { UserExam, UserExamStatus } from '../types/exam-sessions.types';
-import { formatDate, formatDuration } from '@/lib/utils/formatters';
+import { formatDate, formatDuration } from '@/shared/lib/formatters';
 
 interface ResultCardProps {
     userExam: UserExam;
