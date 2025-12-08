@@ -61,6 +61,7 @@ export interface ExamQuestion {
     orderNumber: number;
     imageUrl?: string;
 }
+export type ParticipantQuestion = ExamQuestion;
 
 // ============================================================================
 // EXAM MODELS
@@ -88,6 +89,10 @@ export interface UserExam {
     userId: number;
     examId: number;
     status: UserExamStatus;
+    remainingTimeMs: number | null;
+    durationMinutes: number | null;
+    answeredQuestions: number;
+    totalQuestions: number;
     startTime?: string;
     endTime?: string;
     submittedAt?: string;
