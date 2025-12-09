@@ -1,8 +1,11 @@
 "use client";
 
 /**
- * PROVIDERS WITH AUTH INITIALIZATION
- * Works with v3 unwrapped API client
+ * APP PROVIDERS
+ *
+ * Wraps app with:
+ * - React Query provider
+ * - Auth initialization (verifies token on mount)
  */
 
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -11,11 +14,16 @@ import { queryClient } from "./queryClient";
 import { ReactNode, useEffect } from "react";
 import { useAuthStore } from "@/features/auth/store/auth.store";
 import { authApi } from "@/features/auth/api/auth.api";
+// import { extractErrorMessage } from "@/shared/types/api.types";
 
 interface ProvidersProps {
     children: ReactNode;
 }
 
+/**
+ * Auth initialization component
+ * Verifies stored access token on app mount
+ */
 function AuthInit() {
     const { accessToken, setLoading, clearAuth, setAuth } = useAuthStore();
 
@@ -43,7 +51,6 @@ function AuthInit() {
         staleTime: Infinity,
     });
 
-    // ✅ Success: Set auth state (isAuthenticated = true)
     useEffect(() => {
         if (query.isSuccess && query.data) {
             const tokens = {
@@ -55,7 +62,6 @@ function AuthInit() {
         }
     }, [query.isSuccess, query.data, setAuth]);
 
-    // ✅ Error: Clear invalid auth state
     useEffect(() => {
         if (query.isError) {
             console.log("AuthInit: Clearing invalid auth state");
@@ -63,7 +69,6 @@ function AuthInit() {
         }
     }, [query.isError, clearAuth]);
 
-    // ✅ Loading complete: Allow UI to render
     useEffect(() => {
         if (!query.isLoading) {
             console.log("AuthInit: Verification complete, loading = false");
@@ -71,7 +76,6 @@ function AuthInit() {
         }
     }, [query.isLoading, setLoading]);
 
-    // ✅ No token: Set loading false immediately
     useEffect(() => {
         if (!accessToken) {
             console.log("AuthInit: No token, loading = false immediately");
@@ -82,6 +86,9 @@ function AuthInit() {
     return null;
 }
 
+/**
+ * App-level providers wrapper
+ */
 export function Providers({ children }: ProvidersProps) {
     return (
         <QueryClientProvider client={queryClient}>

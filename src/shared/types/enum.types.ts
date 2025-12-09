@@ -6,7 +6,7 @@
  * ⚠️ CRITICAL: These MUST match backend Prisma enums EXACTLY
  * Source: backend/prisma/schema.prisma
  *
- * DO NOT modify these without checking backend first!
+ * DO NOT modify without verifying backend first!
  */
 
 // ============================================================================
@@ -15,29 +15,33 @@
 
 /**
  * User roles
- * Backend: enum UserRole { ADMIN, PARTICIPANT }
+ * Backend Prisma: enum UserRole { ADMIN, PARTICIPANT }
  */
 export type UserRole = 'ADMIN' | 'PARTICIPANT';
 
 // ============================================================================
-// EXAM ENUMS
+// EXAM SESSION STATUS (for UserExam model)
 // ============================================================================
 
 /**
- * Exam session status
- * Backend: enum ExamStatus { IN_PROGRESS, FINISHED, CANCELLED, TIMEOUT }
+ * ⚠️ CRITICAL FIX: This is UserExam.status, NOT Exam.status!
+ * Backend Prisma: enum ExamStatus { IN_PROGRESS, FINISHED, CANCELLED, TIMEOUT }
  *
- * ⚠️ NOTE: Backend uses FINISHED, not COMPLETED!
+ * Applied to: UserExam.status field
+ * Represents: Status of a participant's exam session
  */
-export type ExamStatus = 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED' | 'TIMEOUT';
+export type UserExamStatus = 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED' | 'TIMEOUT';
+
+// ❌ REMOVED: Frontend was using 'NOT_STARTED' | 'COMPLETED' - these DON'T exist in backend
+// ❌ REMOVED: Separate 'ExamStatus' for exam entity - that's not an enum in backend
+
+// ============================================================================
+// QUESTION TYPES
+// ============================================================================
 
 /**
  * Question types for CPNS exam
- * Backend: enum QuestionType { TIU, TKP, TWK }
- *
- * TIU = Tes Intelegensia Umum (General Intelligence Test)
- * TKP = Tes Karakteristik Pribadi (Personal Characteristics Test)
- * TWK = Tes Wawasan Kebangsaan (National Insight Test)
+ * Backend Prisma: enum QuestionType { TIU, TKP, TWK }
  */
 export type QuestionType = 'TIU' | 'TKP' | 'TWK';
 
@@ -47,7 +51,7 @@ export type QuestionType = 'TIU' | 'TKP' | 'TWK';
 
 /**
  * Proctoring event types
- * Backend: enum ProctoringEventType { FACE_DETECTED, NO_FACE_DETECTED, MULTIPLE_FACES, LOOKING_AWAY }
+ * Backend Prisma: enum ProctoringEventType { FACE_DETECTED, NO_FACE_DETECTED, MULTIPLE_FACES, LOOKING_AWAY }
  */
 export type ProctoringEventType =
     | 'FACE_DETECTED'
@@ -56,10 +60,12 @@ export type ProctoringEventType =
     | 'LOOKING_AWAY';
 
 /**
- * Proctoring violation severity levels
- * Backend: Stored as string in database ('LOW', 'MEDIUM', 'HIGH')
+ * ⚠️ CRITICAL FIX: Backend stores as string, only uses 3 levels
+ * Backend: severity is stored as string with values 'LOW' | 'MEDIUM' | 'HIGH'
+ *
+ * ❌ REMOVED 'INFO' - backend never returns this value
  */
-export type ProctoringEventSeverity = 'LOW' | 'MEDIUM' | 'HIGH';
+export type ViolationSeverity = 'LOW' | 'MEDIUM' | 'HIGH';
 
 // ============================================================================
 // TOKEN ENUMS
@@ -67,7 +73,7 @@ export type ProctoringEventSeverity = 'LOW' | 'MEDIUM' | 'HIGH';
 
 /**
  * Token types for authentication
- * Backend: enum TokenType { ACCESS, REFRESH, RESET_PASSWORD, VERIFY_EMAIL }
+ * Backend Prisma: enum TokenType { ACCESS, REFRESH, RESET_PASSWORD, VERIFY_EMAIL }
  */
 export type TokenType = 'ACCESS' | 'REFRESH' | 'RESET_PASSWORD' | 'VERIFY_EMAIL';
 
@@ -84,9 +90,9 @@ export const USER_ROLE_OPTIONS = [
 ] as const;
 
 /**
- * Exam status options for filters
+ * User exam status options for filters
  */
-export const EXAM_STATUS_OPTIONS = [
+export const USER_EXAM_STATUS_OPTIONS = [
     { value: 'IN_PROGRESS' as const, label: 'In Progress' },
     { value: 'FINISHED' as const, label: 'Finished' },
     { value: 'CANCELLED' as const, label: 'Cancelled' },
@@ -120,75 +126,3 @@ export const SEVERITY_OPTIONS = [
     { value: 'MEDIUM' as const, label: 'Medium' },
     { value: 'HIGH' as const, label: 'High' },
 ] as const;
-
-// ============================================================================
-// ENUM HELPERS
-// ============================================================================
-
-/**
- * Get color class for exam status badge
- */
-export const getExamStatusColor = (status: ExamStatus): string => {
-    switch (status) {
-        case 'IN_PROGRESS':
-            return 'bg-blue-500';
-        case 'FINISHED':
-            return 'bg-green-500';
-        case 'CANCELLED':
-            return 'bg-red-500';
-        case 'TIMEOUT':
-            return 'bg-orange-500';
-        default:
-            return 'bg-gray-500';
-    }
-};
-
-/**
- * Get color class for proctoring severity badge
- */
-export const getSeverityColor = (severity: ProctoringEventSeverity): string => {
-    switch (severity) {
-        case 'LOW':
-            return 'bg-green-500';
-        case 'MEDIUM':
-            return 'bg-yellow-500';
-        case 'HIGH':
-            return 'bg-red-500';
-        default:
-            return 'bg-gray-500';
-    }
-};
-
-/**
- * Get human-readable label for exam status
- */
-export const getExamStatusLabel = (status: ExamStatus): string => {
-    switch (status) {
-        case 'IN_PROGRESS':
-            return 'In Progress';
-        case 'FINISHED':
-            return 'Finished';
-        case 'CANCELLED':
-            return 'Cancelled';
-        case 'TIMEOUT':
-            return 'Timeout';
-        default:
-            return status;
-    }
-};
-
-/**
- * Get human-readable label for question type
- */
-export const getQuestionTypeLabel = (type: QuestionType): string => {
-    switch (type) {
-        case 'TIU':
-            return 'General Intelligence';
-        case 'TKP':
-            return 'Personal Characteristics';
-        case 'TWK':
-            return 'National Insight';
-        default:
-            return type;
-    }
-};

@@ -1,10 +1,6 @@
-// src/shared/types/api.types.ts
-
 /**
  * SHARED API TYPES
  *
- * ⚠️ CRITICAL: These match backend response structure EXACTLY
- * Source: backend/src/shared/types/api.types.ts
  *
  * All backend responses use ApiResponse<T> wrapper
  */
@@ -29,7 +25,7 @@ export interface ApiResponse<T = any> {
     success: boolean;
     data: T;
     message?: string;
-    timestamp: string; // ISO datetime
+    timestamp: string; // ISO 8601 datetime
 }
 
 /**
@@ -65,21 +61,24 @@ export interface ApiErrorResponse {
  * Used in query params for list endpoints
  */
 export interface PaginationParams {
-    page?: number; // Default: 1
+    page?: number; // Default: 1, min: 1
     limit?: number; // Default: 10, max: 100
 }
 
 /**
  * Pagination Metadata (in responses)
  * Included in all paginated responses
+ *
+ * ⚠️ CRITICAL: Backend uses this exact structure
+ * Do NOT use custom pagination formats in features
  */
 export interface PaginationMeta {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
+    page: number;           // Current page (1-indexed)
+    limit: number;          // Items per page
+    total: number;          // Total items across all pages
+    totalPages: number;     // Total number of pages
+    hasNext: boolean;       // Whether there's a next page
+    hasPrev: boolean;       // Whether there's a previous page
 }
 
 /**
@@ -119,11 +118,16 @@ export interface SearchParams {
 }
 
 /**
- * Common Query Parameters
- * Combination of pagination, sort, and search
- * Most list endpoints use this pattern
+ * Common List Query Parameters
+ * Most list endpoints use pagination + sorting + search
+ *
+ * Usage example:
+ * export interface GetExamsQuery extends ListQueryParams {
+ *   status?: ExamStatus;
+ *   createdBy?: number;
+ * }
  */
-export interface CommonQueryParams
+export interface ListQueryParams
     extends PaginationParams,
         SortParams,
         SearchParams {}
@@ -170,21 +174,6 @@ export type DeepPartial<T> = {
 };
 
 // ============================================================================
-// AXIOS INTEGRATION TYPES
-// ============================================================================
-
-/**
- * Axios response type with ApiResponse wrapper
- * This is what axios interceptor returns
- */
-export interface AxiosApiResponse<T = any> {
-    data: ApiResponse<T>;
-    status: number;
-    statusText: string;
-    headers: Record<string, string>;
-}
-
-// ============================================================================
 // ERROR HANDLING TYPES
 // ============================================================================
 
@@ -204,6 +193,7 @@ export interface ApiError {
 
 /**
  * Extract error message from various error types
+ * Handles Axios errors and generic errors
  */
 export const extractErrorMessage = (error: any): string => {
     // Axios error with backend response
@@ -211,7 +201,7 @@ export const extractErrorMessage = (error: any): string => {
         return error.response.data.message;
     }
 
-    // Axios error without backend response
+    // Axios error without backend response (network error)
     if (error.request) {
         return 'Network error. Please check your connection.';
     }
@@ -225,7 +215,8 @@ export const extractErrorMessage = (error: any): string => {
 };
 
 /**
- * Extract field errors from API error response
+ * Extract field-specific validation errors from API error response
+ * Returns null if no field errors exist
  */
 export const extractFieldErrors = (
     error: any

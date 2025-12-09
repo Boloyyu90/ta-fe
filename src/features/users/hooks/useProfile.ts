@@ -1,4 +1,9 @@
-// src/features/users/hooks/useProfile.ts
+/**
+ * GET /me - Get current user profile
+ *
+ * ✅ UPDATED: Uses ProfileResponse from users.types.ts
+ */
+
 import { useQuery } from '@tanstack/react-query';
 import { usersApi } from '../api/users.api';
 import type { ProfileResponse } from '../types/users.types';
