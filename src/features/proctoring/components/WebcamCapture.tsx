@@ -1,26 +1,38 @@
 // src/features/proctoring/components/WebcamCapture.tsx
+
+/**
+ * Webcam Capture Component
+ *
+ * ✅ AUDIT FIX v4:
+ * - Use setWebcam action from store
+ * - Use webcam.isActive field
+ *
+ * Handles webcam access and periodic frame capture for proctoring
+ */
+
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Camera, CameraOff } from 'lucide-react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { Card, CardContent } from '@/shared/components/ui/card';
 import { Alert, AlertDescription } from '@/shared/components/ui/alert';
-import { webcamUtils } from '../utils/webcam.utils';
+import { Camera, CameraOff, AlertTriangle } from 'lucide-react';
 import { useProctoringStore } from '../store/proctoring.store';
 
 interface WebcamCaptureProps {
-    onFrameCapture?: (imageBase64: string) => void;
+    onFrameCapture?: (imageData: string) => void;
     captureInterval?: number; // milliseconds
     className?: string;
 }
 
 export function WebcamCapture({
                                   onFrameCapture,
-                                  captureInterval = 3000, // 3 seconds default
+                                  captureInterval = 3000,
                                   className = ''
                               }: WebcamCaptureProps) {
-    const videoRef = useRef<HTMLVideoElement>(null);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+    // ✅ FIX: Use setWebcam from store
     const { webcam, setWebcam } = useProctoringStore();
     const [localError, setLocalError] = useState<string | null>(null);
 
@@ -30,15 +42,19 @@ export function WebcamCapture({
 
         const initWebcam = async () => {
             try {
-                stream = await webcamUtils.requestWebcam();
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width: 640, height: 480 },
+                    audio: false,
+                });
 
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
+                    // ✅ FIX: Use setWebcam with isActive field
                     setWebcam({ isActive: true, stream, error: null });
                     setLocalError(null);
                 }
-            } catch (error: any) {
-                const errorMsg = error.message || 'Failed to access webcam';
+            } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : 'Failed to access webcam';
                 setWebcam({ isActive: false, stream: null, error: errorMsg });
                 setLocalError(errorMsg);
             }
@@ -48,63 +64,98 @@ export function WebcamCapture({
 
         return () => {
             if (stream) {
-                webcamUtils.stopWebcam(stream);
-                setWebcam({ isActive: false, stream: null });
+                stream.getTracks().forEach(track => track.stop());
             }
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
             }
+            setWebcam({ isActive: false, stream: null, error: null });
         };
     }, [setWebcam]);
 
-    // Start periodic frame capture
-    useEffect(() => {
+    // Capture frame function
+    const captureFrame = useCallback(() => {
+        // ✅ FIX: Use webcam.isActive
         if (!webcam.isActive || !videoRef.current || !onFrameCapture) return;
 
-        intervalRef.current = setInterval(() => {
-            if (videoRef.current && videoRef.current.readyState === 4) {
-                try {
-                    const frame = webcamUtils.captureFrame(videoRef.current);
-                    onFrameCapture(frame);
-                    setWebcam({ lastCapture: new Date().toISOString() });
-                } catch (error) {
-                    console.error('Frame capture error:', error);
-                }
-            }
-        }, captureInterval);
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            ctx.drawImage(videoRef.current, 0, 0);
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+            onFrameCapture(imageData);
+        }
+    }, [webcam.isActive, onFrameCapture]);
+
+    // Set up periodic capture
+    useEffect(() => {
+        // ✅ FIX: Use webcam.isActive
+        if (!webcam.isActive || !onFrameCapture) return;
+
+        // Initial capture after a short delay
+        const initialDelay = setTimeout(() => {
+            captureFrame();
+        }, 1000);
+
+        // Set up interval
+        intervalRef.current = setInterval(captureFrame, captureInterval);
 
         return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
+            clearTimeout(initialDelay);
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
         };
-    }, [webcam.isActive, onFrameCapture, captureInterval, setWebcam]);
-
-    if (localError || webcam.error) {
-        return (
-            <Alert variant="destructive" className={className}>
-                <CameraOff className="h-4 w-4" />
-                <AlertDescription>
-                    {localError || webcam.error}
-                </AlertDescription>
-            </Alert>
-        );
-    }
+    }, [webcam.isActive, onFrameCapture, captureInterval, captureFrame]);
 
     return (
-        <div className={`relative ${className}`}>
-            <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-auto rounded-lg border border-border bg-black"
-            />
-
-            {webcam.isActive && (
-                <div className="absolute top-2 right-2 flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/90 text-white text-xs font-medium">
-                    <Camera className="h-3 w-3" />
-                    <span>Monitoring</span>
+        <Card className={className}>
+            <CardContent className="p-4">
+                <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+                    {/* ✅ FIX: Use webcam.isActive */}
+                    {webcam.isActive ? (
+                        <>
+                            <video
+                                ref={videoRef}
+                                autoPlay
+                                playsInline
+                                muted
+                                className="w-full h-full object-cover"
+                            />
+                            <div className="absolute top-2 right-2">
+                                <div className="flex items-center gap-1 bg-green-500 text-white px-2 py-1 rounded-full text-xs">
+                                    <Camera className="h-3 w-3" />
+                                    <span>Live</span>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="text-center">
+                                <CameraOff className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                                <p className="text-sm text-muted-foreground">
+                                    Webcam tidak aktif
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
-            )}
-        </div>
+
+                {/* Error Alert */}
+                {(localError || webcam.error) && (
+                    <Alert variant="destructive" className="mt-4">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                            {localError || webcam.error}
+                        </AlertDescription>
+                    </Alert>
+                )}
+            </CardContent>
+        </Card>
     );
 }
+
+export default WebcamCapture;

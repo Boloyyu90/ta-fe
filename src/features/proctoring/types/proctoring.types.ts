@@ -3,10 +3,10 @@
 /**
  * Proctoring Types
  *
- * ✅ AUDIT FIX v3:
- * - Export ViolationSeverity and ProctoringEventType from shared
- * - Re-export Violation (renamed from UIViolation)
- * - Added details and mlConfidence to ProctoringEvent
+ * ✅ AUDIT FIX v4:
+ * - Added eventLogged to AnalyzeFaceResponse (matches backend)
+ * - Export ViolationSeverity and ProctoringEventType
+ * - WebcamState has isActive field
  *
  * Backend: /api/v1/proctoring/*
  */
@@ -28,7 +28,6 @@ import type { ProctoringEventType, ViolationSeverity } from '@/shared/types/enum
 
 /**
  * Proctoring event entity
- * ✅ FIX: Added details and mlConfidence fields
  */
 export interface ProctoringEvent {
     id: number;
@@ -36,10 +35,8 @@ export interface ProctoringEvent {
     eventType: ProctoringEventType;
     severity: ViolationSeverity;
     timestamp: string;
-    details?: string | null;
-    mlConfidence?: number | null;
-    imageUrl?: string | null;
-    createdAt: string;
+    metadata?: Record<string, unknown> | null;
+    createdAt?: string;
 }
 
 // ============================================================================
@@ -48,7 +45,6 @@ export interface ProctoringEvent {
 
 /**
  * Violation for UI display
- * ✅ FIX: Exported as both Violation and UIViolation for compatibility
  */
 export interface UIViolation {
     id: number;
@@ -64,12 +60,12 @@ export type Violation = UIViolation;
 
 // ============================================================================
 // WEBCAM STATE
+// ✅ FIX: Added isActive field used by WebcamCapture component
 // ============================================================================
 
 export interface WebcamState {
-    isEnabled: boolean;
-    isStreaming: boolean;
-    hasPermission: boolean | null;
+    isActive: boolean;
+    stream: MediaStream | null;
     error: string | null;
 }
 
@@ -77,16 +73,20 @@ export interface WebcamState {
 // FACE ANALYSIS TYPES
 // ============================================================================
 
-export interface FaceDetectionResult {
-    faceDetected: boolean;
-    faceCount: number;
+/**
+ * Backend face analysis result structure
+ */
+export interface FaceAnalysisData {
+    status: string;
+    violations: string[];
     confidence: number;
-    lookingAway: boolean;
-    violations: Array<{
-        type: ProctoringEventType;
-        severity: ViolationSeverity;
-        message: string;
-    }>;
+    message: string;
+    metadata?: {
+        processingTimeMs?: number;
+        modelVersion?: string;
+        faceCount?: number;
+        error?: string;
+    };
 }
 
 // ============================================================================
@@ -94,25 +94,28 @@ export interface FaceDetectionResult {
 // ============================================================================
 
 export interface AnalyzeFaceRequest {
-    imageData: string; // Base64 encoded image
+    imageBase64: string;
 }
 
 export interface LogEventRequest {
     userExamId: number;
     eventType: ProctoringEventType;
-    severity?: ViolationSeverity;
-    details?: string;
-    imageUrl?: string;
+    metadata?: Record<string, unknown>;
 }
 
 // ============================================================================
 // API RESPONSE TYPES
 // ============================================================================
 
+/**
+ * ✅ FIX: AnalyzeFaceResponse now includes eventLogged (matches backend)
+ * Backend returns: { analysis, eventLogged, eventType, usedFallback }
+ */
 export interface AnalyzeFaceResponse {
-    success: boolean;
-    analysis: FaceDetectionResult;
-    event?: ProctoringEvent;
+    analysis: FaceAnalysisData;
+    eventLogged: boolean;
+    eventType: ProctoringEventType | null;
+    usedFallback: boolean;
 }
 
 export interface LogEventResponse {
@@ -143,7 +146,7 @@ export interface ProctoringState {
     webcam: WebcamState;
     violations: UIViolation[];
     isAnalyzing: boolean;
-    lastAnalysis: FaceDetectionResult | null;
+    lastAnalysis: FaceAnalysisData | null;
     violationCount: number;
     highViolationCount: number;
 }
@@ -162,7 +165,7 @@ export function eventToViolation(event: ProctoringEvent): UIViolation {
         severity: event.severity,
         message: getViolationMessage(event.eventType),
         timestamp: event.timestamp,
-        details: event.details,
+        details: event.metadata?.message as string | undefined,
     };
 }
 

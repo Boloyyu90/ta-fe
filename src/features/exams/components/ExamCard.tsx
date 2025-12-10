@@ -3,7 +3,8 @@
 /**
  * Exam Card Component
  *
- * ✅ AUDIT FIX v3: Uses ExamWithCounts type which has required _count field
+ * ✅ AUDIT FIX v4: Accepts Exam type with optional _count field
+ * Falls back to 0 if _count is not present
  */
 
 'use client';
@@ -23,20 +24,21 @@ import {
     CheckCircle,
     XCircle,
 } from 'lucide-react';
-import type { ExamWithCounts } from '../types/exams.types';
+import type { Exam } from '../types/exams.types';
 import { isExamAvailable, getExamAvailabilityStatus } from '../types/exams.types';
 
 export interface ExamCardProps {
-    exam: ExamWithCounts;
+    // ✅ FIX: Accept Exam type (with optional _count) instead of ExamWithCounts
+    exam: Exam;
     showActions?: boolean;
     onStart?: (examId: number) => void;
     isStarting?: boolean;
 }
 
 export function ExamCard({ exam, showActions = true, onStart, isStarting }: ExamCardProps) {
-    // ✅ FIX: _count is guaranteed to exist on ExamWithCounts
-    const questionCount = exam._count.examQuestions;
-    const participantCount = exam._count.userExams;
+    // ✅ FIX: Safely access _count with fallback to 0
+    const questionCount = exam._count?.examQuestions ?? 0;
+    const participantCount = exam._count?.userExams ?? 0;
 
     const availability = getExamAvailabilityStatus(exam);
     const canStart = isExamAvailable(exam);

@@ -3,7 +3,7 @@
 /**
  * Proctoring Store (Zustand)
  *
- * ✅ AUDIT FIX v3: Fixed Violation import (now properly exported)
+ * ✅ AUDIT FIX v4: Added setWebcam action for WebcamCapture component
  *
  * Manages:
  * - Webcam state
@@ -12,15 +12,12 @@
  */
 
 import { create } from 'zustand';
-import type { Violation, WebcamState, FaceDetectionResult } from '../types/proctoring.types';
+import type { Violation, WebcamState, FaceAnalysisData } from '../types/proctoring.types';
 
 interface ProctoringStore {
     // Webcam State
     webcam: WebcamState;
-    setWebcamEnabled: (enabled: boolean) => void;
-    setWebcamStreaming: (streaming: boolean) => void;
-    setWebcamPermission: (hasPermission: boolean | null) => void;
-    setWebcamError: (error: string | null) => void;
+    setWebcam: (webcam: Partial<WebcamState>) => void;
 
     // Violations
     violations: Violation[];
@@ -30,8 +27,8 @@ interface ProctoringStore {
     // Analysis
     isAnalyzing: boolean;
     setAnalyzing: (analyzing: boolean) => void;
-    lastAnalysis: FaceDetectionResult | null;
-    setLastAnalysis: (analysis: FaceDetectionResult | null) => void;
+    lastAnalysis: FaceAnalysisData | null;
+    setLastAnalysis: (analysis: FaceAnalysisData | null) => void;
 
     // Counts
     violationCount: number;
@@ -44,9 +41,8 @@ interface ProctoringStore {
 }
 
 const initialWebcamState: WebcamState = {
-    isEnabled: false,
-    isStreaming: false,
-    hasPermission: null,
+    isActive: false,
+    stream: null,
     error: null,
 };
 
@@ -59,25 +55,10 @@ export const useProctoringStore = create<ProctoringStore>((set) => ({
     violationCount: 0,
     highViolationCount: 0,
 
-    // Webcam actions
-    setWebcamEnabled: (enabled) =>
+    // ✅ FIX: Added setWebcam action for updating webcam state
+    setWebcam: (webcamUpdate) =>
         set((state) => ({
-            webcam: { ...state.webcam, isEnabled: enabled },
-        })),
-
-    setWebcamStreaming: (streaming) =>
-        set((state) => ({
-            webcam: { ...state.webcam, isStreaming: streaming },
-        })),
-
-    setWebcamPermission: (hasPermission) =>
-        set((state) => ({
-            webcam: { ...state.webcam, hasPermission },
-        })),
-
-    setWebcamError: (error) =>
-        set((state) => ({
-            webcam: { ...state.webcam, error },
+            webcam: { ...state.webcam, ...webcamUpdate },
         })),
 
     // Violations actions

@@ -3,7 +3,8 @@
 /**
  * Hook to start an exam session
  *
- * ✅ AUDIT FIX v3: Fixed mutation.data access (no nested .data)
+ * ✅ AUDIT FIX v4:
+ * - Returns both startExam/isLoading AND mutate/isPending for compatibility
  *
  * Backend: POST /api/v1/exams/:id/start
  */
@@ -21,7 +22,6 @@ export const useStartExam = () => {
         mutationFn: (examId: number) => examsApi.startExam(examId),
         onSuccess: (data) => {
             // data is StartExamResponse = { userExam: UserExam }
-            // ✅ FIX: Access userExam directly, not data.data
             const { userExam } = data;
 
             // Invalidate relevant queries
@@ -34,11 +34,20 @@ export const useStartExam = () => {
     });
 
     return {
+        // Original naming (for backwards compatibility)
         startExam: mutation.mutate,
         startExamAsync: mutation.mutateAsync,
         isLoading: mutation.isPending,
         isError: mutation.isError,
         error: mutation.error,
+
+        // ✅ FIX: Also expose standard mutation properties
+        mutate: mutation.mutate,
+        mutateAsync: mutation.mutateAsync,
+        isPending: mutation.isPending,
+
+        // Full mutation object for advanced use
+        mutation,
     };
 };
 

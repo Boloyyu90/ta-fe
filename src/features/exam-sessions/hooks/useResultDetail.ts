@@ -3,19 +3,30 @@
 /**
  * Hook to fetch detailed result for a specific exam session
  *
- * ✅ AUDIT FIX v3: Fixed type mismatch - now returns ResultDetail properly
+ * ✅ AUDIT FIX v4: Fixed null checks for totalScore and passingScore
  *
  * Backend: GET /api/v1/exam-sessions/:id (for completed sessions)
  */
 
 import { useQuery } from '@tanstack/react-query';
 import { examSessionsApi } from '../api/exam-sessions.api';
-import type { ResultDetail, ExamResult, UserExam } from '../types/exam-sessions.types';
+import type { ResultDetail, UserExam } from '../types/exam-sessions.types';
 
 /**
  * Transform UserExam to ResultDetail format
+ * ✅ FIX: Added proper null checks for totalScore and passingScore
  */
 function transformToResultDetail(userExam: UserExam): ResultDetail {
+    // Safe null checks for passing calculation
+    const totalScore = userExam.totalScore ?? null;
+    const passingScore = userExam.exam?.passingScore ?? 0;
+
+    // Calculate passed status with null safety
+    let passed: boolean | null = null;
+    if (totalScore !== null && passingScore > 0) {
+        passed = totalScore >= passingScore;
+    }
+
     return {
         id: userExam.id,
         exam: {
@@ -32,7 +43,7 @@ function transformToResultDetail(userExam: UserExam): ResultDetail {
         },
         startedAt: userExam.startTime ?? userExam.createdAt,
         submittedAt: userExam.submittedAt ?? null,
-        totalScore: userExam.totalScore ?? null,
+        totalScore: totalScore,
         status: userExam.status,
         duration: userExam.timeSpent ?? null,
         answeredQuestions: userExam.answeredQuestions,
@@ -43,9 +54,7 @@ function transformToResultDetail(userExam: UserExam): ResultDetail {
         twkScore: userExam.twkScore,
         tkpScore: userExam.tkpScore,
         violationCount: userExam.violationCount,
-        passed: userExam.totalScore !== null && userExam.exam.passingScore
-            ? userExam.totalScore >= userExam.exam.passingScore
-            : null,
+        passed: passed,
     };
 }
 

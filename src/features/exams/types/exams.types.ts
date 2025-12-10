@@ -3,9 +3,9 @@
 /**
  * Exam Types
  *
- * ✅ AUDIT FIX v3:
- * - Added _count field to Exam for question/session counts
- * - All response types are the inner data (what ApiResponse.data contains)
+ * ✅ AUDIT FIX v4:
+ * - _count is optional on Exam (not all endpoints include it)
+ * - ExamWithCounts has required _count
  *
  * Backend endpoints:
  * - Participant: /api/v1/exams/*
@@ -23,6 +23,7 @@ import type { UserExam } from '@/features/exam-sessions/types/exam-sessions.type
  * Exam entity - matches backend Prisma model
  *
  * ⚠️ CRITICAL: Backend uses `isActive` boolean, NOT `status` enum
+ * ✅ FIX: _count is optional (not included in all responses)
  */
 export interface Exam {
     id: number;
@@ -44,7 +45,7 @@ export interface Exam {
 
 /**
  * Exam with counts (for list views)
- * ✅ FIX: _count is always present in list responses
+ * ✅ _count is guaranteed in list responses
  */
 export interface ExamWithCounts extends Omit<Exam, '_count'> {
     _count: {
@@ -132,6 +133,7 @@ export interface DetachQuestionsRequest {
 
 /**
  * GET /exams response (participant list)
+ * ✅ Backend returns { data, pagination } wrapper
  */
 export interface ExamsResponse {
     data: ExamWithCounts[];
@@ -140,13 +142,15 @@ export interface ExamsResponse {
 
 /**
  * GET /exams/:id response (participant single)
+ * ✅ Backend returns { exam }
  */
 export interface ExamDetailResponse {
-    exam: ExamWithCounts;
+    exam: Exam;
 }
 
 /**
  * POST /exams/:id/start response
+ * ✅ Backend returns { userExam }
  */
 export interface StartExamResponse {
     userExam: UserExam;
