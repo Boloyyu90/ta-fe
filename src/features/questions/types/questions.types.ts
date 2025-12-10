@@ -1,32 +1,30 @@
 // src/features/questions/types/questions.types.ts
 
 /**
- * QUESTIONS TYPES - BACKEND-ALIGNED
+ * Question Bank Types
  *
- * ✅ REFACTORED: All types match backend Prisma QuestionBank model EXACTLY
+ * ✅ AUDIT FIX v2:
+ * - Fixed id type from string to number
+ * - Fixed response types to not duplicate ApiResponse fields
+ * - Added proper pagination using shared PaginationMeta
  *
- * KEY FIXES:
- * - Uses shared QuestionType enum (removed local definition)
- * - Uses shared PaginatedResponse<T> (fixed pagination field names)
- * - id is number, not string (matches Prisma)
- * - ❌ REMOVED imageUrl field (doesn't exist in backend Prisma schema)
- * - All dates as ISO strings, not Date objects
- *
- * Backend Source: backend/prisma/schema.prisma (QuestionBank model)
+ * Backend: /api/v1/admin/questions/*
  */
 
-import type { QuestionType } from '@/shared/types/enum.types';
-import type { PaginatedResponse } from '@/shared/types/api.types';
-import type { BaseEntity } from '@/shared/types/common.types';
+import type { PaginationMeta } from '@/shared/types/api.types';
 
 // ============================================================================
-// QUESTION OPTIONS
+// ENUMS
 // ============================================================================
 
-/**
- * Question options structure
- * Stored as JSON in backend: { A: string, B: string, C: string, D: string, E: string }
- */
+export type QuestionType = 'TIU' | 'TWK' | 'TKP';
+
+export type AnswerOption = 'A' | 'B' | 'C' | 'D' | 'E';
+
+// ============================================================================
+// BASE ENTITIES
+// ============================================================================
+
 export interface QuestionOptions {
     A: string;
     B: string;
@@ -35,121 +33,167 @@ export interface QuestionOptions {
     E: string;
 }
 
-// ============================================================================
-// QUESTION ENTITY (from Prisma QuestionBank model)
-// ============================================================================
-
 /**
- * Question entity from backend Prisma QuestionBank model
- *
- * Backend Prisma fields: id, content, options, correctAnswer, defaultScore, questionType, createdAt, updatedAt
- *
- * ⚠️ IMPORTANT: Backend does NOT have imageUrl field!
- * If image support is needed, backend Prisma schema must be updated first.
+ * Base Question entity
+ * ✅ AUDIT FIX: id is number, not string
  */
-export interface Question extends BaseEntity {
+export interface Question {
+    id: number; // ✅ FIXED: Was string
     content: string;
     options: QuestionOptions;
-    correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
-    questionType: QuestionType; // ✅ Uses shared enum
+    correctAnswer: AnswerOption;
+    questionType: QuestionType;
     defaultScore: number;
-    // ❌ imageUrl field removed - doesn't exist in backend
+    imageUrl?: string | null;
+    createdAt: string;
+    updatedAt: string;
 }
 
 /**
- * Question with aggregated counts (for list view)
- * Backend returns this from getQuestions endpoint
+ * Question with usage count (for list view)
  */
 export interface QuestionWithUsage extends Question {
     _count?: {
-        examQuestions: number; // Number of exams using this question
+        examQuestions: number;
     };
 }
 
 // ============================================================================
-// API REQUEST TYPES (what we send to backend)
+// API REQUEST TYPES
 // ============================================================================
 
-/**
- * Create question request
- * POST /admin/questions
- */
 export interface CreateQuestionRequest {
     content: string;
     options: QuestionOptions;
-    correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
-    questionType: QuestionType; // ✅ Uses shared enum
+    correctAnswer: AnswerOption;
+    questionType: QuestionType;
     defaultScore: number;
-    // ❌ imageUrl removed - not supported by backend
+    imageUrl?: string;
 }
 
-/**
- * Update question request
- * PATCH /admin/questions/:id
- */
 export interface UpdateQuestionRequest {
     content?: string;
-    options?: QuestionOptions; // Update entire options object
-    correctAnswer?: 'A' | 'B' | 'C' | 'D' | 'E';
-    questionType?: QuestionType; // ✅ Uses shared enum
+    options?: Partial<QuestionOptions>;
+    correctAnswer?: AnswerOption;
+    questionType?: QuestionType;
     defaultScore?: number;
-    // ❌ imageUrl removed - not supported by backend
-}
-
-/**
- * Query params for getQuestions
- * GET /admin/questions?page=1&limit=10&type=TIU&search=intelegensia
- */
-export interface QuestionsQueryParams {
-    page?: number;
-    limit?: number;
-    type?: QuestionType; // ✅ Uses shared enum (filter by question type)
-    search?: string; // Search in content field
-    sortBy?: 'content' | 'questionType' | 'createdAt' | 'updatedAt' | 'defaultScore';
-    sortOrder?: 'asc' | 'desc';
+    imageUrl?: string | null;
 }
 
 // ============================================================================
-// API RESPONSE TYPES (what backend returns in 'data' field)
+// API RESPONSE TYPES
 // ============================================================================
 
 /**
- * GET /admin/questions response
- * Returns: { success: true, data: { data: [...], pagination: {...} }, ... }
+ * Response for GET /admin/questions (list)
  *
- * ✅ FIXED: Uses PaginatedResponse with correct field names
- * Backend returns questions WITH _count for usage statistics
+ * ✅ AUDIT FIX: Removed `success` field (it's in ApiResponse wrapper)
+ * ✅ AUDIT FIX: Uses shared PaginationMeta
  */
-export type QuestionsListResponse = PaginatedResponse<QuestionWithUsage>;
+export interface QuestionsListResponse {
+    data: QuestionWithUsage[];
+    pagination: PaginationMeta;
+}
 
 /**
- * GET /admin/questions/:id response
- * Returns: { success: true, data: { question: {...} }, ... }
+ * Response for GET /admin/questions/:id (single question)
+ *
+ * ✅ AUDIT FIX: Backend returns { question: {...} }, not { data: {...} }
  */
 export interface QuestionDetailResponse {
     question: QuestionWithUsage;
 }
 
 /**
- * POST /admin/questions response
- * Returns: { success: true, data: { question: {...} }, ... }
+ * Response for POST /admin/questions (create)
  */
 export interface CreateQuestionResponse {
     question: Question;
 }
 
 /**
- * PATCH /admin/questions/:id response
- * Returns: { success: true, data: { question: {...} }, ... }
+ * Response for PATCH /admin/questions/:id (update)
  */
 export interface UpdateQuestionResponse {
     question: Question;
 }
 
 /**
- * DELETE /admin/questions/:id response
- * Returns: { success: true, data: { success: true }, ... }
+ * Response for DELETE /admin/questions/:id
  */
 export interface DeleteQuestionResponse {
     success: boolean;
+    message?: string;
+}
+
+// ============================================================================
+// QUERY PARAMS TYPES
+// ============================================================================
+
+export interface QuestionsQueryParams {
+    page?: number;
+    limit?: number;
+    type?: QuestionType;
+    search?: string;
+    sortBy?: 'content' | 'questionType' | 'createdAt' | 'updatedAt' | 'defaultScore';
+    sortOrder?: 'asc' | 'desc';
+}
+
+// ============================================================================
+// FORM TYPES (for UI components)
+// ============================================================================
+
+/**
+ * Form data for create/edit question
+ * Uses string id for form compatibility
+ */
+export interface QuestionFormData {
+    content: string;
+    optionA: string;
+    optionB: string;
+    optionC: string;
+    optionD: string;
+    optionE: string;
+    correctAnswer: AnswerOption;
+    questionType: QuestionType;
+    defaultScore: number;
+    imageUrl?: string;
+}
+
+/**
+ * Transform form data to API request format
+ */
+export function formDataToRequest(formData: QuestionFormData): CreateQuestionRequest {
+    return {
+        content: formData.content,
+        options: {
+            A: formData.optionA,
+            B: formData.optionB,
+            C: formData.optionC,
+            D: formData.optionD,
+            E: formData.optionE,
+        },
+        correctAnswer: formData.correctAnswer,
+        questionType: formData.questionType,
+        defaultScore: formData.defaultScore,
+        imageUrl: formData.imageUrl,
+    };
+}
+
+/**
+ * Transform question entity to form data
+ */
+export function questionToFormData(question: Question): QuestionFormData {
+    return {
+        content: question.content,
+        optionA: question.options.A,
+        optionB: question.options.B,
+        optionC: question.options.C,
+        optionD: question.options.D,
+        optionE: question.options.E,
+        correctAnswer: question.correctAnswer,
+        questionType: question.questionType,
+        defaultScore: question.defaultScore,
+        imageUrl: question.imageUrl ?? undefined,
+    };
 }

@@ -1,135 +1,149 @@
 // src/features/users/api/users.api.ts
 
 /**
- * USERS API CLIENT - BACKEND-ALIGNED
+ * Users API Client
  *
- * ✅ UPDATED: All types match new users.types.ts
- * ✅ Proper ApiResponse unwrapping
- * ✅ Correct return types for all endpoints
+ * ✅ AUDIT FIX v2:
+ * - Consistent response unwrapping pattern
+ * - All functions return the unwrapped data
+ *
+ * Backend endpoints:
+ * - Participant: /api/v1/me
+ * - Admin: /api/v1/admin/users/*
  */
 
 import { apiClient } from '@/shared/lib/api';
 import type { ApiResponse } from '@/shared/types/api.types';
 import type {
+    UsersQueryParams,
     UsersListResponse,
     UserDetailResponse,
     CreateUserRequest,
     CreateUserResponse,
     UpdateUserRequest,
-    UpdateProfileRequest,
     UpdateUserResponse,
-    UpdateProfileResponse,
-    ProfileResponse,
     DeleteUserResponse,
-    UsersQueryParams,
+    ProfileResponse,
+    UpdateProfileRequest,
+    UpdateProfileResponse,
 } from '../types/users.types';
 
+// ============================================================================
+// PARTICIPANT ENDPOINTS
+// ============================================================================
+
+/**
+ * Get current user profile
+ * GET /api/v1/me
+ */
+export const getProfile = async (): Promise<ProfileResponse> => {
+    const response = await apiClient.get<ApiResponse<ProfileResponse>>('/me');
+    return response.data.data;
+};
+
+/**
+ * Update current user profile
+ * PATCH /api/v1/me
+ */
+export const updateProfile = async (
+    data: UpdateProfileRequest
+): Promise<UpdateProfileResponse> => {
+    const response = await apiClient.patch<ApiResponse<UpdateProfileResponse>>('/me', data);
+    return response.data.data;
+};
+
+// ============================================================================
+// ADMIN ENDPOINTS
+// ============================================================================
+
+/**
+ * Create user (admin only)
+ * POST /api/v1/admin/users
+ */
+export const createUser = async (
+    data: CreateUserRequest
+): Promise<CreateUserResponse> => {
+    const response = await apiClient.post<ApiResponse<CreateUserResponse>>(
+        '/admin/users',
+        data
+    );
+    return response.data.data;
+};
+
+/**
+ * Get all users (admin only)
+ * GET /api/v1/admin/users
+ */
+export const getUsers = async (
+    params: UsersQueryParams = {}
+): Promise<UsersListResponse> => {
+    const { page = 1, limit = 10, role, search, sortBy, sortOrder } = params;
+
+    const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+    });
+
+    if (role) queryParams.append('role', role);
+    if (search) queryParams.append('search', search);
+    if (sortBy) queryParams.append('sortBy', sortBy);
+    if (sortOrder) queryParams.append('sortOrder', sortOrder);
+
+    const response = await apiClient.get<ApiResponse<UsersListResponse>>(
+        `/admin/users?${queryParams.toString()}`
+    );
+    return response.data.data;
+};
+
+/**
+ * Get user by ID (admin only)
+ * GET /api/v1/admin/users/:id
+ */
+export const getUser = async (userId: number): Promise<UserDetailResponse> => {
+    const response = await apiClient.get<ApiResponse<UserDetailResponse>>(
+        `/admin/users/${userId}`
+    );
+    return response.data.data;
+};
+
+/**
+ * Update user (admin only)
+ * PATCH /api/v1/admin/users/:id
+ */
+export const updateUser = async (
+    userId: number,
+    data: UpdateUserRequest
+): Promise<UpdateUserResponse> => {
+    const response = await apiClient.patch<ApiResponse<UpdateUserResponse>>(
+        `/admin/users/${userId}`,
+        data
+    );
+    return response.data.data;
+};
+
+/**
+ * Delete user (admin only)
+ * DELETE /api/v1/admin/users/:id
+ */
+export const deleteUser = async (userId: number): Promise<DeleteUserResponse> => {
+    const response = await apiClient.delete<ApiResponse<DeleteUserResponse>>(
+        `/admin/users/${userId}`
+    );
+    return response.data.data;
+};
+
+// ============================================================================
+// NAMED EXPORT OBJECT
+// ============================================================================
+
 export const usersApi = {
-    // ============================================================================
-    // PARTICIPANT ENDPOINTS
-    // ============================================================================
-
-    /**
-     * Get my profile
-     * GET /me
-     *
-     * Returns: ApiResponse<{ user: User }>
-     * After unwrap: { user: User }
-     */
-    getProfile: async (): Promise<ProfileResponse> => {
-        const response = await apiClient.get<ApiResponse<ProfileResponse>>('/me');
-        return response.data; // Unwrap: { user: {...} }
-    },
-
-    /**
-     * Update my profile
-     * PATCH /me
-     *
-     * Returns: ApiResponse<{ user: User }>
-     * After unwrap: { user: User }
-     */
-    updateProfile: async (data: UpdateProfileRequest): Promise<UpdateProfileResponse> => {
-        const response = await apiClient.patch<ApiResponse<UpdateProfileResponse>>('/me', data);
-        return response.data; // Unwrap: { user: {...} }
-    },
-
-    // ============================================================================
-    // ADMIN ENDPOINTS
-    // ============================================================================
-
-    /**
-     * Create user (admin only)
-     * POST /admin/users
-     *
-     * Returns: ApiResponse<{ user: User }>
-     * After unwrap: { user: User }
-     */
-    createUser: async (data: CreateUserRequest): Promise<CreateUserResponse> => {
-        const response = await apiClient.post<ApiResponse<CreateUserResponse>>(
-            '/admin/users',
-            data
-        );
-        return response.data; // Unwrap: { user: {...} }
-    },
-
-    /**
-     * Get all users (admin only)
-     * GET /admin/users?page=1&limit=10&role=ADMIN&search=john
-     *
-     * Returns: ApiResponse<{ data: User[], pagination: PaginationMeta }>
-     * After unwrap: { data: User[], pagination: {...} }
-     */
-    getUsers: async (params?: UsersQueryParams): Promise<UsersListResponse> => {
-        const response = await apiClient.get<ApiResponse<UsersListResponse>>(
-            '/admin/users',
-            { params }
-        );
-        return response.data; // Unwrap: { data: [...], pagination: {...} }
-    },
-
-    /**
-     * Get user by ID (admin only)
-     * GET /admin/users/:id
-     *
-     * Returns: ApiResponse<{ user: UserWithCounts }>
-     * After unwrap: { user: UserWithCounts }
-     */
-    getUser: async (userId: number): Promise<UserDetailResponse> => {
-        const response = await apiClient.get<ApiResponse<UserDetailResponse>>(
-            `/admin/users/${userId}`
-        );
-        return response.data; // Unwrap: { user: {...} }
-    },
-
-    /**
-     * Update user (admin only)
-     * PATCH /admin/users/:id
-     *
-     * Returns: ApiResponse<{ user: User }>
-     * After unwrap: { user: User }
-     */
-    updateUser: async (
-        userId: number,
-        data: UpdateUserRequest
-    ): Promise<UpdateUserResponse> => {
-        const response = await apiClient.patch<ApiResponse<UpdateUserResponse>>(
-            `/admin/users/${userId}`,
-            data
-        );
-        return response.data; // Unwrap: { user: {...} }
-    },
-
-    /**
-     * Delete user (admin only)
-     * DELETE /admin/users/:id
-     *
-     * Returns: ApiResponse<{ success: boolean }>
-     * After unwrap: { success: true }
-     */
-    deleteUser: async (userId: number): Promise<DeleteUserResponse> => {
-        const response = await apiClient.delete<ApiResponse<DeleteUserResponse>>(
-            `/admin/users/${userId}`
-        );
-        return response.data; // Unwrap: { success: true }
-    },
+    // Participant
+    getProfile,
+    updateProfile,
+    // Admin
+    createUser,
+    getUsers,
+    getUser,
+    updateUser,
+    deleteUser,
 };

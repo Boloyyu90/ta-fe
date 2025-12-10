@@ -1,47 +1,33 @@
 // src/features/questions/hooks/useUpdateQuestion.ts
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { questionsApi } from '../api/questions.api';
-import { toast } from 'sonner';
-import { useEffect } from 'react';
-import type { UpdateQuestionRequest } from '../types/questions.types';
 
-export function useUpdateQuestion(questionId: string) {
-    const router = useRouter();
+/**
+ * Hook to update an existing question
+ *
+ * ✅ AUDIT FIX: id is number, not string
+ *
+ * Backend: PATCH /api/v1/admin/questions/:id
+ */
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { questionsApi } from '../api/questions.api';
+import type { UpdateQuestionRequest, UpdateQuestionResponse } from '../types/questions.types';
+
+interface UpdateQuestionVariables {
+    id: number;
+    data: UpdateQuestionRequest;
+}
+
+export const useUpdateQuestion = () => {
     const queryClient = useQueryClient();
 
-    const mutation = useMutation({
-        mutationFn: (data: UpdateQuestionRequest) => questionsApi.updateQuestion(questionId, data),
-    });
-
-    // Handle success
-    useEffect(() => {
-        if (mutation.isSuccess) {
-            toast.success('Question Updated!', {
-                description: 'The question has been successfully updated.',
-            });
-
-            // Invalidate both list and detail queries
+    return useMutation<UpdateQuestionResponse, Error, UpdateQuestionVariables>({
+        mutationFn: ({ id, data }) => questionsApi.updateQuestion(id, data),
+        onSuccess: (_, variables) => {
+            // Invalidate specific question and questions list
+            queryClient.invalidateQueries({ queryKey: ['question', variables.id] });
             queryClient.invalidateQueries({ queryKey: ['questions'] });
-            queryClient.invalidateQueries({ queryKey: ['question', questionId] });
+        },
+    });
+};
 
-            // Redirect to question detail
-            router.push(`/admin/questions/${questionId}`);
-        }
-    }, [mutation.isSuccess, questionId, router, queryClient]);
-
-    // Handle errors
-    useEffect(() => {
-        if (mutation.isError) {
-            const error: any = mutation.error;
-            const errorMessage =
-                error.response?.data?.message || 'Failed to update question. Please try again.';
-
-            toast.error('Update Failed', {
-                description: errorMessage,
-            });
-        }
-    }, [mutation.isError, mutation.error]);
-
-    return mutation;
-}
+export default useUpdateQuestion;

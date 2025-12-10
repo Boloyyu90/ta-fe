@@ -1,10 +1,5 @@
-// src/features/users/hooks/useUsers.ts
-
 /**
  * GET /admin/users - Get paginated list of users (admin only)
- *
- * ✅ UPDATED: Uses UsersListResponse with correct pagination field names
- * ✅ FIXED: Access pagination via .pagination.page not .currentPage
  */
 
 import { useQuery } from '@tanstack/react-query';

@@ -1,70 +1,63 @@
 // src/features/users/types/users.types.ts
 
 /**
- * USERS TYPES - BACKEND-ALIGNED
+ * User Types
  *
- * ✅ REFACTORED: All types match backend Prisma schema EXACTLY
+ * ✅ AUDIT FIX v2:
+ * - Uses shared PaginationMeta
+ * - Matches backend response structure exactly
  *
- * KEY FIXES:
- * - Uses shared UserRole enum (removed local definition)
- * - Uses shared PaginatedResponse<T> (fixed pagination field names)
- * - All dates as ISO strings, not Date objects
- * - Matches backend User model structure
- *
- * Backend Source: backend/src/features/users/
+ * Backend endpoints:
+ * - Participant: /api/v1/me
+ * - Admin: /api/v1/admin/users/*
  */
 
-import type { UserRole } from '@/shared/types/enum.types';
-import type { PaginatedResponse } from '@/shared/types/api.types';
-import type { BaseEntity } from '@/shared/types/common.types';
+import type { PaginationMeta } from '@/shared/types/api.types';
 
 // ============================================================================
-// USER ENTITY (from Prisma User model)
+// ENUMS
+// ============================================================================
+
+export type UserRole = 'ADMIN' | 'PARTICIPANT';
+
+// ============================================================================
+// BASE ENTITIES
 // ============================================================================
 
 /**
- * User entity from backend Prisma
- *
- * Backend Prisma fields: id, name, email, password, role, isEmailVerified, createdAt, updatedAt
- * Frontend sees: all except password
+ * User entity - matches backend public fields
  */
-export interface User extends BaseEntity {
+export interface User {
+    id: number;
     email: string;
     name: string;
-    role: UserRole; // ✅ Uses shared enum
+    role: UserRole;
     isEmailVerified: boolean;
+    createdAt: string; // ISO datetime
+    updatedAt: string; // ISO datetime
 }
 
 /**
- * User with aggregated counts (admin view)
- * Backend returns this from getUserById endpoint
+ * User with counts (for admin views)
  */
 export interface UserWithCounts extends User {
     _count: {
-        createdExams: number; // Number of exams created by this user (if admin)
-        userExams: number; // Number of exam attempts by this user (if participant)
+        createdExams: number; // Exams created by this user (admin)
+        userExams: number; // Exam attempts by this user
     };
 }
 
 // ============================================================================
-// API REQUEST TYPES (what we send to backend)
+// API REQUEST TYPES
 // ============================================================================
 
-/**
- * Create user request (admin only)
- * POST /admin/users
- */
 export interface CreateUserRequest {
     email: string;
     password: string;
     name: string;
-    role?: UserRole; // Optional, defaults to PARTICIPANT on backend
+    role?: UserRole;
 }
 
-/**
- * Update user request (admin only)
- * PATCH /admin/users/:id
- */
 export interface UpdateUserRequest {
     email?: string;
     password?: string;
@@ -73,44 +66,25 @@ export interface UpdateUserRequest {
     isEmailVerified?: boolean;
 }
 
-/**
- * Update own profile request (participant)
- * PATCH /me
- */
 export interface UpdateProfileRequest {
     name?: string;
     password?: string;
-    // Note: Cannot change email or role via profile update
-}
-
-/**
- * Query params for getUsers (admin)
- * GET /admin/users?page=1&limit=10&role=ADMIN&search=john
- */
-export interface UsersQueryParams {
-    page?: number;
-    limit?: number;
-    role?: UserRole; // ✅ Uses shared enum
-    search?: string;
-    sortBy?: 'createdAt' | 'name' | 'email' | 'role';
-    sortOrder?: 'asc' | 'desc';
 }
 
 // ============================================================================
-// API RESPONSE TYPES (what backend returns in 'data' field)
+// API RESPONSE TYPES
 // ============================================================================
 
 /**
  * GET /admin/users response
- * Returns: { success: true, data: { data: [...], pagination: {...} }, ... }
- *
- * ✅ FIXED: Uses PaginatedResponse with correct field names
  */
-export type UsersListResponse = PaginatedResponse<User>;
+export interface UsersListResponse {
+    data: User[];
+    pagination: PaginationMeta;
+}
 
 /**
  * GET /admin/users/:id response
- * Returns: { success: true, data: { user: {...} }, ... }
  */
 export interface UserDetailResponse {
     user: UserWithCounts;
@@ -118,7 +92,6 @@ export interface UserDetailResponse {
 
 /**
  * POST /admin/users response
- * Returns: { success: true, data: { user: {...} }, ... }
  */
 export interface CreateUserResponse {
     user: User;
@@ -126,7 +99,6 @@ export interface CreateUserResponse {
 
 /**
  * PATCH /admin/users/:id response
- * Returns: { success: true, data: { user: {...} }, ... }
  */
 export interface UpdateUserResponse {
     user: User;
@@ -134,15 +106,14 @@ export interface UpdateUserResponse {
 
 /**
  * DELETE /admin/users/:id response
- * Returns: { success: true, data: { success: true }, ... }
  */
 export interface DeleteUserResponse {
     success: boolean;
+    message?: string;
 }
 
 /**
  * GET /me response
- * Returns: { success: true, data: { user: {...} }, ... }
  */
 export interface ProfileResponse {
     user: User;
@@ -150,8 +121,20 @@ export interface ProfileResponse {
 
 /**
  * PATCH /me response
- * Returns: { success: true, data: { user: {...} }, ... }
  */
 export interface UpdateProfileResponse {
     user: User;
+}
+
+// ============================================================================
+// QUERY PARAMS TYPES
+// ============================================================================
+
+export interface UsersQueryParams {
+    page?: number;
+    limit?: number;
+    role?: UserRole;
+    search?: string;
+    sortBy?: 'createdAt' | 'name' | 'email' | 'role';
+    sortOrder?: 'asc' | 'desc';
 }

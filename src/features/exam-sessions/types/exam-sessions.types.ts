@@ -1,33 +1,43 @@
 // src/features/exam-sessions/types/exam-sessions.types.ts
 
 /**
- * EXAM SESSIONS TYPES - BACKEND-ALIGNED
+ * Exam Sessions Types
  *
- * ✅ REFACTORED: All types match backend Prisma schema and API responses EXACTLY
+ * ⚠️ CRITICAL: Backend uses `selectedOption` NOT `selectedAnswer`
+ * See Backend API Contract page 22
  *
- * KEY FIXES:
- * - Uses shared UserExamStatus enum (removed local definitions)
- * - Uses shared QuestionType enum
- * - Fixed pagination field names to match backend
- * - Separated DB fields from computed fields
- * - Removed non-existent fields (imageUrl from Question)
- * - All dates as ISO strings, not Date objects
+ * ✅ AUDIT FIX v2: Corrected all types to match backend contract exactly
+ * - Fixed PaginationMeta structure
+ * - Fixed ExamResult to be standalone (not extend UserExam)
+ * - Fixed API endpoint awareness in comments
  *
- * Backend Source: backend/src/features/exam-sessions/
+ * DISTINCTIONS:
+ * 1. ExamStatus: Status of exam definition (DRAFT, PUBLISHED, ARCHIVED)
+ * 2. UserExamStatus: Status of participant's session (NOT_STARTED, IN_PROGRESS, etc.)
  */
 
-import type { UserExamStatus, QuestionType } from '@/shared/types/enum.types';
-import type { PaginatedResponse } from '@/shared/types/api.types';
-import type { BaseEntity, MinimalUser, MinimalExam } from '@/shared/types/common.types';
+import type { PaginationMeta } from '@/shared/types/api.types';
 
 // ============================================================================
-// QUESTION TYPES (from QuestionBank model)
+// STATUS ENUMS
 // ============================================================================
 
-/**
- * Question options structure
- * Stored as JSON in backend: { A: string, B: string, C: string, D: string, E: string }
- */
+export type ExamStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+export type UserExamStatus =
+    | 'NOT_STARTED'
+    | 'IN_PROGRESS'
+    | 'FINISHED'
+    | 'TIMEOUT'
+    | 'CANCELLED'
+    | 'COMPLETED';
+
+export type QuestionType = 'TIU' | 'TWK' | 'TKP';
+
+// ============================================================================
+// QUESTION MODELS
+// ============================================================================
+
 export interface QuestionOptions {
     A: string;
     B: string;
@@ -36,125 +46,101 @@ export interface QuestionOptions {
     E: string;
 }
 
-/**
- * Question from question bank (backend Prisma QuestionBank model)
- *
- * ⚠️ NOTE: imageUrl field does NOT exist in backend Prisma schema!
- * Backend fields: id, content, options, correctAnswer, defaultScore, questionType, createdAt, updatedAt
- */
-export interface Question extends BaseEntity {
+export interface Question {
+    id: number;
     content: string;
     options: QuestionOptions;
     correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
     questionType: QuestionType;
-    defaultScore: number;
-    // ❌ imageUrl does NOT exist in backend - removed
+    imageUrl?: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 /**
- * ExamQuestion (from exam_questions join table)
- * This is what participants see during exam - without correct answer
+ * Question as returned during exam (without correctAnswer)
+ * Used by GET /exam-sessions/:id/questions
  */
 export interface ExamQuestion {
-    id: number; // examQuestion.id (join table ID)
-    examQuestionId: number; // Same as id above (for consistency)
-    content: string; // question.content
-    options: QuestionOptions; // question.options
-    questionType: QuestionType; // question.questionType
-    orderNumber: number; // examQuestion.orderNumber
-    // ❌ imageUrl removed - not in backend
-    // ❌ correctAnswer hidden from participants
+    id: number;
+    examQuestionId: number;
+    content: string;
+    options: QuestionOptions;
+    questionType: QuestionType;
+    orderNumber: number;
+    imageUrl?: string;
 }
 
+export type ParticipantQuestion = ExamQuestion;
+
 // ============================================================================
-// USER EXAM (EXAM SESSION) TYPES
+// EXAM MODELS
 // ============================================================================
 
 /**
- * UserExam model from backend Prisma
- *
- * ⚠️ IMPORTANT: This contains ONLY database fields, NO computed fields
- * Backend Prisma fields: id, userId, examId, startedAt, totalScore, status, createdAt, submittedAt
- *
- * Computed fields like remainingTimeMs, durationMinutes, answeredQuestions are calculated
- * by backend services and added to responses, but are NOT in the model itself.
+ * Exam entity as used within UserExam
  */
-export interface UserExamBase extends BaseEntity {
+export interface Exam {
+    id: number;
+    title: string;
+    description?: string | null;
+    durationMinutes: number;
+    passingScore: number;
+    totalQuestions?: number;
+    isActive?: boolean;
+    startTime?: string | null;
+    endTime?: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+/**
+ * Minimal exam info in result responses
+ */
+export interface ExamSummary {
+    id: number;
+    title: string;
+    description: string | null;
+}
+
+// ============================================================================
+// USER EXAM SESSION MODELS
+// ============================================================================
+
+/**
+ * User's exam session (UserExam)
+ * Used by GET /exam-sessions and GET /exam-sessions/:id
+ */
+export interface UserExam {
+    id: number;
     userId: number;
     examId: number;
-    startedAt: string | null; // ISO datetime
-    totalScore: number | null;
-    status: UserExamStatus; // ✅ Uses shared enum (IN_PROGRESS, FINISHED, CANCELLED, TIMEOUT)
-    submittedAt: string | null; // ISO datetime
-}
-
-/**
- * UserExam with minimal relations (for list views)
- * Backend returns this from getUserExams endpoint
- */
-export interface UserExamListItem extends UserExamBase {
-    exam: MinimalExam;
-    // Computed fields added by backend service:
-    remainingTimeMs: number | null; // Calculated from startedAt + durationMinutes
-    durationMinutes: number | null; // From exam.durationMinutes
-    answeredQuestions: number; // Count of answers with selectedOption !== null
-    totalQuestions: number; // Count of exam.examQuestions
-}
-
-/**
- * Full UserExam with exam details (for detail view)
- * Backend returns this from getUserExam endpoint (/:id)
- */
-export interface UserExam extends UserExamBase {
-    exam: {
-        id: number;
-        title: string;
-        description: string | null;
-        durationMinutes: number;
-    };
-    // Computed fields:
+    status: UserExamStatus;
     remainingTimeMs: number | null;
+    durationMinutes: number | null;
     answeredQuestions: number;
     totalQuestions: number;
+    startTime?: string;
+    endTime?: string;
+    submittedAt?: string | null;
+    timeSpent?: number;
+    totalScore?: number | null;
+    tiuScore?: number | null;
+    twkScore?: number | null;
+    tkpScore?: number | null;
+    violationCount?: number;
+    createdAt: string;
+    updatedAt: string;
+    exam: Exam;
 }
 
 // ============================================================================
-// ANSWER TYPES
-// ============================================================================
-
-/**
- * Answer model from backend Prisma
- * Backend fields: id, userExamId, examQuestionId, selectedOption, isCorrect, answeredAt
- *
- * ✅ Backend uses 'selectedOption' not 'selectedAnswer'!
- */
-export interface Answer extends BaseEntity {
-    userExamId: number;
-    examQuestionId: number;
-    selectedOption: 'A' | 'B' | 'C' | 'D' | 'E' | null; // ✅ Correct field name
-    isCorrect: boolean | null; // null until exam is submitted
-    answeredAt: string; // ISO datetime (from createdAt)
-}
-
-/**
- * Answer with question details (for review page after submit)
- * Backend returns this from getExamAnswers endpoint
- */
-export interface AnswerWithQuestion extends Answer {
-    examQuestion: ExamQuestion & {
-        question: {
-            correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E'; // Revealed after submit
-        };
-    };
-}
-
-// ============================================================================
-// SCORE BREAKDOWN (for results)
+// SCORE BREAKDOWN TYPES
 // ============================================================================
 
 /**
  * Score breakdown by question type
- * Backend calculates this in submitExam service
+ * ✅ Matches backend API contract page 23-24
  */
 export interface ScoreByType {
     type: QuestionType; // 'TIU' | 'TWK' | 'TKP'
@@ -165,21 +151,60 @@ export interface ScoreByType {
 }
 
 /**
- * Exam result with score breakdown
- * Backend returns this from getMyResults and submitExam endpoints
+ * User info in result responses
+ */
+export interface ResultUserInfo {
+    id: number;
+    name: string;
+    email: string;
+}
+
+/**
+ * ExamResult - Result object returned by /results endpoint
+ *
+ * ⚠️ CRITICAL: This is NOT the same as UserExam!
+ * The backend returns a different shape for results.
+ *
+ * Backend source: GET /api/v1/results
  */
 export interface ExamResult {
     id: number;
-    exam: MinimalExam;
-    user: MinimalUser;
-    startedAt: string; // ISO datetime
-    submittedAt: string | null; // ISO datetime
+    exam: ExamSummary;
+    user: ResultUserInfo;
+    startedAt: string;
+    submittedAt: string | null;
     totalScore: number | null;
     status: UserExamStatus;
-    duration: number | null; // Milliseconds between startedAt and submittedAt
+    duration: number | null; // in seconds
     answeredQuestions: number;
     totalQuestions: number;
-    scoresByType: ScoreByType[];
+    scoresByType: ScoreByType[]; // May be empty array
+}
+
+// ============================================================================
+// ANSWER MODELS (⚠️ Backend uses selectedOption, not selectedAnswer!)
+// ============================================================================
+
+/**
+ * User's submitted answer
+ * ⚠️ CRITICAL: Backend field is `selectedOption` not `selectedAnswer`
+ */
+export interface ExamAnswer {
+    id: number;
+    userExamId: number;
+    examQuestionId: number;
+    selectedOption: 'A' | 'B' | 'C' | 'D' | 'E' | null;
+    isCorrect: boolean;
+    answeredAt?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+/**
+ * Answer with associated question (for review pages)
+ */
+export interface AnswerWithQuestion extends ExamAnswer {
+    examQuestion: ExamQuestion;
 }
 
 // ============================================================================
@@ -187,10 +212,8 @@ export interface ExamResult {
 // ============================================================================
 
 /**
- * Submit answer request
- * POST /exam-sessions/:id/answers
- *
- * ✅ Uses 'selectedOption' not 'selectedAnswer'
+ * Request to submit an answer
+ * ⚠️ Backend expects `selectedOption` not `selectedAnswer`
  */
 export interface SubmitAnswerRequest {
     examQuestionId: number;
@@ -199,21 +222,27 @@ export interface SubmitAnswerRequest {
 
 /**
  * Query params for getUserExams
- * GET /exam-sessions?page=1&limit=10
  */
 export interface GetUserExamsParams {
-    status?: UserExamStatus; // ✅ Uses shared enum
+    status?: UserExamStatus;
+    page?: number;
+    limit?: number;
+}
+
+/**
+ * Query params for getMyResults
+ */
+export interface GetMyResultsParams {
     page?: number;
     limit?: number;
 }
 
 // ============================================================================
-// API RESPONSE TYPES (what backend actually returns in 'data' field)
+// API RESPONSE TYPES
 // ============================================================================
 
 /**
  * GET /exam-sessions/:id response
- * Returns: { success: true, data: { userExam: {...} }, ... }
  */
 export interface ExamSessionDetailResponse {
     userExam: UserExam;
@@ -221,7 +250,6 @@ export interface ExamSessionDetailResponse {
 
 /**
  * GET /exam-sessions/:id/questions response
- * Returns: { success: true, data: { questions: [...], total: N }, ... }
  */
 export interface ExamQuestionsResponse {
     questions: ExamQuestion[];
@@ -229,11 +257,23 @@ export interface ExamQuestionsResponse {
 }
 
 /**
+ * GET /exam-sessions/:id/answers response
+ */
+export interface ExamAnswersResponse {
+    answers: AnswerWithQuestion[];
+    total: number;
+}
+
+/**
  * POST /exam-sessions/:id/answers response
- * Returns: { success: true, data: { answer: {...}, progress: {...} }, ... }
+ * ✅ AUDIT FIX: Added progress field (Backend API Contract page 22)
  */
 export interface SubmitAnswerResponse {
-    answer: Answer;
+    answer: {
+        examQuestionId: number;
+        selectedOption: 'A' | 'B' | 'C' | 'D' | 'E' | null;
+        answeredAt: string;
+    };
     progress: {
         answered: number;
         total: number;
@@ -243,43 +283,65 @@ export interface SubmitAnswerResponse {
 
 /**
  * POST /exam-sessions/:id/submit response
- * Returns: { success: true, data: { result: {...} }, ... }
+ * ✅ AUDIT FIX: Uses ExamResult, not UserExam
  */
 export interface SubmitExamResponse {
-    result: ExamResult; // ✅ Includes scoresByType
+    result: ExamResult;
 }
 
 /**
- * GET /exam-sessions/:id/answers response (after submit)
- * Returns: { success: true, data: { answers: [...], total: N }, ... }
+ * GET /exam-sessions response (user's exam sessions list)
+ * ✅ AUDIT FIX: Uses correct PaginationMeta structure
  */
-export interface ExamAnswersResponse {
-    answers: AnswerWithQuestion[];
-    total: number;
+export interface ExamSessionsListResponse {
+    data: UserExam[];
+    pagination: PaginationMeta;
 }
 
 /**
- * GET /exam-sessions response (user's sessions list)
- * Returns: { success: true, data: { data: [...], pagination: {...} }, ... }
+ * GET /results response (user's completed exam results)
  *
- * ✅ FIXED: Pagination field names now match backend exactly
+ * ⚠️ CRITICAL: This is from /results endpoint, NOT /exam-sessions
+ * ✅ AUDIT FIX: Uses correct PaginationMeta structure
  */
-export type UserExamsListResponse = PaginatedResponse<UserExamListItem>;
-
-/**
- * GET /results response (user's results list)
- * Returns: { success: true, data: { data: [...], pagination: {...} }, ... }
- *
- * ✅ FIXED: Uses PaginatedResponse from shared types
- */
-export type MyResultsResponse = PaginatedResponse<ExamResult>;
+export interface MyResultsResponse {
+    data: ExamResult[];
+    pagination: PaginationMeta;
+}
 
 // ============================================================================
-// LEGACY TYPE ALIASES (for gradual migration)
+// UI HELPER TYPES
+// ============================================================================
+
+export interface StatusConfig {
+    label: string;
+    color: string;
+    icon?: React.ComponentType<{ className?: string }>;
+}
+
+export type UserExamStatusConfig = Record<UserExamStatus, StatusConfig>;
+
+// ============================================================================
+// UTILITY TYPE GUARDS
 // ============================================================================
 
 /**
- * @deprecated Use ExamQuestion instead
- * Keeping for backward compatibility during migration
+ * Check if an exam result is passing based on exam's passingScore
  */
-export type ParticipantQuestion = ExamQuestion;
+export function isPassingResult(result: ExamResult, passingScore: number): boolean {
+    return (result.totalScore ?? 0) >= passingScore;
+}
+
+/**
+ * Check if a session is active (can be continued)
+ */
+export function isActiveSession(status: UserExamStatus): boolean {
+    return status === 'IN_PROGRESS' || status === 'NOT_STARTED';
+}
+
+/**
+ * Check if a session is completed (shows in results)
+ */
+export function isCompletedSession(status: UserExamStatus): boolean {
+    return status === 'FINISHED' || status === 'TIMEOUT' || status === 'CANCELLED' || status === 'COMPLETED';
+}
