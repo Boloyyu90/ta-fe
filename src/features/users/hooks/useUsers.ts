@@ -1,25 +1,26 @@
+// src/features/users/hooks/useUsers.ts
+
 /**
- * GET /admin/users - Get paginated list of users (admin only)
+ * Hook to fetch paginated users list (admin)
+ *
+ * ✅ AUDIT FIX v3:
+ * - Removed deprecated `keepPreviousData` (React Query v5)
+ * - Use `placeholderData: keepPreviousData` function instead
+ *
+ * Backend: GET /api/v1/admin/users
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { usersApi } from '../api/users.api';
 import type { UsersListResponse, UsersQueryParams } from '../types/users.types';
 
-export function useUsers(params: UsersQueryParams = {}) {
-    return useQuery<UsersListResponse>({
+export const useUsers = (params?: UsersQueryParams) => {
+    return useQuery<UsersListResponse, Error>({
         queryKey: ['users', params],
         queryFn: () => usersApi.getUsers(params),
-        staleTime: 1000 * 60 * 5, // 5 minutes
-
-        keepPreviousData: true, // Keep old data while fetching new page
+        // ✅ FIX: Use placeholderData with keepPreviousData function (React Query v5)
+        placeholderData: keepPreviousData,
     });
-}
+};
 
-// Example usage in component:
-// const { data, isLoading } = useUsers({ page: 1, limit: 10 });
-// if (data) {
-//   const users = data.data; // ✅ Access items via data.data
-//   const currentPage = data.pagination.page; // ✅ NOT data.currentPage
-//   const total = data.pagination.total; // ✅ NOT data.totalItems
-// }
+export default useUsers;

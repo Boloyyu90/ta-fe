@@ -1,69 +1,120 @@
 // src/features/proctoring/store/proctoring.store.ts
+
+/**
+ * Proctoring Store (Zustand)
+ *
+ * ✅ AUDIT FIX v3: Fixed Violation import (now properly exported)
+ *
+ * Manages:
+ * - Webcam state
+ * - Violations list
+ * - Analysis results
+ */
+
 import { create } from 'zustand';
-import type { Violation, WebcamState } from '../types/proctoring.types';
+import type { Violation, WebcamState, FaceDetectionResult } from '../types/proctoring.types';
 
-interface ProctoringState {
-    // Webcam state
+interface ProctoringStore {
+    // Webcam State
     webcam: WebcamState;
+    setWebcamEnabled: (enabled: boolean) => void;
+    setWebcamStreaming: (streaming: boolean) => void;
+    setWebcamPermission: (hasPermission: boolean | null) => void;
+    setWebcamError: (error: string | null) => void;
 
-    // Violation tracking
+    // Violations
     violations: Violation[];
-    totalViolations: number;
-    highViolations: number;
-    warningLevel: number; // 0, 1, 2, 3
-
-    // Monitoring state
-    isMonitoring: boolean;
-    lastAnalysis: string | null; // timestamp
-
-    // Actions
-    setWebcam: (webcam: Partial<WebcamState>) => void;
     addViolation: (violation: Violation) => void;
-    setWarningLevel: (level: number) => void;
-    startMonitoring: () => void;
-    stopMonitoring: () => void;
+    clearViolations: () => void;
+
+    // Analysis
+    isAnalyzing: boolean;
+    setAnalyzing: (analyzing: boolean) => void;
+    lastAnalysis: FaceDetectionResult | null;
+    setLastAnalysis: (analysis: FaceDetectionResult | null) => void;
+
+    // Counts
+    violationCount: number;
+    highViolationCount: number;
+    incrementViolationCount: () => void;
+    incrementHighViolationCount: () => void;
+
+    // Reset
     reset: () => void;
 }
 
-const initialState: Omit<ProctoringState, 'setWebcam' | 'addViolation' | 'setWarningLevel' | 'startMonitoring' | 'stopMonitoring' | 'reset'> = {
-    webcam: {
-        isActive: false,
-        stream: null,
-        error: null,
-        lastCapture: null,
-    },
-    violations: [],
-    totalViolations: 0,
-    highViolations: 0,
-    warningLevel: 0,
-    isMonitoring: false,
-    lastAnalysis: null,
+const initialWebcamState: WebcamState = {
+    isEnabled: false,
+    isStreaming: false,
+    hasPermission: null,
+    error: null,
 };
 
-export const useProctoringStore = create<ProctoringState>((set) => ({
-    ...initialState,
+export const useProctoringStore = create<ProctoringStore>((set) => ({
+    // Initial state
+    webcam: initialWebcamState,
+    violations: [],
+    isAnalyzing: false,
+    lastAnalysis: null,
+    violationCount: 0,
+    highViolationCount: 0,
 
-    setWebcam: (webcam) =>
+    // Webcam actions
+    setWebcamEnabled: (enabled) =>
         set((state) => ({
-            webcam: { ...state.webcam, ...webcam },
+            webcam: { ...state.webcam, isEnabled: enabled },
         })),
 
+    setWebcamStreaming: (streaming) =>
+        set((state) => ({
+            webcam: { ...state.webcam, isStreaming: streaming },
+        })),
+
+    setWebcamPermission: (hasPermission) =>
+        set((state) => ({
+            webcam: { ...state.webcam, hasPermission },
+        })),
+
+    setWebcamError: (error) =>
+        set((state) => ({
+            webcam: { ...state.webcam, error },
+        })),
+
+    // Violations actions
     addViolation: (violation) =>
         set((state) => ({
-            violations: [...state.violations, violation],
-            totalViolations: state.totalViolations + 1,
-            highViolations: violation.severity === 'HIGH' ? state.highViolations + 1 : state.highViolations,
+            violations: [violation, ...state.violations].slice(0, 100), // Keep last 100
         })),
 
-    setWarningLevel: (level) => set({ warningLevel: level }),
+    clearViolations: () =>
+        set({ violations: [] }),
 
-    startMonitoring: () =>
+    // Analysis actions
+    setAnalyzing: (analyzing) =>
+        set({ isAnalyzing: analyzing }),
+
+    setLastAnalysis: (analysis) =>
+        set({ lastAnalysis: analysis }),
+
+    // Count actions
+    incrementViolationCount: () =>
+        set((state) => ({
+            violationCount: state.violationCount + 1,
+        })),
+
+    incrementHighViolationCount: () =>
+        set((state) => ({
+            highViolationCount: state.highViolationCount + 1,
+        })),
+
+    // Reset action
+    reset: () =>
         set({
-            isMonitoring: true,
-            lastAnalysis: new Date().toISOString(),
+            webcam: initialWebcamState,
+            violations: [],
+            isAnalyzing: false,
+            lastAnalysis: null,
+            violationCount: 0,
+            highViolationCount: 0,
         }),
-
-    stopMonitoring: () => set({ isMonitoring: false }),
-
-    reset: () => set(initialState),
 }));

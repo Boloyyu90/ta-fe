@@ -3,10 +3,9 @@
 /**
  * Exams API Client
  *
- * ✅ AUDIT FIX v2:
- * - Consistent response unwrapping pattern
- * - All functions return the unwrapped data
- * - Added admin endpoints
+ * ✅ AUDIT FIX v3:
+ * - Fixed response unwrapping: use `response.data` (interceptor already unwraps AxiosResponse)
+ * - All functions return the inner data structure
  *
  * Backend endpoints:
  * - Participant: /api/v1/exams/*
@@ -55,7 +54,6 @@ export const getExams = async (
 
     if (search) queryParams.append('search', search);
     if (status && status !== 'all') {
-        // Map UI status to isActive
         queryParams.append('isActive', status === 'active' ? 'true' : 'false');
     }
     if (sortBy) queryParams.append('sortBy', sortBy);
@@ -64,7 +62,9 @@ export const getExams = async (
     const response = await apiClient.get<ApiResponse<ExamsResponse>>(
         `/exams?${queryParams.toString()}`
     );
-    return response.data.data;
+    // response is ApiResponse<ExamsResponse> (interceptor unwraps AxiosResponse)
+    // response.data is ExamsResponse
+    return response.data;
 };
 
 /**
@@ -75,7 +75,7 @@ export const getExam = async (examId: number): Promise<ExamDetailResponse> => {
     const response = await apiClient.get<ApiResponse<ExamDetailResponse>>(
         `/exams/${examId}`
     );
-    return response.data.data;
+    return response.data;
 };
 
 /**
@@ -86,7 +86,7 @@ export const startExam = async (examId: number): Promise<StartExamResponse> => {
     const response = await apiClient.post<ApiResponse<StartExamResponse>>(
         `/exams/${examId}/start`
     );
-    return response.data.data;
+    return response.data;
 };
 
 // ============================================================================
@@ -118,7 +118,7 @@ export const getAdminExams = async (
     const response = await apiClient.get<ApiResponse<AdminExamsResponse>>(
         `/admin/exams?${queryParams.toString()}`
     );
-    return response.data.data;
+    return response.data;
 };
 
 /**
@@ -129,7 +129,7 @@ export const getAdminExam = async (examId: number): Promise<AdminExamDetailRespo
     const response = await apiClient.get<ApiResponse<AdminExamDetailResponse>>(
         `/admin/exams/${examId}`
     );
-    return response.data.data;
+    return response.data;
 };
 
 /**
@@ -149,7 +149,7 @@ export const getExamQuestions = async (
         : `/admin/exams/${examId}/questions`;
 
     const response = await apiClient.get<ApiResponse<ExamQuestionsResponse>>(url);
-    return response.data.data;
+    return response.data;
 };
 
 /**
@@ -163,7 +163,7 @@ export const createExam = async (
         '/admin/exams',
         data
     );
-    return response.data.data;
+    return response.data;
 };
 
 /**
@@ -178,7 +178,7 @@ export const updateExam = async (
         `/admin/exams/${examId}`,
         data
     );
-    return response.data.data;
+    return response.data;
 };
 
 /**
@@ -189,7 +189,7 @@ export const deleteExam = async (examId: number): Promise<DeleteExamResponse> =>
     const response = await apiClient.delete<ApiResponse<DeleteExamResponse>>(
         `/admin/exams/${examId}`
     );
-    return response.data.data;
+    return response.data;
 };
 
 /**
@@ -204,7 +204,7 @@ export const attachQuestions = async (
         `/admin/exams/${examId}/questions`,
         data
     );
-    return response.data.data;
+    return response.data;
 };
 
 /**
@@ -219,7 +219,7 @@ export const detachQuestions = async (
         `/admin/exams/${examId}/questions`,
         { data }
     );
-    return response.data.data;
+    return response.data;
 };
 
 // ============================================================================

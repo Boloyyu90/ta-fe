@@ -1,47 +1,45 @@
 // src/features/exams/hooks/useStartExam.ts
+
+/**
+ * Hook to start an exam session
+ *
+ * ✅ AUDIT FIX v3: Fixed mutation.data access (no nested .data)
+ *
+ * Backend: POST /api/v1/exams/:id/start
+ */
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { examsApi } from '@/features/exams/api/exams.api';
-import { toast } from 'sonner';
-import { useEffect } from 'react';
+import { examsApi } from '../api/exams.api';
+import type { StartExamResponse } from '../types/exams.types';
 
-export function useStartExam() {
-    const router = useRouter();
+export const useStartExam = () => {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
-    const mutation = useMutation({
+    const mutation = useMutation<StartExamResponse, Error, number>({
         mutationFn: (examId: number) => examsApi.startExam(examId),
-    });
-
-    // Handle success
-    useEffect(() => {
-        if (mutation.isSuccess && mutation.data) {
-            const { userExam } = mutation.data.data;
-
-            toast.success('Exam Started!', {
-                description: 'Your exam session has begun. Good luck!',
-            });
+        onSuccess: (data) => {
+            // data is StartExamResponse = { userExam: UserExam }
+            // ✅ FIX: Access userExam directly, not data.data
+            const { userExam } = data;
 
             // Invalidate relevant queries
             queryClient.invalidateQueries({ queryKey: ['user-exams'] });
+            queryClient.invalidateQueries({ queryKey: ['exams'] });
 
-            // Redirect to exam taking page
-            router.push(`/exam-sessions/${userExam.id}/take`);
-        }
-    }, [mutation.isSuccess, mutation.data, router, queryClient]);
+            // Navigate to the exam session
+            router.push(`/exam-session/${userExam.id}`);
+        },
+    });
 
-    // Handle errors
-    useEffect(() => {
-        if (mutation.isError) {
-            const error: any = mutation.error;
-            const errorMessage =
-                error.response?.data?.message || 'Failed to start exam. Please try again.';
+    return {
+        startExam: mutation.mutate,
+        startExamAsync: mutation.mutateAsync,
+        isLoading: mutation.isPending,
+        isError: mutation.isError,
+        error: mutation.error,
+    };
+};
 
-            toast.error('Cannot Start Exam', {
-                description: errorMessage,
-            });
-        }
-    }, [mutation.isError, mutation.error]);
-
-    return mutation;
-}
+export default useStartExam;

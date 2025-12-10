@@ -3,10 +3,9 @@
 /**
  * Question Bank Types
  *
- * ✅ AUDIT FIX v2:
- * - Fixed id type from string to number
- * - Fixed response types to not duplicate ApiResponse fields
- * - Added proper pagination using shared PaginationMeta
+ * ✅ AUDIT FIX v3:
+ * - Fixed id type to number
+ * - All response types are the inner data (what ApiResponse.data contains)
  *
  * Backend: /api/v1/admin/questions/*
  */
@@ -38,7 +37,7 @@ export interface QuestionOptions {
  * ✅ AUDIT FIX: id is number, not string
  */
 export interface Question {
-    id: number; // ✅ FIXED: Was string
+    id: number;
     content: string;
     options: QuestionOptions;
     correctAnswer: AnswerOption;
@@ -82,13 +81,11 @@ export interface UpdateQuestionRequest {
 
 // ============================================================================
 // API RESPONSE TYPES
+// These are the shapes inside ApiResponse.data
 // ============================================================================
 
 /**
  * Response for GET /admin/questions (list)
- *
- * ✅ AUDIT FIX: Removed `success` field (it's in ApiResponse wrapper)
- * ✅ AUDIT FIX: Uses shared PaginationMeta
  */
 export interface QuestionsListResponse {
     data: QuestionWithUsage[];
@@ -97,8 +94,6 @@ export interface QuestionsListResponse {
 
 /**
  * Response for GET /admin/questions/:id (single question)
- *
- * ✅ AUDIT FIX: Backend returns { question: {...} }, not { data: {...} }
  */
 export interface QuestionDetailResponse {
     question: QuestionWithUsage;
@@ -145,7 +140,6 @@ export interface QuestionsQueryParams {
 
 /**
  * Form data for create/edit question
- * Uses string id for form compatibility
  */
 export interface QuestionFormData {
     content: string;

@@ -1,10 +1,12 @@
 // src/features/proctoring/api/proctoring.api.ts
 
 /**
- * PROCTORING API CLIENT
+ * Proctoring API Client
  *
- * ✅ Correct response unwrapping
- * ✅ Matches backend API contract
+ * ✅ AUDIT FIX v3:
+ * - Fixed response unwrapping: use `response.data` (interceptor already unwraps AxiosResponse)
+ *
+ * Backend: /api/v1/proctoring/*
  */
 
 import { apiClient } from '@/shared/lib/api';
@@ -23,20 +25,21 @@ export const proctoringApi = {
      * Analyze face image via YOLO
      * POST /api/v1/proctoring/exam-sessions/:sessionId/analyze-face
      */
-    analyzeFace: async (sessionId: number, data: AnalyzeFaceRequest) => {
+    analyzeFace: async (sessionId: number, data: AnalyzeFaceRequest): Promise<AnalyzeFaceResponse> => {
         const response = await apiClient.post<ApiResponse<AnalyzeFaceResponse>>(
             `/proctoring/exam-sessions/${sessionId}/analyze-face`,
             data
         );
-        // Backend returns nested response
-        return response.data.data;
+        // response is ApiResponse<AnalyzeFaceResponse> (interceptor unwraps AxiosResponse)
+        // response.data is AnalyzeFaceResponse
+        return response.data;
     },
 
     /**
      * Get proctoring events for a session
      * GET /api/v1/proctoring/exam-sessions/:sessionId/events
      */
-    getEvents: async (sessionId: number, params: ProctoringEventsParams = {}) => {
+    getEvents: async (sessionId: number, params: ProctoringEventsParams = {}): Promise<ProctoringEventsResponse> => {
         const queryParams = new URLSearchParams();
 
         if (params.page) queryParams.append('page', params.page.toString());
@@ -50,19 +53,18 @@ export const proctoringApi = {
             : `/proctoring/exam-sessions/${sessionId}/events`;
 
         const response = await apiClient.get<ApiResponse<ProctoringEventsResponse>>(url);
-        // Backend returns: { success: true, data: { data: [...], pagination: {...} } }
-        return response.data.data;
+        return response.data;
     },
 
     /**
      * Log proctoring event manually
      * POST /api/v1/proctoring/events
      */
-    logEvent: async (data: LogEventRequest) => {
+    logEvent: async (data: LogEventRequest): Promise<LogEventResponse> => {
         const response = await apiClient.post<ApiResponse<LogEventResponse>>(
             '/proctoring/events',
             data
         );
-        return response.data.data;
+        return response.data;
     },
 };

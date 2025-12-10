@@ -1,132 +1,134 @@
-import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
-import { Badge } from '@/shared/components/ui/badge';
-import { Button } from '@/shared/components/ui/button';
-import { Calendar, Clock, CheckCircle, XCircle, Eye, TrendingUp, AlertTriangle } from 'lucide-react';
-import Link from 'next/link';
-import type { UserExam, UserExamStatus } from '../types/exam-sessions.types';
-import { formatDate, formatDuration } from '@/shared/lib/formatters';
-
-interface ResultCardProps {
-    userExam: UserExam;
-}
+// src/features/exam-sessions/components/ResultCard.tsx
 
 /**
- * Displays an exam result card
+ * Result Card Component
  *
- * CRITICAL: Use UserExamStatus (not ExamStatus) for status configuration
+ * ✅ AUDIT FIX v3: Changed from UserExam to ExamResult prop type
+ * to match what /results endpoint returns
  */
-export function ResultCard({ userExam }: ResultCardProps) {
-    // Status configuration for USER EXAM statuses
-    const statusConfig: Record<UserExamStatus, { label: string; color: string; icon: typeof CheckCircle }> = {
-        NOT_STARTED: {
-            label: 'Belum Dimulai',
-            color: 'bg-gray-100 text-gray-800',
-            icon: Clock,
-        },
-        IN_PROGRESS: {
-            label: 'Sedang Berlangsung',
-            color: 'bg-blue-100 text-blue-800',
-            icon: Clock,
-        },
-        FINISHED: {
-            label: 'Selesai',
-            color: 'bg-green-100 text-green-800',
-            icon: CheckCircle,
-        },
-        COMPLETED: {
-            label: 'Selesai',
-            color: 'bg-green-100 text-green-800',
-            icon: CheckCircle,
-        },
-        TIMEOUT: {
-            label: 'Waktu Habis',
-            color: 'bg-orange-100 text-orange-800',
-            icon: AlertTriangle,
-        },
-        CANCELLED: {
-            label: 'Dibatalkan',
-            color: 'bg-red-100 text-red-800',
-            icon: XCircle,
-        },
+
+'use client';
+
+import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { Badge } from '@/shared/components/ui/badge';
+import { Button } from '@/shared/components/ui/button';
+import { Progress } from '@/shared/components/ui/progress';
+import {
+    CheckCircle2,
+    XCircle,
+    Clock,
+    FileText,
+    Trophy,
+    AlertTriangle,
+} from 'lucide-react';
+import type { ExamResult, UserExamStatus } from '../types/exam-sessions.types';
+
+export interface ResultCardProps {
+    result: ExamResult;
+}
+
+const statusConfig: Record<UserExamStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof CheckCircle2 }> = {
+    NOT_STARTED: { label: 'Belum Mulai', variant: 'outline', icon: Clock },
+    IN_PROGRESS: { label: 'Sedang Berlangsung', variant: 'default', icon: Clock },
+    FINISHED: { label: 'Selesai', variant: 'secondary', icon: CheckCircle2 },
+    COMPLETED: { label: 'Selesai', variant: 'secondary', icon: CheckCircle2 },
+    TIMEOUT: { label: 'Waktu Habis', variant: 'destructive', icon: AlertTriangle },
+    CANCELLED: { label: 'Dibatalkan', variant: 'outline', icon: XCircle },
+};
+
+export function ResultCard({ result }: ResultCardProps) {
+    const { exam, totalScore, status, answeredQuestions, totalQuestions, duration, scoresByType } = result;
+
+    const passingScore = exam.passingScore ?? 0;
+    const isPassed = totalScore !== null && totalScore >= passingScore;
+    const scorePercentage = passingScore > 0 ? ((totalScore ?? 0) / passingScore) * 100 : 0;
+
+    const statusInfo = statusConfig[status] || statusConfig.FINISHED;
+    const StatusIcon = statusInfo.icon;
+
+    // Format duration (seconds to minutes)
+    const formatDuration = (seconds: number | null) => {
+        if (seconds === null) return '-';
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}m ${remainingSeconds}s`;
     };
 
-    const status = statusConfig[userExam.status];
-    const StatusIcon = status.icon;
-
-    const isPassed = (userExam.totalScore || 0) >= userExam.exam.passingScore;
-
     return (
-        <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
+        <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                        <h3 className="text-xl font-bold mb-2">{userExam.exam.title}</h3>
-                        <div className="flex items-center gap-2">
-                            <Badge className={status.color}>
-                                <StatusIcon className="w-3 h-3 mr-1" />
-                                {status.label}
-                            </Badge>
-                            {userExam.totalScore !== null && userExam.totalScore !== undefined && (
-                                <Badge className={isPassed ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}>
-                                    {isPassed ? 'Lulus' : 'Tidak Lulus'}
-                                </Badge>
-                            )}
-                        </div>
+                    <div className="space-y-1">
+                        <CardTitle className="text-lg line-clamp-1">{exam.title}</CardTitle>
+                        {exam.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                                {exam.description}
+                            </p>
+                        )}
                     </div>
+                    <Badge variant={statusInfo.variant} className="flex items-center gap-1">
+                        <StatusIcon className="h-3 w-3" />
+                        {statusInfo.label}
+                    </Badge>
                 </div>
             </CardHeader>
 
             <CardContent className="space-y-4">
                 {/* Score Section */}
-                {userExam.totalScore !== null && userExam.totalScore !== undefined && (
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-gray-600">Total Skor</span>
-                            <span className="text-2xl font-bold">{userExam.totalScore}</span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 text-sm">
-                            <div>
-                                <span className="text-gray-600">TIU:</span>
-                                <span className="font-semibold ml-1">{userExam.tiuScore || 0}</span>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Trophy className={`h-5 w-5 ${isPassed ? 'text-green-500' : 'text-red-500'}`} />
+                        <span className="text-2xl font-bold">
+                            {totalScore ?? 0}
+                        </span>
+                        <span className="text-muted-foreground">/ {passingScore}</span>
+                    </div>
+                    <Badge variant={isPassed ? 'default' : 'destructive'}>
+                        {isPassed ? 'LULUS' : 'TIDAK LULUS'}
+                    </Badge>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="space-y-1">
+                    <Progress
+                        value={Math.min(scorePercentage, 100)}
+                        className={`h-2 ${isPassed ? '[&>div]:bg-green-500' : '[&>div]:bg-red-500'}`}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">
+                        {scorePercentage.toFixed(1)}% dari passing grade
+                    </p>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span>
+                            {answeredQuestions}/{totalQuestions} Dijawab
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>{formatDuration(duration)}</span>
+                    </div>
+                </div>
+
+                {/* Score by Type (if available) */}
+                {scoresByType && scoresByType.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                        {scoresByType.map((score) => (
+                            <div key={score.type} className="text-center p-2 bg-muted rounded">
+                                <div className="font-medium">{score.type}</div>
+                                <div>{score.score}/{score.maxScore}</div>
                             </div>
-                            <div>
-                                <span className="text-gray-600">TWK:</span>
-                                <span className="font-semibold ml-1">{userExam.twkScore || 0}</span>
-                            </div>
-                            <div>
-                                <span className="text-gray-600">TKP:</span>
-                                <span className="font-semibold ml-1">{userExam.tkpScore || 0}</span>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 )}
 
-                {/* Details */}
-                <div className="space-y-2">
-                    <div className="flex items-center text-sm text-gray-600">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        <span>Selesai: {formatDate(userExam.submittedAt || userExam.endTime || userExam.updatedAt)}</span>
-                    </div>
-
-                    {userExam.timeSpent && (
-                        <div className="flex items-center text-sm text-gray-600">
-                            <Clock className="w-4 h-4 mr-2" />
-                            <span>Waktu: {formatDuration(Math.floor(userExam.timeSpent / 60))}</span>
-                        </div>
-                    )}
-
-                    {userExam.violationCount !== undefined && userExam.violationCount > 0 && (
-                        <div className="flex items-center text-sm text-orange-600">
-                            <AlertTriangle className="w-4 h-4 mr-2" />
-                            <span>{userExam.violationCount} pelanggaran terdeteksi</span>
-                        </div>
-                    )}
-                </div>
-
                 {/* Action Button */}
-                <Link href={`/results/${userExam.id}`}>
+                <Link href={`/results/${result.id}`}>
                     <Button variant="outline" className="w-full">
-                        <Eye className="w-4 h-4 mr-2" />
                         Lihat Detail
                     </Button>
                 </Link>
@@ -134,3 +136,5 @@ export function ResultCard({ userExam }: ResultCardProps) {
         </Card>
     );
 }
+
+export default ResultCard;

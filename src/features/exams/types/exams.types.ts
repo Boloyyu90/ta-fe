@@ -3,10 +3,9 @@
 /**
  * Exam Types
  *
- * ✅ AUDIT FIX v2:
- * - Fixed Exam entity to match backend (isActive, not status)
- * - Added all missing fields from backend
- * - Uses shared PaginationMeta
+ * ✅ AUDIT FIX v3:
+ * - Added _count field to Exam for question/session counts
+ * - All response types are the inner data (what ApiResponse.data contains)
  *
  * Backend endpoints:
  * - Participant: /api/v1/exams/*
@@ -31,18 +30,23 @@ export interface Exam {
     description: string | null;
     durationMinutes: number;
     passingScore: number;
-    isActive: boolean; // ✅ Backend uses this, NOT status enum
-    startTime: string | null; // ISO datetime
-    endTime: string | null; // ISO datetime
+    isActive: boolean;
+    startTime: string | null;
+    endTime: string | null;
     createdBy: number;
     createdAt: string;
     updatedAt: string;
+    _count?: {
+        examQuestions: number;
+        userExams: number;
+    };
 }
 
 /**
  * Exam with counts (for list views)
+ * ✅ FIX: _count is always present in list responses
  */
-export interface ExamWithCounts extends Exam {
+export interface ExamWithCounts extends Omit<Exam, '_count'> {
     _count: {
         examQuestions: number;
         userExams: number;
@@ -123,6 +127,7 @@ export interface DetachQuestionsRequest {
 
 // ============================================================================
 // API RESPONSE TYPES
+// These are the shapes inside ApiResponse.data
 // ============================================================================
 
 /**
@@ -217,7 +222,7 @@ export interface ExamsQueryParams {
     page?: number;
     limit?: number;
     search?: string;
-    status?: 'active' | 'inactive' | 'all'; // UI filter, maps to isActive
+    status?: 'active' | 'inactive' | 'all';
     sortBy?: 'title' | 'createdAt' | 'durationMinutes' | 'startTime';
     sortOrder?: 'asc' | 'desc';
 }
@@ -233,17 +238,17 @@ export interface AdminExamsQueryParams extends ExamsQueryParams {
 /**
  * Check if exam is currently available for registration
  */
-export function isExamAvailable(exam: Exam): boolean {
+export function isExamAvailable(exam: Exam | ExamWithCounts): boolean {
     if (!exam.isActive) return false;
 
     const now = new Date();
 
     if (exam.startTime && new Date(exam.startTime) > now) {
-        return false; // Hasn't started yet
+        return false;
     }
 
     if (exam.endTime && new Date(exam.endTime) < now) {
-        return false; // Already ended
+        return false;
     }
 
     return true;
@@ -252,7 +257,7 @@ export function isExamAvailable(exam: Exam): boolean {
 /**
  * Get exam availability status text
  */
-export function getExamAvailabilityStatus(exam: Exam): {
+export function getExamAvailabilityStatus(exam: Exam | ExamWithCounts): {
     status: 'available' | 'upcoming' | 'ended' | 'inactive';
     label: string;
 } {

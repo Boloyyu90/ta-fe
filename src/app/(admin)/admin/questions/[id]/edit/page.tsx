@@ -1,160 +1,285 @@
 // src/app/(admin)/admin/questions/[id]/edit/page.tsx
 
-'use client';
-
-import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { useQuestion } from '@/features/questions/hooks/useQuestion';
-import { useUpdateQuestion } from '@/features/questions/hooks/useUpdateQuestion';
-import { QuestionForm } from '@/features/questions/components/QuestionForm';
-import { Card } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
-import { Loader2, ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
-import type { QuestionType } from '@/features/questions/types/questions.types';
-
 /**
- * Admin Question Edit Page
+ * Edit Question Page (Admin)
  *
- * Transforms between:
- * - Backend Question format: { content, options: {A, B, C, D, E}, correctAnswer, questionType, defaultScore }
- * - QuestionForm format: { content, options: {A, B, C, D, E}, correctAnswer, questionType, imageUrl? }
- *
- * Note: Backend Question does NOT have imageUrl field (removed in alignment)
+ * ✅ AUDIT FIX v3:
+ * - Parse id from string to number
+ * - useUpdateQuestion() takes no arguments
+ * - mutateAsync takes { id, data } object
+ * - Access question from data.question (not data.data)
  */
 
-// Form values expected by QuestionForm component
-interface QuestionFormValues {
-    content: string;
-    options: {
-        A: string;
-        B: string;
-        C: string;
-        D: string;
-        E: string;
-    };
-    correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
-    questionType: QuestionType;
-    imageUrl?: string; // Optional for form, but not in backend Question
+'use client';
+
+import { use, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useQuestion, useUpdateQuestion } from '@/features/questions/hooks';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { Button } from '@/shared/components/ui/button';
+import { Input } from '@/shared/components/ui/input';
+import { Label } from '@/shared/components/ui/label';
+import { Textarea } from '@/shared/components/ui/textarea';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/shared/components/ui/select';
+import { Skeleton } from '@/shared/components/ui/skeleton';
+import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import type { QuestionType, UpdateQuestionRequest } from '@/features/questions/types/questions.types';
+
+interface PageProps {
+    params: Promise<{ id: string }>;
 }
 
-export default function EditQuestionPage() {
-    const params = useParams();
+export default function EditQuestionPage({ params }: PageProps) {
     const router = useRouter();
-    const questionId = params.id as string;
+    const resolvedParams = use(params);
 
-    // Fetch existing question - returns QuestionDetailResponse with nested data
-    const { data: question, isLoading, isError } = useQuestion(questionId);
+    // ✅ FIX: Parse id from string to number
+    const questionId = parseInt(resolvedParams.id, 10);
 
-    // Update mutation
-    const updateMutation = useUpdateQuestion(questionId);
+    // ✅ FIX: useQuestion expects number
+    const { data: questionData, isLoading, isError } = useQuestion(questionId);
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    // ✅ FIX: useUpdateQuestion takes no arguments
+    const updateMutation = useUpdateQuestion();
 
-    /**
-     * Transform QuestionFormValues to backend UpdateQuestionRequest
-     * ⚠️ Backend expects: content, options, correctAnswer, questionType, defaultScore
-     * 🚫 Backend does NOT accept imageUrl
-     */
-    const handleSubmit = async (formData: QuestionFormValues) => {
+    // Form state
+    const [formData, setFormData] = useState({
+        content: '',
+        optionA: '',
+        optionB: '',
+        optionC: '',
+        optionD: '',
+        optionE: '',
+        correctAnswer: 'A' as 'A' | 'B' | 'C' | 'D' | 'E',
+        questionType: 'TIU' as QuestionType,
+        defaultScore: 5,
+    });
+
+    // ✅ FIX: Access question from questionData.question (not questionData.data)
+    const question = questionData?.question;
+
+    // Populate form when question data loads
+    useEffect(() => {
+        if (question) {
+            setFormData({
+                content: question.content,
+                optionA: question.options.A,
+                optionB: question.options.B,
+                optionC: question.options.C,
+                optionD: question.options.D,
+                optionE: question.options.E,
+                correctAnswer: question.correctAnswer,
+                questionType: question.questionType,
+                defaultScore: question.defaultScore,
+            });
+        }
+    }, [question]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        const updateData: UpdateQuestionRequest = {
+            content: formData.content,
+            options: {
+                A: formData.optionA,
+                B: formData.optionB,
+                C: formData.optionC,
+                D: formData.optionD,
+                E: formData.optionE,
+            },
+            correctAnswer: formData.correctAnswer,
+            questionType: formData.questionType,
+            defaultScore: formData.defaultScore,
+        };
+
         try {
-            setIsSubmitting(true);
-
-            // Extract only fields that backend accepts
-            const updateData = {
-                content: formData.content,
-                options: formData.options,
-                correctAnswer: formData.correctAnswer,
-                questionType: formData.questionType,
-                // Note: defaultScore not changed during edit (backend doesn't require it)
-                // imageUrl is ignored - backend Question doesn't have this field
-            };
-
-            await updateMutation.mutateAsync(updateData);
-
-            toast.success('Question updated successfully');
-            router.push('/admin/questions');
-        } catch (error: any) {
+            // ✅ FIX: mutateAsync takes { id, data } object
+            await updateMutation.mutateAsync({
+                id: questionId,
+                data: updateData,
+            });
+            router.push(`/admin/questions/${questionId}`);
+        } catch (error) {
             console.error('Failed to update question:', error);
-            toast.error(error.message || 'Failed to update question');
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
-    // Loading state
     if (isLoading) {
         return (
-            <div className="flex min-h-screen items-center justify-center">
-                <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Loading question...</p>
-                </div>
-            </div>
-        );
-    }
-
-    // Error state
-    if (isError || !question) {
-        return (
-            <div className="container mx-auto py-8">
-                <Card className="p-6">
-                    <div className="text-center">
-                        <h2 className="text-xl font-semibold text-destructive mb-2">
-                            Failed to Load Question
-                        </h2>
-                        <p className="text-muted-foreground mb-4">
-                            The question could not be found or you don't have permission to edit it.
-                        </p>
-                        <Button asChild>
-                            <Link href="/admin/questions">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back to Questions
-                            </Link>
-                        </Button>
-                    </div>
+            <div className="container mx-auto py-8 space-y-6">
+                <Skeleton className="h-8 w-64" />
+                <Card>
+                    <CardContent className="p-6 space-y-4">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-24 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                    </CardContent>
                 </Card>
             </div>
         );
     }
 
-    /**
-     * ✅ FIX: Access question.data because QuestionDetailResponse has nested structure
-     * QuestionDetailResponse: { success: boolean, data: QuestionWithUsage }
-     */
-    const defaultValues: Partial<QuestionFormValues> = {
-        content: question.data.content,
-        options: question.data.options,
-        correctAnswer: question.data.correctAnswer,
-        questionType: question.data.questionType,
-        // imageUrl: undefined (backend Question doesn't have this field)
-    };
+    if (isError || !question) {
+        return (
+            <div className="container mx-auto py-8">
+                <Card>
+                    <CardContent className="p-6 text-center">
+                        <p className="text-destructive">Pertanyaan tidak ditemukan</p>
+                        <Link href="/admin/questions">
+                            <Button variant="outline" className="mt-4">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Kembali
+                            </Button>
+                        </Link>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     return (
-        <div className="container mx-auto py-8">
-            <div className="mb-6 flex items-center justify-between">
+        <div className="container mx-auto py-8 space-y-6">
+            {/* Header */}
+            <div className="flex items-center gap-4">
+                <Link href={`/admin/questions/${questionId}`}>
+                    <Button variant="ghost" size="icon">
+                        <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                </Link>
                 <div>
-                    <h1 className="text-3xl font-bold">Edit Question</h1>
-                    <p className="text-muted-foreground">
-                        Update question details
-                    </p>
+                    <h1 className="text-2xl font-bold">Edit Pertanyaan</h1>
+                    <p className="text-muted-foreground">ID: {questionId}</p>
                 </div>
-                <Button variant="outline" asChild>
-                    <Link href="/admin/questions">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Questions
-                    </Link>
-                </Button>
             </div>
 
-            <Card className="p-6">
-                <QuestionForm
-                    defaultValues={defaultValues}
-                    onSubmit={handleSubmit}
-                    isSubmitting={isSubmitting}
-                    submitLabel="Update Question"
-                />
+            {/* Form */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Detail Pertanyaan</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Question Type & Score */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="questionType">Tipe Pertanyaan</Label>
+                                <Select
+                                    value={formData.questionType}
+                                    onValueChange={(value: QuestionType) =>
+                                        setFormData({ ...formData, questionType: value })
+                                    }
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="TIU">TIU - Tes Intelegensia Umum</SelectItem>
+                                        <SelectItem value="TWK">TWK - Tes Wawasan Kebangsaan</SelectItem>
+                                        <SelectItem value="TKP">TKP - Tes Karakteristik Pribadi</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="defaultScore">Skor Default</Label>
+                                <Input
+                                    id="defaultScore"
+                                    type="number"
+                                    min={1}
+                                    value={formData.defaultScore}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, defaultScore: parseInt(e.target.value) || 1 })
+                                    }
+                                />
+                            </div>
+                        </div>
+
+                        {/* Question Content */}
+                        <div className="space-y-2">
+                            <Label htmlFor="content">Pertanyaan</Label>
+                            <Textarea
+                                id="content"
+                                rows={4}
+                                value={formData.content}
+                                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                                placeholder="Masukkan pertanyaan..."
+                                required
+                            />
+                        </div>
+
+                        {/* Options */}
+                        <div className="space-y-4">
+                            <Label>Pilihan Jawaban</Label>
+                            {(['A', 'B', 'C', 'D', 'E'] as const).map((option) => (
+                                <div key={option} className="flex items-center gap-3">
+                                    <span className="font-medium w-8">{option}.</span>
+                                    <Input
+                                        value={formData[`option${option}` as keyof typeof formData] as string}
+                                        onChange={(e) =>
+                                            setFormData({
+                                                ...formData,
+                                                [`option${option}`]: e.target.value,
+                                            })
+                                        }
+                                        placeholder={`Pilihan ${option}`}
+                                        required
+                                    />
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Correct Answer */}
+                        <div className="space-y-2">
+                            <Label htmlFor="correctAnswer">Jawaban Benar</Label>
+                            <Select
+                                value={formData.correctAnswer}
+                                onValueChange={(value: 'A' | 'B' | 'C' | 'D' | 'E') =>
+                                    setFormData({ ...formData, correctAnswer: value })
+                                }
+                            >
+                                <SelectTrigger className="w-32">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="A">A</SelectItem>
+                                    <SelectItem value="B">B</SelectItem>
+                                    <SelectItem value="C">C</SelectItem>
+                                    <SelectItem value="D">D</SelectItem>
+                                    <SelectItem value="E">E</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Submit */}
+                        <div className="flex justify-end gap-3">
+                            <Link href={`/admin/questions/${questionId}`}>
+                                <Button type="button" variant="outline">
+                                    Batal
+                                </Button>
+                            </Link>
+                            <Button type="submit" disabled={updateMutation.isPending}>
+                                {updateMutation.isPending ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Menyimpan...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="mr-2 h-4 w-4" />
+                                        Simpan
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    </form>
+                </CardContent>
             </Card>
         </div>
     );

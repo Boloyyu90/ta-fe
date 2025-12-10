@@ -3,7 +3,9 @@
 /**
  * Hook to update an existing question
  *
- * ✅ AUDIT FIX: id is number, not string
+ * ✅ AUDIT FIX v3:
+ * - Hook takes no arguments
+ * - mutate/mutateAsync take { id, data } object
  *
  * Backend: PATCH /api/v1/admin/questions/:id
  */
@@ -12,7 +14,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { questionsApi } from '../api/questions.api';
 import type { UpdateQuestionRequest, UpdateQuestionResponse } from '../types/questions.types';
 
-interface UpdateQuestionVariables {
+export interface UpdateQuestionVariables {
     id: number;
     data: UpdateQuestionRequest;
 }

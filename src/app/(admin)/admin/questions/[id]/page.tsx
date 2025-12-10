@@ -1,268 +1,212 @@
+// src/app/(admin)/admin/questions/[id]/page.tsx
+
+/**
+ * Question Detail Page (Admin)
+ *
+ * ✅ AUDIT FIX v3:
+ * - Parse id from string to number
+ * - Access question from data.question (not data.data)
+ */
+
 'use client';
 
 import { use } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Loader2, AlertCircle, Edit, BookOpen } from 'lucide-react';
-import { Button } from '@/shared/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { useRouter } from 'next/navigation';
+import { useQuestion, useDeleteQuestion } from '@/features/questions/hooks';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
-import { useQuestion } from '@/features/questions/hooks';
+import { Button } from '@/shared/components/ui/button';
+import { Skeleton } from '@/shared/components/ui/skeleton';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/shared/components/ui/alert-dialog';
+import { ArrowLeft, Edit, Trash2, CheckCircle } from 'lucide-react';
+import Link from 'next/link';
 
 interface PageProps {
     params: Promise<{ id: string }>;
 }
 
 export default function QuestionDetailPage({ params }: PageProps) {
-    const { id } = use(params);
+    const router = useRouter();
+    const resolvedParams = use(params);
+
+    // ✅ FIX: Parse id from string to number
+    const id = parseInt(resolvedParams.id, 10);
+
     const { data, isLoading, error } = useQuestion(id);
+    const deleteMutation = useDeleteQuestion();
 
-    const question = data?.data;
+    // ✅ FIX: Access question from data.question (not data.data)
+    const question = data?.question;
 
-    // Loading state
+    const handleDelete = async () => {
+        try {
+            await deleteMutation.mutateAsync(id);
+            router.push('/admin/questions');
+        } catch (error) {
+            console.error('Failed to delete question:', error);
+        }
+    };
+
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Loading question...</p>
-                </div>
+            <div className="container mx-auto py-8 space-y-6">
+                <Skeleton className="h-8 w-64" />
+                <Card>
+                    <CardContent className="p-6 space-y-4">
+                        <Skeleton className="h-6 w-full" />
+                        <Skeleton className="h-24 w-full" />
+                        <Skeleton className="h-32 w-full" />
+                    </CardContent>
+                </Card>
             </div>
         );
     }
 
-    // Error state
     if (error || !question) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center space-y-4">
-                    <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
-                    <h2 className="text-2xl font-bold text-foreground">Question Not Found</h2>
-                    <p className="text-muted-foreground">
-                        The question you're looking for doesn't exist or has been deleted.
-                    </p>
-                    <Link href="/admin/questions">
-                        <Button>Back to Questions</Button>
-                    </Link>
-                </div>
+            <div className="container mx-auto py-8">
+                <Card>
+                    <CardContent className="p-6 text-center">
+                        <p className="text-destructive">
+                            {error?.message || 'Pertanyaan tidak ditemukan'}
+                        </p>
+                        <Link href="/admin/questions">
+                            <Button variant="outline" className="mt-4">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Kembali
+                            </Button>
+                        </Link>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
 
+    const questionTypeLabels = {
+        TIU: 'Tes Intelegensia Umum',
+        TWK: 'Tes Wawasan Kebangsaan',
+        TKP: 'Tes Karakteristik Pribadi',
+    };
+
     return (
-        <div className="min-h-screen bg-muted/30">
+        <div className="container mx-auto py-8 space-y-6">
             {/* Header */}
-            <div className="bg-background border-b border-border">
-                <div className="container mx-auto px-4 py-6">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
                     <Link href="/admin/questions">
-                        <Button variant="ghost" className="mb-4">
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back to Questions
+                        <Button variant="ghost" size="icon">
+                            <ArrowLeft className="h-5 w-5" />
                         </Button>
                     </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold">Detail Pertanyaan</h1>
+                        <p className="text-muted-foreground">ID: {question.id}</p>
+                    </div>
+                </div>
+                <div className="flex gap-2">
+                    <Link href={`/admin/questions/${question.id}/edit`}>
+                        <Button variant="outline">
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                        </Button>
+                    </Link>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Hapus
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Hapus Pertanyaan?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Tindakan ini tidak dapat dibatalkan. Pertanyaan akan dihapus secara permanen.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Batal</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={handleDelete}
+                                    className="bg-destructive text-destructive-foreground"
+                                >
+                                    Hapus
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className="container mx-auto px-4 py-8 max-w-4xl">
-                {/* Question Header */}
-                <Card className="mb-6">
-                    <CardHeader>
-                        <div className="flex items-start justify-between">
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                    <Badge variant="outline">{question.questionType}</Badge>
-                                    <Badge variant="secondary">{question.defaultScore} points</Badge>
+            {/* Content */}
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-2">
+                        <Badge>{question.questionType}</Badge>
+                        <Badge variant="outline">{question.defaultScore} poin</Badge>
+                        <span className="text-sm text-muted-foreground">
+                            {questionTypeLabels[question.questionType]}
+                        </span>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {/* Question Content */}
+                    <div>
+                        <h3 className="font-medium mb-2">Pertanyaan</h3>
+                        <p className="p-4 bg-muted rounded-lg">{question.content}</p>
+                    </div>
+
+                    {/* Options */}
+                    <div>
+                        <h3 className="font-medium mb-2">Pilihan Jawaban</h3>
+                        <div className="space-y-2">
+                            {Object.entries(question.options).map(([key, value]) => (
+                                <div
+                                    key={key}
+                                    className={`flex items-center gap-3 p-3 rounded-lg border ${
+                                        key === question.correctAnswer
+                                            ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'
+                                            : 'bg-background'
+                                    }`}
+                                >
+                                    <span className="font-medium w-8">{key}.</span>
+                                    <span className="flex-1">{value}</span>
+                                    {key === question.correctAnswer && (
+                                        <CheckCircle className="h-5 w-5 text-green-600" />
+                                    )}
                                 </div>
-                                <CardTitle className="text-2xl">Question Details</CardTitle>
-                                <CardDescription>
-                                    Review question information and answer options
-                                </CardDescription>
-                            </div>
-                            <div className="flex gap-2">
-                                <Link href={`/admin/questions/${id}/edit`}>
-                                    <Button variant="outline" size="sm">
-                                        <Edit className="h-4 w-4 mr-2" />
-                                        Edit
-                                    </Button>
-                                </Link>
-                            </div>
+                            ))}
                         </div>
-                    </CardHeader>
-                </Card>
+                    </div>
 
-                {/* Question Content */}
-                <Card className="mb-6">
-                    <CardHeader>
-                        <CardTitle className="text-lg">Question</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-foreground whitespace-pre-wrap">{question.content}</p>
-                    </CardContent>
-                </Card>
+                    {/* Correct Answer */}
+                    <div>
+                        <h3 className="font-medium mb-2">Jawaban Benar</h3>
+                        <Badge variant="default" className="text-lg px-4 py-2">
+                            {question.correctAnswer}
+                        </Badge>
+                    </div>
 
-                {/* Answer Options */}
-                <Card className="mb-6">
-                    <CardHeader>
-                        <CardTitle className="text-lg">Answer Options</CardTitle>
-                        <CardDescription>
-                            Correct answer: <strong className="text-green-600">Option {question.correctAnswer}</strong>
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-3">
-                            {/* Option A */}
-                            <div
-                                className={`p-4 rounded-lg border ${
-                                    question.correctAnswer === 'A'
-                                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20'
-                                        : 'border-border'
-                                }`}
-                            >
-                                <div className="flex items-start gap-3">
-                                    <div
-                                        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-                                            question.correctAnswer === 'A'
-                                                ? 'bg-green-500 text-white'
-                                                : 'bg-muted text-muted-foreground'
-                                        }`}
-                                    >
-                                        A
-                                    </div>
-                                    <p className="flex-1 text-sm">{question.options.A}</p>
-                                </div>
-                            </div>
-
-                            {/* Option B */}
-                            <div
-                                className={`p-4 rounded-lg border ${
-                                    question.correctAnswer === 'B'
-                                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20'
-                                        : 'border-border'
-                                }`}
-                            >
-                                <div className="flex items-start gap-3">
-                                    <div
-                                        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-                                            question.correctAnswer === 'B'
-                                                ? 'bg-green-500 text-white'
-                                                : 'bg-muted text-muted-foreground'
-                                        }`}
-                                    >
-                                        B
-                                    </div>
-                                    <p className="flex-1 text-sm">{question.options.B}</p>
-                                </div>
-                            </div>
-
-                            {/* Option C */}
-                            <div
-                                className={`p-4 rounded-lg border ${
-                                    question.correctAnswer === 'C'
-                                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20'
-                                        : 'border-border'
-                                }`}
-                            >
-                                <div className="flex items-start gap-3">
-                                    <div
-                                        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-                                            question.correctAnswer === 'C'
-                                                ? 'bg-green-500 text-white'
-                                                : 'bg-muted text-muted-foreground'
-                                        }`}
-                                    >
-                                        C
-                                    </div>
-                                    <p className="flex-1 text-sm">{question.options.C}</p>
-                                </div>
-                            </div>
-
-                            {/* Option D */}
-                            <div
-                                className={`p-4 rounded-lg border ${
-                                    question.correctAnswer === 'D'
-                                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20'
-                                        : 'border-border'
-                                }`}
-                            >
-                                <div className="flex items-start gap-3">
-                                    <div
-                                        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-                                            question.correctAnswer === 'D'
-                                                ? 'bg-green-500 text-white'
-                                                : 'bg-muted text-muted-foreground'
-                                        }`}
-                                    >
-                                        D
-                                    </div>
-                                    <p className="flex-1 text-sm">{question.options.D}</p>
-                                </div>
-                            </div>
-
-                            {/* Option E */}
-                            <div
-                                className={`p-4 rounded-lg border ${
-                                    question.correctAnswer === 'E'
-                                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20'
-                                        : 'border-border'
-                                }`}
-                            >
-                                <div className="flex items-start gap-3">
-                                    <div
-                                        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-                                            question.correctAnswer === 'E'
-                                                ? 'bg-green-500 text-white'
-                                                : 'bg-muted text-muted-foreground'
-                                        }`}
-                                    >
-                                        E
-                                    </div>
-                                    <p className="flex-1 text-sm">{question.options.E}</p>
-                                </div>
-                            </div>
+                    {/* Usage Info */}
+                    {question._count && (
+                        <div className="pt-4 border-t">
+                            <p className="text-sm text-muted-foreground">
+                                Digunakan di {question._count.examQuestions} ujian
+                            </p>
                         </div>
-                    </CardContent>
-                </Card>
-
-                {/* Usage Information */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                            <BookOpen className="h-5 w-5" />
-                            Usage Information
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Question ID:</span>
-                                <span className="font-mono">{question.id}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Question Type:</span>
-                                <Badge variant="outline">{question.questionType}</Badge>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Default Score:</span>
-                                <span className="font-semibold">{question.defaultScore} points</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Used in Exams:</span>
-                                <span className="font-semibold">
-                                    {question._count?.examQuestions || 0} exam(s)
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Created:</span>
-                                <span>{new Date(question.createdAt).toLocaleDateString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Last Updated:</span>
-                                <span>{new Date(question.updatedAt).toLocaleDateString()}</span>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     );
 }

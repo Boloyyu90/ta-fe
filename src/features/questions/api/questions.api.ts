@@ -3,10 +3,9 @@
 /**
  * Questions API Client
  *
- * ✅ AUDIT FIX v2:
- * - Consistent response unwrapping (returns inner data, not ApiResponse)
- * - Fixed id parameter type from string to number
- * - All functions return the unwrapped data for React Query hooks
+ * ✅ AUDIT FIX v3:
+ * - Fixed response unwrapping: use `response.data` (interceptor already unwraps AxiosResponse)
+ * - Fixed id parameter type to number
  *
  * Backend: /api/v1/admin/questions/*
  */
@@ -54,8 +53,9 @@ export const getQuestions = async (
         `/admin/questions?${queryParams.toString()}`
     );
 
-    // Unwrap ApiResponse to get inner data
-    return response.data.data;
+    // response is ApiResponse<QuestionsListResponse> (interceptor unwraps AxiosResponse)
+    // response.data is QuestionsListResponse
+    return response.data;
 };
 
 /**
@@ -68,7 +68,7 @@ export const getQuestion = async (id: number): Promise<QuestionDetailResponse> =
     const response = await apiClient.get<ApiResponse<QuestionDetailResponse>>(
         `/admin/questions/${id}`
     );
-    return response.data.data;
+    return response.data;
 };
 
 /**
@@ -82,7 +82,7 @@ export const createQuestion = async (
         '/admin/questions',
         data
     );
-    return response.data.data;
+    return response.data;
 };
 
 /**
@@ -99,7 +99,7 @@ export const updateQuestion = async (
         `/admin/questions/${id}`,
         data
     );
-    return response.data.data;
+    return response.data;
 };
 
 /**
@@ -112,7 +112,7 @@ export const deleteQuestion = async (id: number): Promise<DeleteQuestionResponse
     const response = await apiClient.delete<ApiResponse<DeleteQuestionResponse>>(
         `/admin/questions/${id}`
     );
-    return response.data.data;
+    return response.data;
 };
 
 // ============================================================================

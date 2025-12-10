@@ -1,60 +1,75 @@
 // src/features/proctoring/components/ViolationAlert.tsx
+
+/**
+ * Violation Alert Component
+ *
+ * ✅ AUDIT FIX v3: Import Violation from proctoring types (now properly exported)
+ */
+
 'use client';
 
-import { AlertTriangle, X } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/shared/components/ui/alert';
-import { Button } from '@/shared/components/ui/button';
-import type { Violation } from '../types/proctoring.types';
+import { Badge } from '@/shared/components/ui/badge';
+import { AlertTriangle, AlertCircle, XCircle } from 'lucide-react';
+import type { Violation, ViolationSeverity } from '../types/proctoring.types';
 
-interface ViolationAlertProps {
-    violations: Violation[];
-    warningLevel: number;
+export interface ViolationAlertProps {
+    violation: Violation;
     onDismiss?: () => void;
 }
 
-export function ViolationAlert({ violations, warningLevel, onDismiss }: ViolationAlertProps) {
-    if (violations.length === 0) return null;
+const severityConfig: Record<ViolationSeverity, {
+    variant: 'default' | 'destructive';
+    icon: typeof AlertTriangle;
+    label: string;
+}> = {
+    LOW: {
+        variant: 'default',
+        icon: AlertCircle,
+        label: 'Peringatan Ringan',
+    },
+    MEDIUM: {
+        variant: 'default',
+        icon: AlertTriangle,
+        label: 'Peringatan',
+    },
+    HIGH: {
+        variant: 'destructive',
+        icon: XCircle,
+        label: 'Pelanggaran Serius',
+    },
+};
 
-    const highViolations = violations.filter((v) => v.severity === 'HIGH');
-    const showAlert = highViolations.length > 0;
-
-    if (!showAlert) return null;
+export function ViolationAlert({ violation, onDismiss }: ViolationAlertProps) {
+    const config = severityConfig[violation.severity];
+    const Icon = config.icon;
 
     return (
-        <Alert
-            variant="destructive"
-            className="fixed top-20 left-1/2 -translate-x-1/2 w-full max-w-md z-50 animate-slide-in-bottom shadow-lg"
-        >
-            <AlertTriangle className="h-5 w-5" />
-            <AlertTitle className="flex items-center justify-between">
-                <span>⚠️ Warning {warningLevel}/3</span>
-                {onDismiss && (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={onDismiss}
-                    >
-                        <X className="h-4 w-4" />
-                    </Button>
-                )}
+        <Alert variant={config.variant} className="relative">
+            <Icon className="h-4 w-4" />
+            <AlertTitle className="flex items-center gap-2">
+                {config.label}
+                <Badge variant="outline" className="text-xs">
+                    {violation.type}
+                </Badge>
             </AlertTitle>
-            <AlertDescription className="space-y-2">
-                {highViolations.map((violation, index) => (
-                    <div key={index} className="text-sm">
-                        • {violation.message}
-                    </div>
-                ))}
-                {warningLevel >= 3 ? (
-                    <div className="mt-2 text-sm font-semibold">
-                        ❌ Your exam will be cancelled!
-                    </div>
-                ) : (
-                    <div className="mt-2 text-sm">
-                        Warning {warningLevel} of 3 - Keep your face visible and forward.
-                    </div>
+            <AlertDescription>
+                {violation.message}
+                {violation.details && (
+                    <p className="mt-1 text-xs opacity-80">{violation.details}</p>
                 )}
             </AlertDescription>
+            {onDismiss && (
+                <button
+                    onClick={onDismiss}
+                    className="absolute top-2 right-2 p-1 hover:bg-accent rounded"
+                    aria-label="Dismiss"
+                >
+                    <XCircle className="h-4 w-4" />
+                </button>
+            )}
         </Alert>
     );
 }
+
+export default ViolationAlert;

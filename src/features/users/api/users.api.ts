@@ -3,9 +3,8 @@
 /**
  * Users API Client
  *
- * ✅ AUDIT FIX v2:
- * - Consistent response unwrapping pattern
- * - All functions return the unwrapped data
+ * ✅ AUDIT FIX v3:
+ * - Fixed response unwrapping: use `response.data` (interceptor already unwraps AxiosResponse)
  *
  * Backend endpoints:
  * - Participant: /api/v1/me
@@ -38,7 +37,9 @@ import type {
  */
 export const getProfile = async (): Promise<ProfileResponse> => {
     const response = await apiClient.get<ApiResponse<ProfileResponse>>('/me');
-    return response.data.data;
+    // response is ApiResponse<ProfileResponse> (interceptor unwraps AxiosResponse)
+    // response.data is ProfileResponse
+    return response.data;
 };
 
 /**
@@ -49,7 +50,7 @@ export const updateProfile = async (
     data: UpdateProfileRequest
 ): Promise<UpdateProfileResponse> => {
     const response = await apiClient.patch<ApiResponse<UpdateProfileResponse>>('/me', data);
-    return response.data.data;
+    return response.data;
 };
 
 // ============================================================================
@@ -67,7 +68,7 @@ export const createUser = async (
         '/admin/users',
         data
     );
-    return response.data.data;
+    return response.data;
 };
 
 /**
@@ -92,7 +93,7 @@ export const getUsers = async (
     const response = await apiClient.get<ApiResponse<UsersListResponse>>(
         `/admin/users?${queryParams.toString()}`
     );
-    return response.data.data;
+    return response.data;
 };
 
 /**
@@ -103,7 +104,7 @@ export const getUser = async (userId: number): Promise<UserDetailResponse> => {
     const response = await apiClient.get<ApiResponse<UserDetailResponse>>(
         `/admin/users/${userId}`
     );
-    return response.data.data;
+    return response.data;
 };
 
 /**
@@ -118,7 +119,7 @@ export const updateUser = async (
         `/admin/users/${userId}`,
         data
     );
-    return response.data.data;
+    return response.data;
 };
 
 /**
@@ -129,7 +130,7 @@ export const deleteUser = async (userId: number): Promise<DeleteUserResponse> =>
     const response = await apiClient.delete<ApiResponse<DeleteUserResponse>>(
         `/admin/users/${userId}`
     );
-    return response.data.data;
+    return response.data;
 };
 
 // ============================================================================

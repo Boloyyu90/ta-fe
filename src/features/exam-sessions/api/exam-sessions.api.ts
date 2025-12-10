@@ -3,10 +3,9 @@
 /**
  * Exam Sessions API Client
  *
- * ✅ AUDIT FIX v2:
- * - Fixed getMyResults to use /results endpoint (was /exam-sessions/my-results)
- * - Consistent response unwrapping pattern
- * - All endpoints return the inner data (not ApiResponse wrapper)
+ * ✅ AUDIT FIX v3:
+ * - Fixed response unwrapping: use `response.data` (interceptor already unwraps AxiosResponse)
+ * - All endpoints return the inner data structure
  *
  * Backend endpoints:
  * - GET /api/v1/exam-sessions (user's sessions)
@@ -15,7 +14,7 @@
  * - POST /api/v1/exam-sessions/:id/answers (submit answer)
  * - POST /api/v1/exam-sessions/:id/submit (finish exam)
  * - GET /api/v1/exam-sessions/:id/answers (review answers)
- * - GET /api/v1/results (user's completed results) ← Note: different base path!
+ * - GET /api/v1/results (user's completed results)
  */
 
 import { apiClient } from '@/shared/lib/api';
@@ -31,7 +30,6 @@ import type {
     SubmitExamResponse,
     ExamAnswersResponse,
     MyResultsResponse,
-    UserExam,
 } from '../types/exam-sessions.types';
 
 /**
@@ -46,8 +44,9 @@ export const getUserExams = async (
             '/exam-sessions',
             { params }
         );
-        // Unwrap ApiResponse to get inner data
-        return response.data.data;
+        // response is ApiResponse<ExamSessionsListResponse> (interceptor unwraps AxiosResponse)
+        // response.data is ExamSessionsListResponse
+        return response.data;
     } catch (error) {
         console.error('Error fetching user exams:', error);
         throw error;
@@ -63,7 +62,7 @@ export const getExamSession = async (sessionId: number): Promise<ExamSessionDeta
         const response = await apiClient.get<ApiResponse<ExamSessionDetailResponse>>(
             `/exam-sessions/${sessionId}`
         );
-        return response.data.data;
+        return response.data;
     } catch (error) {
         console.error('Error fetching exam session:', error);
         throw error;
@@ -79,7 +78,7 @@ export const getExamQuestions = async (sessionId: number): Promise<ExamQuestions
         const response = await apiClient.get<ApiResponse<ExamQuestionsResponse>>(
             `/exam-sessions/${sessionId}/questions`
         );
-        return response.data.data;
+        return response.data;
     } catch (error) {
         console.error('Error fetching exam questions:', error);
         throw error;
@@ -101,7 +100,7 @@ export const submitAnswer = async (
             `/exam-sessions/${sessionId}/answers`,
             data
         );
-        return response.data.data;
+        return response.data;
     } catch (error) {
         console.error('Error submitting answer:', error);
         throw error;
@@ -117,7 +116,7 @@ export const submitExam = async (sessionId: number): Promise<SubmitExamResponse>
         const response = await apiClient.post<ApiResponse<SubmitExamResponse>>(
             `/exam-sessions/${sessionId}/submit`
         );
-        return response.data.data;
+        return response.data;
     } catch (error) {
         console.error('Error submitting exam:', error);
         throw error;
@@ -133,7 +132,7 @@ export const getExamAnswers = async (sessionId: number): Promise<ExamAnswersResp
         const response = await apiClient.get<ApiResponse<ExamAnswersResponse>>(
             `/exam-sessions/${sessionId}/answers`
         );
-        return response.data.data;
+        return response.data;
     } catch (error) {
         console.error('Error fetching exam answers:', error);
         throw error;
@@ -143,7 +142,7 @@ export const getExamAnswers = async (sessionId: number): Promise<ExamAnswersResp
 /**
  * Get user's completed exam results
  *
- * ⚠️ CRITICAL FIX: This uses /results, NOT /exam-sessions/my-results
+ * ⚠️ CRITICAL: This uses /results, NOT /exam-sessions/my-results
  * GET /api/v1/results
  */
 export const getMyResults = async (
@@ -151,10 +150,10 @@ export const getMyResults = async (
 ): Promise<MyResultsResponse> => {
     try {
         const response = await apiClient.get<ApiResponse<MyResultsResponse>>(
-            '/results', // ✅ FIXED: Was '/exam-sessions/my-results'
+            '/results',
             { params }
         );
-        return response.data.data;
+        return response.data;
     } catch (error) {
         console.error('Error fetching results:', error);
         throw error;

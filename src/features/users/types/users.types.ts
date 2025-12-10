@@ -3,9 +3,9 @@
 /**
  * User Types
  *
- * ✅ AUDIT FIX v2:
+ * ✅ AUDIT FIX v3:
+ * - All response types are the inner data (what ApiResponse.data contains)
  * - Uses shared PaginationMeta
- * - Matches backend response structure exactly
  *
  * Backend endpoints:
  * - Participant: /api/v1/me
@@ -33,8 +33,8 @@ export interface User {
     name: string;
     role: UserRole;
     isEmailVerified: boolean;
-    createdAt: string; // ISO datetime
-    updatedAt: string; // ISO datetime
+    createdAt: string;
+    updatedAt: string;
 }
 
 /**
@@ -42,8 +42,8 @@ export interface User {
  */
 export interface UserWithCounts extends User {
     _count: {
-        createdExams: number; // Exams created by this user (admin)
-        userExams: number; // Exam attempts by this user
+        createdExams: number;
+        userExams: number;
     };
 }
 
@@ -73,6 +73,7 @@ export interface UpdateProfileRequest {
 
 // ============================================================================
 // API RESPONSE TYPES
+// These are the shapes inside ApiResponse.data
 // ============================================================================
 
 /**

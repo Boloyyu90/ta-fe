@@ -3,7 +3,9 @@
 /**
  * Hook to fetch single question detail
  *
- * ✅ AUDIT FIX: id is number, not string
+ * ✅ AUDIT FIX v3:
+ * - id is number, not string
+ * - Returns QuestionDetailResponse which has { question: QuestionWithUsage }
  *
  * Backend: GET /api/v1/admin/questions/:id
  */

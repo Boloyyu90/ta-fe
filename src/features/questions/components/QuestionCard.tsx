@@ -1,88 +1,179 @@
 // src/features/questions/components/QuestionCard.tsx
+
+/**
+ * Question Card Component
+ *
+ * ✅ AUDIT FIX v3: onDelete now expects number ID, not string
+ */
+
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { Edit, Trash2, Eye } from 'lucide-react';
-import { Card, CardContent } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
-import type { QuestionWithUsage } from '../types/questions.types';
+import { Button } from '@/shared/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/shared/components/ui/dropdown-menu';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/shared/components/ui/alert-dialog';
+import { MoreVertical, Edit, Trash2, Eye, FileText } from 'lucide-react';
+import type { QuestionWithUsage, QuestionType } from '../types/questions.types';
 
-interface QuestionCardProps {
+export interface QuestionCardProps {
     question: QuestionWithUsage;
-    onDelete?: (id: string) => void;
+    onEdit?: (id: number) => void;
+    onDelete?: (id: number) => void;
+    onView?: (id: number) => void;
+    isDeleting?: boolean;
 }
 
-export function QuestionCard({ question, onDelete }: QuestionCardProps) {
-    const typeColors = {
-        TIU: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
-        TWK: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
-        TKP: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-400',
+const questionTypeConfig: Record<QuestionType, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
+    TIU: { label: 'TIU', variant: 'default' },
+    TWK: { label: 'TWK', variant: 'secondary' },
+    TKP: { label: 'TKP', variant: 'outline' },
+};
+
+export function QuestionCard({ question, onEdit, onDelete, onView, isDeleting }: QuestionCardProps) {
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+    const typeConfig = questionTypeConfig[question.questionType];
+    const usageCount = question._count?.examQuestions ?? 0;
+
+    const handleDelete = () => {
+        if (onDelete) {
+            // ✅ FIX: question.id is already number
+            onDelete(question.id);
+        }
+        setShowDeleteDialog(false);
     };
 
-    const usageCount = question._count?.examQuestions || 0;
-
     return (
-        <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Badge className={typeColors[question.questionType]}>
-                                {question.questionType}
-                            </Badge>
-                            <Badge variant="outline">{question.defaultScore} pts</Badge>
+        <>
+            <Card className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                        <div className="space-y-1 flex-1">
+                            <div className="flex items-center gap-2">
+                                <Badge variant={typeConfig.variant}>
+                                    {typeConfig.label}
+                                </Badge>
+                                <Badge variant="outline">
+                                    {question.defaultScore} poin
+                                </Badge>
+                            </div>
+                            <CardTitle className="text-base line-clamp-2 mt-2">
+                                {question.content}
+                            </CardTitle>
                         </div>
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreVertical className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                {onView && (
+                                    <DropdownMenuItem onClick={() => onView(question.id)}>
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        Lihat Detail
+                                    </DropdownMenuItem>
+                                )}
+                                {onEdit && (
+                                    <DropdownMenuItem onClick={() => onEdit(question.id)}>
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Edit
+                                    </DropdownMenuItem>
+                                )}
+                                {onDelete && (
+                                    <DropdownMenuItem
+                                        onClick={() => setShowDeleteDialog(true)}
+                                        className="text-destructive focus:text-destructive"
+                                        disabled={usageCount > 0}
+                                    >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Hapus
+                                    </DropdownMenuItem>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </CardHeader>
+
+                <CardContent className="space-y-3">
+                    {/* Options Preview */}
+                    <div className="grid grid-cols-1 gap-1 text-sm">
+                        {Object.entries(question.options).slice(0, 3).map(([key, value]) => (
+                            <div
+                                key={key}
+                                className={`flex items-start gap-2 p-2 rounded ${
+                                    key === question.correctAnswer
+                                        ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                                        : 'bg-muted'
+                                }`}
+                            >
+                                <span className="font-medium">{key}.</span>
+                                <span className="line-clamp-1">{value}</span>
+                            </div>
+                        ))}
+                        {Object.keys(question.options).length > 3 && (
+                            <div className="text-muted-foreground text-center py-1">
+                                +{Object.keys(question.options).length - 3} opsi lainnya
+                            </div>
+                        )}
                     </div>
 
-                    {usageCount > 0 && (
-                        <Badge variant="secondary" className="ml-2">
-                            {usageCount} exam{usageCount > 1 ? 's' : ''}
-                        </Badge>
-                    )}
-                </div>
+                    {/* Footer Info */}
+                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
+                        <div className="flex items-center gap-1">
+                            <FileText className="h-3 w-3" />
+                            <span>
+                                Digunakan di {usageCount} ujian
+                            </span>
+                        </div>
+                        <span>
+                            Jawaban: {question.correctAnswer}
+                        </span>
+                    </div>
+                </CardContent>
+            </Card>
 
-                {/* Question Preview */}
-                <p className="text-sm text-foreground line-clamp-3 mb-4 leading-relaxed">
-                    {question.content}
-                </p>
-
-                {/* Metadata */}
-                <div className="text-xs text-muted-foreground mb-4">
-                    Created: {new Date(question.createdAt).toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                })}
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                    <Link href={`/admin/questions/${question.id}`} className="flex-1">
-                        <Button variant="outline" size="sm" className="w-full">
-                            <Eye className="h-4 w-4 mr-2" />
-                            View
-                        </Button>
-                    </Link>
-                    <Link href={`/admin/questions/${question.id}/edit`} className="flex-1">
-                        <Button variant="outline" size="sm" className="w-full">
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                        </Button>
-                    </Link>
-                    {onDelete && (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onDelete(question.id)}
-                            className="text-red-600 hover:text-red-700"
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Hapus Pertanyaan?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tindakan ini tidak dapat dibatalkan. Pertanyaan akan dihapus secara permanen.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                    )}
-                </div>
-            </CardContent>
-        </Card>
+                            {isDeleting ? 'Menghapus...' : 'Hapus'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 }
+
+export default QuestionCard;

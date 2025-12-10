@@ -3,7 +3,7 @@
 /**
  * Hook to delete a question
  *
- * ✅ AUDIT FIX: id is number, not string
+ * ✅ AUDIT FIX v3: id is number, not string
  *
  * Backend: DELETE /api/v1/admin/questions/:id
  */

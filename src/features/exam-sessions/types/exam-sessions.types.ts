@@ -6,10 +6,7 @@
  * ⚠️ CRITICAL: Backend uses `selectedOption` NOT `selectedAnswer`
  * See Backend API Contract page 22
  *
- * ✅ AUDIT FIX v2: Corrected all types to match backend contract exactly
- * - Fixed PaginationMeta structure
- * - Fixed ExamResult to be standalone (not extend UserExam)
- * - Fixed API endpoint awareness in comments
+ * ✅ AUDIT FIX v3: Fixed all response types and added missing fields
  *
  * DISTINCTIONS:
  * 1. ExamStatus: Status of exam definition (DRAFT, PUBLISHED, ARCHIVED)
@@ -78,7 +75,7 @@ export type ParticipantQuestion = ExamQuestion;
 // ============================================================================
 
 /**
- * Exam entity as used within UserExam
+ * Full Exam entity as used within UserExam
  */
 export interface Exam {
     id: number;
@@ -92,15 +89,22 @@ export interface Exam {
     endTime?: string | null;
     createdAt: string;
     updatedAt: string;
+    _count?: {
+        examQuestions: number;
+        userExams: number;
+    };
 }
 
 /**
  * Minimal exam info in result responses
+ * ✅ FIX: Added passingScore field used by dashboard
  */
 export interface ExamSummary {
     id: number;
     title: string;
     description: string | null;
+    passingScore?: number;
+    durationMinutes?: number;
 }
 
 // ============================================================================
@@ -143,7 +147,7 @@ export interface UserExam {
  * ✅ Matches backend API contract page 23-24
  */
 export interface ScoreByType {
-    type: QuestionType; // 'TIU' | 'TWK' | 'TKP'
+    type: QuestionType;
     score: number;
     maxScore: number;
     correctAnswers: number;
@@ -162,10 +166,7 @@ export interface ResultUserInfo {
 /**
  * ExamResult - Result object returned by /results endpoint
  *
- * ⚠️ CRITICAL: This is NOT the same as UserExam!
- * The backend returns a different shape for results.
- *
- * Backend source: GET /api/v1/results
+ * ✅ FIX: exam now includes passingScore for UI calculations
  */
 export interface ExamResult {
     id: number;
@@ -175,10 +176,22 @@ export interface ExamResult {
     submittedAt: string | null;
     totalScore: number | null;
     status: UserExamStatus;
-    duration: number | null; // in seconds
+    duration: number | null;
     answeredQuestions: number;
     totalQuestions: number;
-    scoresByType: ScoreByType[]; // May be empty array
+    scoresByType: ScoreByType[];
+}
+
+/**
+ * ResultDetail - Extended result for detail page
+ * ✅ FIX: Added missing fields required by useResultDetail hook
+ */
+export interface ResultDetail extends ExamResult {
+    tiuScore?: number | null;
+    twkScore?: number | null;
+    tkpScore?: number | null;
+    violationCount?: number;
+    passed?: boolean | null;
 }
 
 // ============================================================================
@@ -266,7 +279,6 @@ export interface ExamAnswersResponse {
 
 /**
  * POST /exam-sessions/:id/answers response
- * ✅ AUDIT FIX: Added progress field (Backend API Contract page 22)
  */
 export interface SubmitAnswerResponse {
     answer: {
@@ -283,7 +295,6 @@ export interface SubmitAnswerResponse {
 
 /**
  * POST /exam-sessions/:id/submit response
- * ✅ AUDIT FIX: Uses ExamResult, not UserExam
  */
 export interface SubmitExamResponse {
     result: ExamResult;
@@ -291,7 +302,6 @@ export interface SubmitExamResponse {
 
 /**
  * GET /exam-sessions response (user's exam sessions list)
- * ✅ AUDIT FIX: Uses correct PaginationMeta structure
  */
 export interface ExamSessionsListResponse {
     data: UserExam[];
@@ -300,9 +310,6 @@ export interface ExamSessionsListResponse {
 
 /**
  * GET /results response (user's completed exam results)
- *
- * ⚠️ CRITICAL: This is from /results endpoint, NOT /exam-sessions
- * ✅ AUDIT FIX: Uses correct PaginationMeta structure
  */
 export interface MyResultsResponse {
     data: ExamResult[];
@@ -328,8 +335,9 @@ export type UserExamStatusConfig = Record<UserExamStatus, StatusConfig>;
 /**
  * Check if an exam result is passing based on exam's passingScore
  */
-export function isPassingResult(result: ExamResult, passingScore: number): boolean {
-    return (result.totalScore ?? 0) >= passingScore;
+export function isPassingResult(result: ExamResult, passingScore?: number): boolean {
+    const threshold = passingScore ?? result.exam.passingScore ?? 0;
+    return (result.totalScore ?? 0) >= threshold;
 }
 
 /**
