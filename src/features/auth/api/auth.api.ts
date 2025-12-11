@@ -3,12 +3,18 @@
 /**
  * AUTH API CLIENT
  *
- * ✅ Correctly typed for axios interceptor that unwraps AxiosResponse → ApiResponse
- * ✅ Accesses .data property to extract payload from ApiResponse wrapper
+ * ============================================================================
+ * PHASE 2 FIX: Correct type parameter usage
+ * ============================================================================
+ *
+ * apiClient.post<T>() returns Promise<ApiResponse<T>>
+ * We pass T (payload type), not ApiResponse<T>
+ * Access payload via response.data
+ *
+ * Types imported from: @/features/auth/types/auth.types.ts (Phase 1)
  */
 
 import { apiClient } from '@/shared/lib/api';
-import type { ApiResponse } from '@/shared/types/api.types';
 import type {
     LoginRequest,
     RegisterRequest,
@@ -22,21 +28,25 @@ export const authApi = {
     /**
      * User login
      * POST /api/v1/auth/login
+     *
+     * @returns AuthPayload = { user: User, tokens: TokensData }
      */
     login: async (credentials: LoginRequest): Promise<AuthPayload> => {
-        const response = await apiClient.post<ApiResponse<AuthPayload>>('/auth/login', {
+        const response = await apiClient.post<AuthPayload>('/auth/login', {
             email: credentials.email.toLowerCase().trim(),
             password: credentials.password,
         });
-        return response.data; // Extract payload from ApiResponse wrapper
+        return response.data;
     },
 
     /**
      * User registration
      * POST /api/v1/auth/register
+     *
+     * @returns AuthPayload = { user: User, tokens: TokensData }
      */
     register: async (credentials: RegisterRequest): Promise<AuthPayload> => {
-        const response = await apiClient.post<ApiResponse<AuthPayload>>('/auth/register', {
+        const response = await apiClient.post<AuthPayload>('/auth/register', {
             name: credentials.name.trim(),
             email: credentials.email.toLowerCase().trim(),
             password: credentials.password,
@@ -48,9 +58,11 @@ export const authApi = {
     /**
      * Refresh access token
      * POST /api/v1/auth/refresh
+     *
+     * @returns RefreshTokenPayload = { tokens: TokensData }
      */
     refreshToken: async (refreshToken: string): Promise<RefreshTokenPayload> => {
-        const response = await apiClient.post<ApiResponse<RefreshTokenPayload>>('/auth/refresh', {
+        const response = await apiClient.post<RefreshTokenPayload>('/auth/refresh', {
             refreshToken,
         });
         return response.data;
@@ -59,9 +71,11 @@ export const authApi = {
     /**
      * Logout user
      * POST /api/v1/auth/logout
+     *
+     * @returns LogoutPayload = { success: boolean }
      */
     logout: async (refreshToken: string): Promise<LogoutPayload> => {
-        const response = await apiClient.post<ApiResponse<LogoutPayload>>('/auth/logout', {
+        const response = await apiClient.post<LogoutPayload>('/auth/logout', {
             refreshToken,
         });
         return response.data;
@@ -70,13 +84,16 @@ export const authApi = {
     /**
      * Get current user profile
      * GET /api/v1/me
+     *
+     * @returns MePayload = { user: User }
      */
     getCurrentUser: async (): Promise<MePayload> => {
-        const response = await apiClient.get<ApiResponse<MePayload>>('/me');
+        const response = await apiClient.get<MePayload>('/me');
         return response.data;
     },
 };
 
+// Re-export types for convenience
 export type {
     LoginRequest,
     RegisterRequest,

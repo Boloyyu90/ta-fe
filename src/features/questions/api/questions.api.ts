@@ -1,31 +1,43 @@
 // src/features/questions/api/questions.api.ts
 
 /**
- * Questions API Client
+ * QUESTIONS API CLIENT
  *
- * ✅ AUDIT FIX v3:
- * - Fixed response unwrapping: use `response.data` (interceptor already unwraps AxiosResponse)
- * - Fixed id parameter type to number
+ * ============================================================================
+ * PHASE 2 FIX v2: Aligned with Phase 1 QuestionsQueryParams
+ * ============================================================================
+ *
+ * Phase 1 QuestionsQueryParams has:
+ * - questionType (not 'type')
+ *
+ * Backend query string expects:
+ * - type (lowercase)
+ *
+ * So we destructure as `questionType` and send as `type`
  *
  * Backend: /api/v1/admin/questions/*
  */
 
 import { apiClient } from '@/shared/lib/api';
-import type { ApiResponse } from '@/shared/types/api.types';
 import type {
+    // Query params
+    QuestionsQueryParams,
+    // Request types
+    CreateQuestionRequest,
+    UpdateQuestionRequest,
+    // Response types (Phase 1 aligned)
     QuestionsListResponse,
     QuestionDetailResponse,
-    CreateQuestionRequest,
     CreateQuestionResponse,
-    UpdateQuestionRequest,
     UpdateQuestionResponse,
     DeleteQuestionResponse,
-    QuestionsQueryParams,
 } from '../types/questions.types';
 
 /**
  * Get list of questions with pagination and filters
  * GET /api/v1/admin/questions
+ *
+ * @returns QuestionsListResponse = { data: QuestionWithUsage[], pagination: PaginationMeta }
  */
 export const getQuestions = async (
     params: QuestionsQueryParams = {}
@@ -33,7 +45,7 @@ export const getQuestions = async (
     const {
         page = 1,
         limit = 10,
-        type,
+        questionType,  // ✅ FIXED: Use questionType (Phase 1 name)
         search,
         sortBy = 'createdAt',
         sortOrder = 'desc',
@@ -46,15 +58,13 @@ export const getQuestions = async (
         sortOrder,
     });
 
-    if (type) queryParams.append('type', type);
+    // ✅ FIXED: Send as 'type' to backend (backend expects 'type' in query)
+    if (questionType) queryParams.append('type', questionType);
     if (search) queryParams.append('search', search);
 
-    const response = await apiClient.get<ApiResponse<QuestionsListResponse>>(
+    const response = await apiClient.get<QuestionsListResponse>(
         `/admin/questions?${queryParams.toString()}`
     );
-
-    // response is ApiResponse<QuestionsListResponse> (interceptor unwraps AxiosResponse)
-    // response.data is QuestionsListResponse
     return response.data;
 };
 
@@ -62,40 +72,37 @@ export const getQuestions = async (
  * Get single question detail
  * GET /api/v1/admin/questions/:id
  *
- * ✅ AUDIT FIX: id is number, not string
+ * @returns QuestionDetailResponse = { question: QuestionWithUsage }
  */
 export const getQuestion = async (id: number): Promise<QuestionDetailResponse> => {
-    const response = await apiClient.get<ApiResponse<QuestionDetailResponse>>(
-        `/admin/questions/${id}`
-    );
+    const response = await apiClient.get<QuestionDetailResponse>(`/admin/questions/${id}`);
     return response.data;
 };
 
 /**
  * Create new question
  * POST /api/v1/admin/questions
+ *
+ * @returns CreateQuestionResponse = { question: Question }
  */
 export const createQuestion = async (
     data: CreateQuestionRequest
 ): Promise<CreateQuestionResponse> => {
-    const response = await apiClient.post<ApiResponse<CreateQuestionResponse>>(
-        '/admin/questions',
-        data
-    );
+    const response = await apiClient.post<CreateQuestionResponse>('/admin/questions', data);
     return response.data;
 };
 
 /**
- * Update existing question
+ * Update question
  * PATCH /api/v1/admin/questions/:id
  *
- * ✅ AUDIT FIX: id is number, not string
+ * @returns UpdateQuestionResponse = { question: Question }
  */
 export const updateQuestion = async (
     id: number,
     data: UpdateQuestionRequest
 ): Promise<UpdateQuestionResponse> => {
-    const response = await apiClient.patch<ApiResponse<UpdateQuestionResponse>>(
+    const response = await apiClient.patch<UpdateQuestionResponse>(
         `/admin/questions/${id}`,
         data
     );
@@ -106,12 +113,10 @@ export const updateQuestion = async (
  * Delete question
  * DELETE /api/v1/admin/questions/:id
  *
- * ✅ AUDIT FIX: id is number, not string
+ * @returns DeleteQuestionResponse = { success: boolean, message: string }
  */
 export const deleteQuestion = async (id: number): Promise<DeleteQuestionResponse> => {
-    const response = await apiClient.delete<ApiResponse<DeleteQuestionResponse>>(
-        `/admin/questions/${id}`
-    );
+    const response = await apiClient.delete<DeleteQuestionResponse>(`/admin/questions/${id}`);
     return response.data;
 };
 

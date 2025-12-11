@@ -1,11 +1,24 @@
+// src/shared/lib/api.ts
+
 /**
  * SHARED API CLIENT
  *
  * Central Axios instance with interceptors for:
  * - Automatic JWT injection from auth store
  * - Token refresh on 401 errors
- * - Response unwrapping: AxiosResponse<ApiResponse<T>> → T
+ * - Response unwrapping: AxiosResponse<ApiResponse<T>> → ApiResponse<T>
  * - Error transformation to ApiError
+ *
+ * ============================================================================
+ * PHASE 2 FIX v2: Aligned with actual AuthStore implementation
+ * ============================================================================
+ *
+ * AuthStore methods used:
+ * - setAuth(user, tokens) - to update auth after token refresh
+ * - clearAuth() - to clear auth on failure
+ * - getState().user - to get current user
+ * - getState().accessToken - to get current token
+ * - getState().refreshToken - to get refresh token
  */
 
 import axios, {
@@ -13,18 +26,11 @@ import axios, {
     AxiosRequestConfig,
     AxiosError,
     InternalAxiosRequestConfig,
-    AxiosResponse,
-} from "axios";
-import { useAuthStore } from "@/features/auth/store/auth.store";
-import type { ApiResponse, ApiError, extractErrorMessage } from "@/shared/types/api.types"; // ✅ Import shared types
+} from 'axios';
+import { useAuthStore } from '@/features/auth/store/auth.store';
+import type { ApiResponse, ApiError } from '@/shared/types/api.types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1";
-
-/**
- * Response interceptor unwraps:
- * AxiosResponse<ApiResponse<T>> → ApiResponse<T> → T (payload only)
- */
-type UnwrappedPromise<T> = Promise<T>;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 class TypedApiClient {
     private instance: AxiosInstance;
@@ -32,17 +38,15 @@ class TypedApiClient {
     constructor() {
         this.instance = axios.create({
             baseURL: API_BASE_URL,
-            headers: { "Content-Type": "application/json" },
+            headers: { 'Content-Type': 'application/json' },
             withCredentials: true,
+            timeout: 30000,
         });
 
         this.setupInterceptors();
     }
 
-    /**
-     * Setup request and response interceptors
-     */
-    private setupInterceptors() {
+    private setupInterceptors(): void {
         // ============================================================================
         // REQUEST INTERCEPTOR - Inject JWT token
         // ============================================================================
@@ -59,67 +63,78 @@ class TypedApiClient {
         );
 
         // ============================================================================
-        // RESPONSE INTERCEPTOR - Unwrap data and handle token refresh
+        // RESPONSE INTERCEPTOR - Handle token refresh and unwrap response
         // ============================================================================
 
         this.instance.interceptors.response.use(
-            // SUCCESS: Unwrap AxiosResponse<ApiResponse<T>> → T
-            <T>(response: AxiosResponse<ApiResponse<T>>): T => {
+            // SUCCESS: Strip AxiosResponse wrapper, return ApiResponse<T>
+            (response) => {
                 // Backend returns: { success: true, data: T, message?, timestamp }
-                // We unwrap to return just T (the payload)
-                return response.data.data as T;
+                // We return just response.data which is ApiResponse<T>
+                return response.data;
             },
 
             // ERROR: Handle 401 token refresh, transform errors
-            async (error: AxiosError<ApiResponse<any>>) => {
-                const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+            async (error: AxiosError<ApiResponse<unknown>>) => {
+                const original = error.config as InternalAxiosRequestConfig & {
+                    _retry?: boolean;
+                };
 
                 // Check if this is an auth endpoint (don't retry auth calls)
                 const isAuthEndpoint = original.url?.includes('/auth/');
 
-                // Only attempt token refresh for NON-AUTH 401 errors
+                // Handle 401 Unauthorized - attempt token refresh
                 if (error.response?.status === 401 && !isAuthEndpoint && !original._retry) {
                     original._retry = true;
 
-                    try {
-                        const refreshToken = useAuthStore.getState().refreshToken;
+                    const refreshToken = useAuthStore.getState().refreshToken;
 
-                        if (!refreshToken) {
-                            // No refresh token → clear auth and redirect
-                            useAuthStore.getState().clearAuth();
-                            if (typeof window !== "undefined") {
-                                window.location.href = "/login";
+                    if (refreshToken) {
+                        try {
+                            // Call refresh endpoint directly (avoid interceptor loop)
+                            const refreshResponse = await axios.post<
+                                ApiResponse<{ tokens: { accessToken: string; refreshToken: string } }>
+                            >(
+                                `${API_BASE_URL}/auth/refresh`,
+                                { refreshToken },
+                                { headers: { 'Content-Type': 'application/json' } }
+                            );
+
+                            const { tokens } = refreshResponse.data.data;
+                            const user = useAuthStore.getState().user;
+
+                            // Update auth store with new tokens
+                            // ✅ FIXED: Use setAuth(user, tokens) not setTokens
+                            if (user) {
+                                useAuthStore.getState().setAuth(user, tokens);
                             }
+
+                            // Update original request with new token
+                            if (original.headers) {
+                                original.headers.Authorization = `Bearer ${tokens.accessToken}`;
+                            }
+
+                            // Retry original request
+                            return this.instance(original);
+                        } catch (refreshError) {
+                            // Refresh failed - clear auth and redirect to login
+                            // ✅ FIXED: Use clearAuth() not logout()
+                            useAuthStore.getState().clearAuth();
+
+                            if (typeof window !== 'undefined') {
+                                window.location.href = '/login';
+                            }
+
                             return Promise.reject(this.transformError(error));
                         }
-
-                        // Attempt token refresh
-                        const res = await axios.post<ApiResponse<{ tokens: any }>>(
-                            `${API_BASE_URL}/auth/refresh`,
-                            { refreshToken },
-                            { headers: { "Content-Type": "application/json" } }
-                        );
-
-                        const { tokens } = res.data.data;
-                        const user = useAuthStore.getState().user;
-
-                        if (user) {
-                            useAuthStore.getState().setAuth(user, tokens);
-                        }
-
-                        // Retry original request with new token
-                        if (original.headers) {
-                            original.headers.Authorization = `Bearer ${tokens.accessToken}`;
-                        }
-
-                        return this.instance(original);
-
-                    } catch (refreshError) {
-                        // Refresh failed → clear auth and redirect
+                    } else {
+                        // No refresh token - clear auth and redirect
                         useAuthStore.getState().clearAuth();
-                        if (typeof window !== "undefined") {
-                            window.location.href = "/login";
+
+                        if (typeof window !== 'undefined') {
+                            window.location.href = '/login';
                         }
+
                         return Promise.reject(this.transformError(error));
                     }
                 }
@@ -132,21 +147,24 @@ class TypedApiClient {
 
     /**
      * Transform Axios error to ApiError type
-     *  Uses backend's error response structure
      */
-    private transformError(error: AxiosError<ApiResponse<any>>): ApiError {
-        // Backend error response (success: false)
+    private transformError(error: AxiosError<ApiResponse<unknown>>): ApiError {
+        // Backend error response
         if (error.response?.data) {
-            const errorData = error.response.data;
+            const errorData = error.response.data as ApiResponse<unknown> & {
+                errorCode?: string;
+                errors?: Array<{ field: string; message: string }>;
+            };
+
             return {
                 message: errorData.message || 'An error occurred',
-                errorCode: (errorData as any).errorCode,
-                errors: (errorData as any).errors,
+                errorCode: errorData.errorCode,
+                errors: errorData.errors,
                 status: error.response.status,
             };
         }
 
-        // Network error (no response from server)
+        // Network error
         if (error.request) {
             return {
                 message: 'Network error. Please check your connection.',
@@ -162,63 +180,71 @@ class TypedApiClient {
 
     // ============================================================================
     // HTTP METHODS
+    //
+    // Note: Due to interceptor unwrapping, these return ApiResponse<T> directly
+    // (not AxiosResponse<ApiResponse<T>>)
     // ============================================================================
 
     /**
      * GET request
-     * @returns Unwrapped payload (T) from ApiResponse<T>
+     *
+     * @example
+     * const response = await apiClient.get<ExamsResponse>('/exams');
+     * const exams = response.data; // ExamsResponse
      */
-    async get<T = any>(url: string, config?: AxiosRequestConfig): UnwrappedPromise<T> {
-        return this.instance.get<ApiResponse<T>, T>(url, config) as UnwrappedPromise<T>;
+    async get<T>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+        // The interceptor returns response.data which is ApiResponse<T>
+        // TypeScript doesn't know about interceptor transformation, so we cast
+        return this.instance.get(url, config) as unknown as Promise<ApiResponse<T>>;
     }
 
     /**
      * POST request
-     * @returns Unwrapped payload (T) from ApiResponse<T>
      */
-    async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): UnwrappedPromise<T> {
-        return this.instance.post<ApiResponse<T>, T>(url, data, config) as UnwrappedPromise<T>;
+    async post<T>(
+        url: string,
+        data?: unknown,
+        config?: AxiosRequestConfig
+    ): Promise<ApiResponse<T>> {
+        return this.instance.post(url, data, config) as unknown as Promise<ApiResponse<T>>;
     }
 
     /**
      * PATCH request
-     * @returns Unwrapped payload (T) from ApiResponse<T>
      */
-    async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): UnwrappedPromise<T> {
-        return this.instance.patch<ApiResponse<T>, T>(url, data, config) as UnwrappedPromise<T>;
+    async patch<T>(
+        url: string,
+        data?: unknown,
+        config?: AxiosRequestConfig
+    ): Promise<ApiResponse<T>> {
+        return this.instance.patch(url, data, config) as unknown as Promise<ApiResponse<T>>;
     }
 
     /**
      * PUT request
-     * @returns Unwrapped payload (T) from ApiResponse<T>
      */
-    async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): UnwrappedPromise<T> {
-        return this.instance.put<ApiResponse<T>, T>(url, data, config) as UnwrappedPromise<T>;
+    async put<T>(
+        url: string,
+        data?: unknown,
+        config?: AxiosRequestConfig
+    ): Promise<ApiResponse<T>> {
+        return this.instance.put(url, data, config) as unknown as Promise<ApiResponse<T>>;
     }
 
     /**
      * DELETE request
-     * @returns Unwrapped payload (T) from ApiResponse<T>
      */
-    async delete<T = any>(url: string, config?: AxiosRequestConfig): UnwrappedPromise<T> {
-        return this.instance.delete<ApiResponse<T>, T>(url, config) as UnwrappedPromise<T>;
+    async delete<T>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+        return this.instance.delete(url, config) as unknown as Promise<ApiResponse<T>>;
     }
 }
 
 /**
  * Singleton API client instance
- * Import this in feature API modules
- *
- * @example
- * import { apiClient } from '@/shared/lib/api';
- *
- * const response = await apiClient.get<User>('/me');
- * // response is User, not ApiResponse<User> (already unwrapped)
  */
 export const apiClient = new TypedApiClient();
 
 /**
- * Export shared types for feature modules
- * Re-export for convenience
+ * Re-export types for convenience
  */
-export type { ApiResponse, ApiError } from "@/shared/types/api.types";
+export type { ApiResponse, ApiError } from '@/shared/types/api.types';
