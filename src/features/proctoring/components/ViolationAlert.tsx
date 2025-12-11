@@ -3,7 +3,14 @@
 /**
  * Violation Alert Component
  *
- * ✅ AUDIT FIX v3: Import Violation from proctoring types (now properly exported)
+ * ============================================================================
+ * AUDIT FIX v5: Fixed type alignments
+ * ============================================================================
+ *
+ * Changes:
+ * - Removed violation.details (doesn't exist on Violation type)
+ * - Changed ViolationSeverity to Severity (matches enum.types.ts)
+ * - Violation has: id, type, severity, timestamp, message
  */
 
 'use client';
@@ -11,14 +18,22 @@
 import { Alert, AlertDescription, AlertTitle } from '@/shared/components/ui/alert';
 import { Badge } from '@/shared/components/ui/badge';
 import { AlertTriangle, AlertCircle, XCircle } from 'lucide-react';
-import type { Violation, ViolationSeverity } from '../types/proctoring.types';
+import type { Violation, Severity } from '../types/proctoring.types';
+
+// ============================================================================
+// COMPONENT PROPS
+// ============================================================================
 
 export interface ViolationAlertProps {
     violation: Violation;
     onDismiss?: () => void;
 }
 
-const severityConfig: Record<ViolationSeverity, {
+// ============================================================================
+// SEVERITY CONFIG
+// ============================================================================
+
+const severityConfig: Record<Severity, {
     variant: 'default' | 'destructive';
     icon: typeof AlertTriangle;
     label: string;
@@ -40,6 +55,10 @@ const severityConfig: Record<ViolationSeverity, {
     },
 };
 
+// ============================================================================
+// COMPONENT
+// ============================================================================
+
 export function ViolationAlert({ violation, onDismiss }: ViolationAlertProps) {
     const config = severityConfig[violation.severity];
     const Icon = config.icon;
@@ -50,14 +69,19 @@ export function ViolationAlert({ violation, onDismiss }: ViolationAlertProps) {
             <AlertTitle className="flex items-center gap-2">
                 {config.label}
                 <Badge variant="outline" className="text-xs">
-                    {violation.type}
+                    {violation.type.replace(/_/g, ' ')}
                 </Badge>
             </AlertTitle>
             <AlertDescription>
                 {violation.message}
-                {violation.details && (
-                    <p className="mt-1 text-xs opacity-80">{violation.details}</p>
-                )}
+                {/*
+                 * ✅ FIX: Removed violation.details
+                 * Violation type only has: id, type, severity, timestamp, message
+                 * Show timestamp instead for additional context
+                 */}
+                <span className="block mt-1 text-xs opacity-80">
+                    {new Date(violation.timestamp).toLocaleTimeString('id-ID')}
+                </span>
             </AlertDescription>
             {onDismiss && (
                 <button

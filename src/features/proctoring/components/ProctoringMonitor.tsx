@@ -3,9 +3,17 @@
 /**
  * Proctoring Monitor Component
  *
- * ✅ AUDIT FIX v3: Fixed details field access on ProctoringEvent
+ * ============================================================================
+ * AUDIT FIX v5: Fixed all type misalignments
+ * ============================================================================
  *
- * Real-time proctoring status display
+ * Changes:
+ * - Removed event.details (doesn't exist on Violation type)
+ * - Violation type has: id, type, severity, timestamp, message
+ * - Uses legacy setters from updated store
+ * - webcam.isStreaming works with extended store state
+ *
+ * Real-time proctoring status display for exam taking interface
  */
 
 'use client';
@@ -26,12 +34,24 @@ import {
 import { useProctoringStore } from '../store/proctoring.store';
 import type { ProctoringEvent } from '../types/proctoring.types';
 
+// ============================================================================
+// COMPONENT PROPS
+// ============================================================================
+
 export interface ProctoringMonitorProps {
+    /** Current exam session ID */
     sessionId: number;
+    /** Callback when a violation is detected */
     onViolation?: (event: ProctoringEvent) => void;
+    /** Interval between frame captures (ms) */
     captureInterval?: number;
+    /** Enable/disable proctoring */
     enabled?: boolean;
 }
+
+// ============================================================================
+// COMPONENT
+// ============================================================================
 
 export function ProctoringMonitor({
                                       sessionId,
@@ -42,6 +62,7 @@ export function ProctoringMonitor({
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
 
+    // Get store state and actions
     const {
         webcam,
         violations,
@@ -54,7 +75,10 @@ export function ProctoringMonitor({
         setWebcamError,
     } = useProctoringStore();
 
-    // Initialize webcam
+    // =========================================================================
+    // WEBCAM INITIALIZATION
+    // =========================================================================
+
     useEffect(() => {
         if (!enabled) return;
 
@@ -90,6 +114,7 @@ export function ProctoringMonitor({
 
         initWebcam();
 
+        // Cleanup on unmount
         return () => {
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach(track => track.stop());
@@ -97,8 +122,16 @@ export function ProctoringMonitor({
         };
     }, [enabled, setWebcamEnabled, setWebcamStreaming, setWebcamPermission, setWebcamError]);
 
-    // Get recent violations (last 3)
+    // =========================================================================
+    // DERIVED STATE
+    // =========================================================================
+
+    // Get recent violations (last 3) for display
     const recentViolations = violations.slice(0, 3);
+
+    // =========================================================================
+    // RENDER
+    // =========================================================================
 
     return (
         <Card>
@@ -178,20 +211,42 @@ export function ProctoringMonitor({
                     </div>
                 </div>
 
+                {/* Warning for high violations */}
+                {highViolationCount >= 2 && highViolationCount < 3 && (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Peringatan!</AlertTitle>
+                        <AlertDescription>
+                            Anda telah menerima {highViolationCount} pelanggaran tinggi.
+                            1 pelanggaran lagi akan membatalkan ujian Anda.
+                        </AlertDescription>
+                    </Alert>
+                )}
+
                 {/* Recent Violations */}
                 {recentViolations.length > 0 && (
                     <div className="space-y-2">
                         <h4 className="text-sm font-medium">Pelanggaran Terakhir</h4>
-                        {recentViolations.map((event) => (
-                            <Alert key={event.id} variant="destructive" className="py-2">
+                        {recentViolations.map((violation) => (
+                            <Alert
+                                key={violation.id}
+                                variant="destructive"
+                                className="py-2"
+                            >
                                 <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle className="text-sm">{event.type}</AlertTitle>
+                                <AlertTitle className="text-sm">
+                                    {violation.type.replace(/_/g, ' ')}
+                                </AlertTitle>
                                 <AlertDescription className="text-xs">
-                                    {event.message}
-                                    {/* ✅ FIX: details is on Violation/UIViolation */}
-                                    {event.details && (
-                                        <p className="text-xs text-red-700 mt-1">{event.details}</p>
-                                    )}
+                                    {violation.message}
+                                    {/*
+                                     * ✅ FIX: Removed event.details
+                                     * Violation type only has: id, type, severity, timestamp, message
+                                     * The message field already contains the violation description
+                                     */}
+                                    <span className="block mt-1 text-muted-foreground">
+                                        {new Date(violation.timestamp).toLocaleTimeString('id-ID')}
+                                    </span>
                                 </AlertDescription>
                             </Alert>
                         ))}
