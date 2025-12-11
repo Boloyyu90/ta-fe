@@ -1,27 +1,19 @@
 // src/features/questions/types/questions.types.ts
 
 /**
- * Question Bank Types
+ * Questions Types (Admin Question Bank)
  *
- * ✅ AUDIT FIX v3:
- * - Fixed id type to number
- * - All response types are the inner data (what ApiResponse.data contains)
- *
- * Backend: /api/v1/admin/questions/*
+ * Source: backend-api-contract.md + backend questions.validation.ts
  */
 
+import type { QuestionType, AnswerOption } from '@/shared/types/enum.types';
 import type { PaginationMeta } from '@/shared/types/api.types';
 
-// ============================================================================
-// ENUMS
-// ============================================================================
-
-export type QuestionType = 'TIU' | 'TWK' | 'TKP';
-
-export type AnswerOption = 'A' | 'B' | 'C' | 'D' | 'E';
+// Re-export for convenience
+export type { QuestionType };
 
 // ============================================================================
-// BASE ENTITIES
+// QUESTION ENTITY
 // ============================================================================
 
 export interface QuestionOptions {
@@ -33,17 +25,16 @@ export interface QuestionOptions {
 }
 
 /**
- * Base Question entity
- * ✅ AUDIT FIX: id is number, not string
+ * Question entity (matches backend Prisma QuestionBank model)
+ * ⚠️ CRITICAL: id is NUMBER, not string
  */
 export interface Question {
-    id: number;
+    id: number;  // ✅ FIXED: Was string, now number
     content: string;
     options: QuestionOptions;
-    correctAnswer: AnswerOption;
+    correctAnswer: Exclude<AnswerOption, null>;
     questionType: QuestionType;
     defaultScore: number;
-    imageUrl?: string | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -61,31 +52,47 @@ export interface QuestionWithUsage extends Question {
 // API REQUEST TYPES
 // ============================================================================
 
+/**
+ * Request to create question
+ */
 export interface CreateQuestionRequest {
     content: string;
     options: QuestionOptions;
-    correctAnswer: AnswerOption;
+    correctAnswer: Exclude<AnswerOption, null>;
     questionType: QuestionType;
     defaultScore: number;
-    imageUrl?: string;
 }
 
+/**
+ * Request to update question
+ */
 export interface UpdateQuestionRequest {
     content?: string;
     options?: Partial<QuestionOptions>;
-    correctAnswer?: AnswerOption;
+    correctAnswer?: Exclude<AnswerOption, null>;
     questionType?: QuestionType;
     defaultScore?: number;
-    imageUrl?: string | null;
+}
+
+/**
+ * Query params for GET /admin/questions
+ */
+export interface QuestionsQueryParams {
+    page?: number;
+    limit?: number;
+    questionType?: QuestionType;  // ✅ Renamed from 'type' to match backend
+    search?: string;
+    sortBy?: 'content' | 'questionType' | 'createdAt' | 'defaultScore';
+    sortOrder?: 'asc' | 'desc';
 }
 
 // ============================================================================
 // API RESPONSE TYPES
-// These are the shapes inside ApiResponse.data
 // ============================================================================
 
 /**
- * Response for GET /admin/questions (list)
+ * GET /admin/questions
+ * ✅ FIXED: Uses correct PaginationMeta structure
  */
 export interface QuestionsListResponse {
     data: QuestionWithUsage[];
@@ -93,101 +100,30 @@ export interface QuestionsListResponse {
 }
 
 /**
- * Response for GET /admin/questions/:id (single question)
+ * GET /admin/questions/:id
  */
 export interface QuestionDetailResponse {
     question: QuestionWithUsage;
 }
 
 /**
- * Response for POST /admin/questions (create)
+ * POST /admin/questions
  */
 export interface CreateQuestionResponse {
     question: Question;
 }
 
 /**
- * Response for PATCH /admin/questions/:id (update)
+ * PATCH /admin/questions/:id
  */
 export interface UpdateQuestionResponse {
     question: Question;
 }
 
 /**
- * Response for DELETE /admin/questions/:id
+ * DELETE /admin/questions/:id
  */
 export interface DeleteQuestionResponse {
     success: boolean;
-    message?: string;
-}
-
-// ============================================================================
-// QUERY PARAMS TYPES
-// ============================================================================
-
-export interface QuestionsQueryParams {
-    page?: number;
-    limit?: number;
-    type?: QuestionType;
-    search?: string;
-    sortBy?: 'content' | 'questionType' | 'createdAt' | 'updatedAt' | 'defaultScore';
-    sortOrder?: 'asc' | 'desc';
-}
-
-// ============================================================================
-// FORM TYPES (for UI components)
-// ============================================================================
-
-/**
- * Form data for create/edit question
- */
-export interface QuestionFormData {
-    content: string;
-    optionA: string;
-    optionB: string;
-    optionC: string;
-    optionD: string;
-    optionE: string;
-    correctAnswer: AnswerOption;
-    questionType: QuestionType;
-    defaultScore: number;
-    imageUrl?: string;
-}
-
-/**
- * Transform form data to API request format
- */
-export function formDataToRequest(formData: QuestionFormData): CreateQuestionRequest {
-    return {
-        content: formData.content,
-        options: {
-            A: formData.optionA,
-            B: formData.optionB,
-            C: formData.optionC,
-            D: formData.optionD,
-            E: formData.optionE,
-        },
-        correctAnswer: formData.correctAnswer,
-        questionType: formData.questionType,
-        defaultScore: formData.defaultScore,
-        imageUrl: formData.imageUrl,
-    };
-}
-
-/**
- * Transform question entity to form data
- */
-export function questionToFormData(question: Question): QuestionFormData {
-    return {
-        content: question.content,
-        optionA: question.options.A,
-        optionB: question.options.B,
-        optionC: question.options.C,
-        optionD: question.options.D,
-        optionE: question.options.E,
-        correctAnswer: question.correctAnswer,
-        questionType: question.questionType,
-        defaultScore: question.defaultScore,
-        imageUrl: question.imageUrl ?? undefined,
-    };
+    message: string;
 }

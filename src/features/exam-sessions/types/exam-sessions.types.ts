@@ -4,32 +4,20 @@
  * Exam Sessions Types
  *
  * ⚠️ CRITICAL: Backend uses `selectedOption` NOT `selectedAnswer`
- * See Backend API Contract page 22
+ * ⚠️ CRITICAL: Backend ExamStatus is IN_PROGRESS|FINISHED|CANCELLED|TIMEOUT
  *
- * ✅ AUDIT FIX v3: Fixed all response types and added missing fields
- *
- * DISTINCTIONS:
- * 1. ExamStatus: Status of exam definition (DRAFT, PUBLISHED, ARCHIVED)
- * 2. UserExamStatus: Status of participant's session (NOT_STARTED, IN_PROGRESS, etc.)
+ * Source: backend-api-contract.md + backend exam-sessions.validation.ts
  */
 
+import type {
+    ExamStatus,
+    QuestionType,
+    AnswerOption,
+} from '@/shared/types/enum.types';
 import type { PaginationMeta } from '@/shared/types/api.types';
 
-// ============================================================================
-// STATUS ENUMS
-// ============================================================================
-
-export type ExamStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
-
-export type UserExamStatus =
-    | 'NOT_STARTED'
-    | 'IN_PROGRESS'
-    | 'FINISHED'
-    | 'TIMEOUT'
-    | 'CANCELLED'
-    | 'COMPLETED';
-
-export type QuestionType = 'TIU' | 'TWK' | 'TKP';
+// Re-export for convenience (avoids breaking existing imports)
+export type { ExamStatus, QuestionType };
 
 // ============================================================================
 // QUESTION MODELS
@@ -47,20 +35,21 @@ export interface Question {
     id: number;
     content: string;
     options: QuestionOptions;
-    correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
+    correctAnswer: Exclude<AnswerOption, null>;
     questionType: QuestionType;
+    defaultScore: number;
     imageUrl?: string;
     createdAt: string;
     updatedAt: string;
 }
 
 /**
- * Question as returned during exam (without correctAnswer)
- * Used by GET /exam-sessions/:id/questions
+ * Question as seen by participant during exam
+ * Note: Does NOT include correctAnswer (hidden until submission)
  */
 export interface ExamQuestion {
-    id: number;
-    examQuestionId: number;
+    id: number;              // ExamQuestion.id (junction table)
+    examQuestionId: number;  // Same as id, for compatibility
     content: string;
     options: QuestionOptions;
     questionType: QuestionType;
@@ -68,43 +57,21 @@ export interface ExamQuestion {
     imageUrl?: string;
 }
 
+/** @deprecated Use ExamQuestion instead */
 export type ParticipantQuestion = ExamQuestion;
 
 // ============================================================================
-// EXAM MODELS
+// EXAM MODELS (Simplified for session context)
 // ============================================================================
 
-/**
- * Full Exam entity as used within UserExam
- */
-export interface Exam {
-    id: number;
-    title: string;
-    description?: string | null;
-    durationMinutes: number;
-    passingScore: number;
-    totalQuestions?: number;
-    isActive?: boolean;
-    startTime?: string | null;
-    endTime?: string | null;
-    createdAt: string;
-    updatedAt: string;
-    _count?: {
-        examQuestions: number;
-        userExams: number;
-    };
-}
-
-/**
- * Minimal exam info in result responses
- * ✅ FIX: Added passingScore field used by dashboard
- */
-export interface ExamSummary {
+export interface ExamInfo {
     id: number;
     title: string;
     description: string | null;
-    passingScore?: number;
-    durationMinutes?: number;
+}
+
+export interface ExamWithDuration extends ExamInfo {
+    durationMinutes: number;
 }
 
 // ============================================================================
@@ -112,39 +79,54 @@ export interface ExamSummary {
 // ============================================================================
 
 /**
- * User's exam session (UserExam)
- * Used by GET /exam-sessions and GET /exam-sessions/:id
+ * User exam session (participant's attempt at an exam)
+ *
+ * Backend status values: IN_PROGRESS, FINISHED, CANCELLED, TIMEOUT
+ * ⚠️ NOTE: There is NO "NOT_STARTED" or "COMPLETED" status in backend
  */
 export interface UserExam {
     id: number;
     userId: number;
     examId: number;
-    status: UserExamStatus;
+    status: ExamStatus;
+    startedAt: string | null;
+    submittedAt: string | null;
+    totalScore: number | null;
     remainingTimeMs: number | null;
     durationMinutes: number | null;
     answeredQuestions: number;
     totalQuestions: number;
-    startTime?: string;
-    endTime?: string;
-    submittedAt?: string | null;
-    timeSpent?: number;
-    totalScore?: number | null;
-    tiuScore?: number | null;
-    twkScore?: number | null;
-    tkpScore?: number | null;
-    violationCount?: number;
-    createdAt: string;
-    updatedAt: string;
-    exam: Exam;
+    exam: ExamInfo;
+    user?: {
+        id: number;
+        name: string;
+        email: string;
+    };
+}
+
+/**
+ * Detailed session info (returned by getUserExam and startExam)
+ */
+export interface UserExamSession {
+    id: number;
+    examId: number;
+    examTitle: string;
+    durationMinutes: number;
+    startedAt: string;
+    submittedAt: string | null;
+    status: ExamStatus;
+    remainingTimeMs: number | null;
+    totalQuestions: number;
+    answeredQuestions: number;
 }
 
 // ============================================================================
-// SCORE BREAKDOWN TYPES
+// SCORE BREAKDOWN
 // ============================================================================
 
 /**
  * Score breakdown by question type
- * ✅ Matches backend API contract page 23-24
+ * Source: backend exam-sessions.validation.ts
  */
 export interface ScoreByType {
     type: QuestionType;
@@ -155,47 +137,29 @@ export interface ScoreByType {
 }
 
 /**
- * User info in result responses
- */
-export interface ResultUserInfo {
-    id: number;
-    name: string;
-    email: string;
-}
-
-/**
- * ExamResult - Result object returned by /results endpoint
- *
- * ✅ FIX: exam now includes passingScore for UI calculations
+ * Exam result with score breakdown
+ * Returned by submitExam and getMyResults
  */
 export interface ExamResult {
     id: number;
-    exam: ExamSummary;
-    user: ResultUserInfo;
+    exam: ExamInfo;
+    user: {
+        id: number;
+        name: string;
+        email: string;
+    };
     startedAt: string;
     submittedAt: string | null;
     totalScore: number | null;
-    status: UserExamStatus;
-    duration: number | null;
+    status: ExamStatus;
+    duration: number | null;        // Duration in seconds
     answeredQuestions: number;
     totalQuestions: number;
     scoresByType: ScoreByType[];
 }
 
-/**
- * ResultDetail - Extended result for detail page
- * ✅ FIX: Added missing fields required by useResultDetail hook
- */
-export interface ResultDetail extends ExamResult {
-    tiuScore?: number | null;
-    twkScore?: number | null;
-    tkpScore?: number | null;
-    violationCount?: number;
-    passed?: boolean | null;
-}
-
 // ============================================================================
-// ANSWER MODELS (⚠️ Backend uses selectedOption, not selectedAnswer!)
+// ANSWER MODELS
 // ============================================================================
 
 /**
@@ -206,18 +170,34 @@ export interface ExamAnswer {
     id: number;
     userExamId: number;
     examQuestionId: number;
-    selectedOption: 'A' | 'B' | 'C' | 'D' | 'E' | null;
-    isCorrect: boolean;
-    answeredAt?: string;
+    selectedOption: AnswerOption;
+    isCorrect: boolean | null;
+    answeredAt: string | null;
     createdAt: string;
     updatedAt: string;
 }
 
 /**
+ * Answer for participant view (during exam)
+ */
+export interface ParticipantAnswer {
+    examQuestionId: number;
+    selectedOption: AnswerOption;
+    answeredAt: string | null;
+}
+
+/**
  * Answer with associated question (for review pages)
  */
-export interface AnswerWithQuestion extends ExamAnswer {
-    examQuestion: ExamQuestion;
+export interface AnswerWithQuestion {
+    examQuestionId: number;
+    questionContent: string;
+    questionType: QuestionType;
+    options: QuestionOptions;
+    selectedOption: AnswerOption;
+    correctAnswer: string;
+    isCorrect: boolean | null;
+    score: number;
 }
 
 // ============================================================================
@@ -230,14 +210,14 @@ export interface AnswerWithQuestion extends ExamAnswer {
  */
 export interface SubmitAnswerRequest {
     examQuestionId: number;
-    selectedOption: 'A' | 'B' | 'C' | 'D' | 'E' | null;
+    selectedOption: AnswerOption;
 }
 
 /**
  * Query params for getUserExams
  */
 export interface GetUserExamsParams {
-    status?: UserExamStatus;
+    status?: ExamStatus;
     page?: number;
     limit?: number;
 }
@@ -255,14 +235,14 @@ export interface GetMyResultsParams {
 // ============================================================================
 
 /**
- * GET /exam-sessions/:id response
+ * GET /exam-sessions/:id
  */
 export interface ExamSessionDetailResponse {
     userExam: UserExam;
 }
 
 /**
- * GET /exam-sessions/:id/questions response
+ * GET /exam-sessions/:id/questions
  */
 export interface ExamQuestionsResponse {
     questions: ExamQuestion[];
@@ -270,7 +250,7 @@ export interface ExamQuestionsResponse {
 }
 
 /**
- * GET /exam-sessions/:id/answers response
+ * GET /exam-sessions/:id/answers (after submission)
  */
 export interface ExamAnswersResponse {
     answers: AnswerWithQuestion[];
@@ -278,12 +258,13 @@ export interface ExamAnswersResponse {
 }
 
 /**
- * POST /exam-sessions/:id/answers response
+ * POST /exam-sessions/:id/answers
+ * ✅ Includes progress field per backend contract
  */
 export interface SubmitAnswerResponse {
     answer: {
         examQuestionId: number;
-        selectedOption: 'A' | 'B' | 'C' | 'D' | 'E' | null;
+        selectedOption: AnswerOption;
         answeredAt: string;
     };
     progress: {
@@ -294,14 +275,25 @@ export interface SubmitAnswerResponse {
 }
 
 /**
- * POST /exam-sessions/:id/submit response
+ * POST /exam-sessions/:id/submit
+ * ✅ Returns ExamResult with scoresByType
  */
 export interface SubmitExamResponse {
     result: ExamResult;
 }
 
 /**
- * GET /exam-sessions response (user's exam sessions list)
+ * POST /exams/:id/start
+ */
+export interface StartExamResponse {
+    userExam: UserExamSession;
+    questions: ExamQuestion[];
+    answers: ParticipantAnswer[];
+}
+
+/**
+ * GET /exam-sessions
+ * ✅ FIXED: Uses correct pagination structure
  */
 export interface ExamSessionsListResponse {
     data: UserExam[];
@@ -309,7 +301,8 @@ export interface ExamSessionsListResponse {
 }
 
 /**
- * GET /results response (user's completed exam results)
+ * GET /results
+ * ✅ FIXED: Uses correct pagination structure
  */
 export interface MyResultsResponse {
     data: ExamResult[];
@@ -326,30 +319,4 @@ export interface StatusConfig {
     icon?: React.ComponentType<{ className?: string }>;
 }
 
-export type UserExamStatusConfig = Record<UserExamStatus, StatusConfig>;
-
-// ============================================================================
-// UTILITY TYPE GUARDS
-// ============================================================================
-
-/**
- * Check if an exam result is passing based on exam's passingScore
- */
-export function isPassingResult(result: ExamResult, passingScore?: number): boolean {
-    const threshold = passingScore ?? result.exam.passingScore ?? 0;
-    return (result.totalScore ?? 0) >= threshold;
-}
-
-/**
- * Check if a session is active (can be continued)
- */
-export function isActiveSession(status: UserExamStatus): boolean {
-    return status === 'IN_PROGRESS' || status === 'NOT_STARTED';
-}
-
-/**
- * Check if a session is completed (shows in results)
- */
-export function isCompletedSession(status: UserExamStatus): boolean {
-    return status === 'FINISHED' || status === 'TIMEOUT' || status === 'CANCELLED' || status === 'COMPLETED';
-}
+export type ExamStatusConfig = Record<ExamStatus, StatusConfig>;

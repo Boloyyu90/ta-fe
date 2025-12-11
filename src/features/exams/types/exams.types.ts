@@ -1,37 +1,29 @@
 // src/features/exams/types/exams.types.ts
 
 /**
- * Exam Types
+ * Exams Types
  *
- * ✅ AUDIT FIX v4:
- * - _count is optional on Exam (not all endpoints include it)
- * - ExamWithCounts has required _count
- *
- * Backend endpoints:
- * - Participant: /api/v1/exams/*
- * - Admin: /api/v1/admin/exams/*
+ * Source: backend-api-contract.md + backend exams.validation.ts
  */
 
 import type { PaginationMeta } from '@/shared/types/api.types';
-import type { UserExam } from '@/features/exam-sessions/types/exam-sessions.types';
+import type { UserExam, UserExamSession, ExamQuestion, ParticipantAnswer } from '@/features/exam-sessions/types/exam-sessions.types';
+
+// Re-export for convenience
+export type { UserExam };
 
 // ============================================================================
-// BASE ENTITIES
+// EXAM ENTITY
 // ============================================================================
 
 /**
- * Exam entity - matches backend Prisma model
- *
- * ⚠️ CRITICAL: Backend uses `isActive` boolean, NOT `status` enum
- * ✅ FIX: _count is optional (not included in all responses)
+ * Exam entity (matches backend Prisma Exam model)
  */
 export interface Exam {
     id: number;
     title: string;
     description: string | null;
     durationMinutes: number;
-    passingScore: number;
-    isActive: boolean;
     startTime: string | null;
     endTime: string | null;
     createdBy: number;
@@ -41,24 +33,7 @@ export interface Exam {
         examQuestions: number;
         userExams: number;
     };
-}
-
-/**
- * Exam with counts (for list views)
- * ✅ _count is guaranteed in list responses
- */
-export interface ExamWithCounts extends Omit<Exam, '_count'> {
-    _count: {
-        examQuestions: number;
-        userExams: number;
-    };
-}
-
-/**
- * Exam with creator info (for admin views)
- */
-export interface ExamWithCreator extends ExamWithCounts {
-    creator: {
+    creator?: {
         id: number;
         name: string;
         email: string;
@@ -66,218 +41,174 @@ export interface ExamWithCreator extends ExamWithCounts {
 }
 
 /**
- * Exam question in exam context
+ * Exam for participant view (published exams only)
  */
-export interface ExamQuestionItem {
+export interface ExamPublic {
     id: number;
-    orderNumber: number;
-    question: {
-        id: number;
-        content: string;
-        questionType: 'TIU' | 'TWK' | 'TKP';
-        defaultScore: number;
-        options?: {
-            A: string;
-            B: string;
-            C: string;
-            D: string;
-            E: string;
-        };
-        correctAnswer?: 'A' | 'B' | 'C' | 'D' | 'E';
+    title: string;
+    description: string | null;
+    durationMinutes: number;
+    startTime: string | null;
+    endTime: string | null;
+    createdAt: string;
+    _count: {
+        examQuestions: number;
     };
-}
-
-/**
- * Exam with questions attached
- */
-export interface ExamWithQuestions extends ExamWithCreator {
-    examQuestions: ExamQuestionItem[];
 }
 
 // ============================================================================
 // API REQUEST TYPES
 // ============================================================================
 
+/**
+ * Query params for GET /exams (participant)
+ */
+export interface ExamsQueryParams {
+    page?: number;
+    limit?: number;
+    search?: string;
+    sortBy?: 'title' | 'createdAt' | 'durationMinutes';
+    sortOrder?: 'asc' | 'desc';
+}
+
+/**
+ * Query params for GET /admin/exams
+ */
+export interface AdminExamsQueryParams extends ExamsQueryParams {
+    createdBy?: number;
+}
+
+/**
+ * Request to create exam
+ */
 export interface CreateExamRequest {
     title: string;
     description?: string;
     durationMinutes: number;
-    passingScore: number;
-    isActive?: boolean;
     startTime?: string;
     endTime?: string;
 }
 
+/**
+ * Request to update exam
+ */
 export interface UpdateExamRequest {
     title?: string;
-    description?: string | null;
+    description?: string;
     durationMinutes?: number;
-    passingScore?: number;
-    isActive?: boolean;
-    startTime?: string | null;
-    endTime?: string | null;
+    startTime?: string;
+    endTime?: string;
 }
 
+/**
+ * Request to attach questions to exam
+ */
 export interface AttachQuestionsRequest {
     questionIds: number[];
 }
 
+/**
+ * Request to detach questions from exam
+ */
 export interface DetachQuestionsRequest {
     questionIds: number[];
 }
 
 // ============================================================================
 // API RESPONSE TYPES
-// These are the shapes inside ApiResponse.data
 // ============================================================================
 
 /**
- * GET /exams response (participant list)
- * ✅ Backend returns { data, pagination } wrapper
+ * GET /exams (participant list)
+ * ✅ Uses correct PaginationMeta from shared types
  */
 export interface ExamsResponse {
-    data: ExamWithCounts[];
+    data: ExamPublic[];
     pagination: PaginationMeta;
 }
 
 /**
- * GET /exams/:id response (participant single)
- * ✅ Backend returns { exam }
+ * GET /exams/:id (participant detail)
  */
 export interface ExamDetailResponse {
     exam: Exam;
 }
 
 /**
- * POST /exams/:id/start response
- * ✅ Backend returns { userExam }
+ * POST /exams/:id/start
  */
 export interface StartExamResponse {
-    userExam: UserExam;
+    userExam: UserExamSession;
+    questions: ExamQuestion[];
+    answers: ParticipantAnswer[];
 }
 
 /**
- * GET /admin/exams response
+ * GET /admin/exams
  */
 export interface AdminExamsResponse {
-    data: ExamWithCreator[];
+    data: Exam[];
     pagination: PaginationMeta;
 }
 
 /**
- * GET /admin/exams/:id response
+ * GET /admin/exams/:id
  */
 export interface AdminExamDetailResponse {
-    exam: ExamWithCreator;
+    exam: Exam;
 }
 
 /**
- * GET /admin/exams/:id/questions response
- */
-export interface ExamQuestionsResponse {
-    questions: ExamQuestionItem[];
-    total: number;
-}
-
-/**
- * POST /admin/exams response
+ * POST /admin/exams
  */
 export interface CreateExamResponse {
     exam: Exam;
 }
 
 /**
- * PATCH /admin/exams/:id response
+ * PATCH /admin/exams/:id
  */
 export interface UpdateExamResponse {
-    exam: ExamWithCreator;
+    exam: Exam;
 }
 
 /**
- * DELETE /admin/exams/:id response
+ * DELETE /admin/exams/:id
  */
 export interface DeleteExamResponse {
     success: boolean;
-    message?: string;
+    message: string;
 }
 
 /**
- * POST /admin/exams/:id/questions response
+ * POST /admin/exams/:id/questions (attach)
  */
 export interface AttachQuestionsResponse {
-    message: string;
     attached: number;
-    alreadyAttached?: number;
+    total: number;
 }
 
 /**
- * DELETE /admin/exams/:id/questions response
+ * DELETE /admin/exams/:id/questions (detach)
  */
 export interface DetachQuestionsResponse {
-    message: string;
     detached: number;
-}
-
-// ============================================================================
-// QUERY PARAMS TYPES
-// ============================================================================
-
-export interface ExamsQueryParams {
-    page?: number;
-    limit?: number;
-    search?: string;
-    status?: 'active' | 'inactive' | 'all';
-    sortBy?: 'title' | 'createdAt' | 'durationMinutes' | 'startTime';
-    sortOrder?: 'asc' | 'desc';
-}
-
-export interface AdminExamsQueryParams extends ExamsQueryParams {
-    createdBy?: number;
-}
-
-// ============================================================================
-// UI HELPER TYPES
-// ============================================================================
-
-/**
- * Check if exam is currently available for registration
- */
-export function isExamAvailable(exam: Exam | ExamWithCounts): boolean {
-    if (!exam.isActive) return false;
-
-    const now = new Date();
-
-    if (exam.startTime && new Date(exam.startTime) > now) {
-        return false;
-    }
-
-    if (exam.endTime && new Date(exam.endTime) < now) {
-        return false;
-    }
-
-    return true;
+    remaining: number;
 }
 
 /**
- * Get exam availability status text
+ * GET /admin/exams/:id/questions
  */
-export function getExamAvailabilityStatus(exam: Exam | ExamWithCounts): {
-    status: 'available' | 'upcoming' | 'ended' | 'inactive';
-    label: string;
-} {
-    if (!exam.isActive) {
-        return { status: 'inactive', label: 'Tidak Aktif' };
-    }
-
-    const now = new Date();
-
-    if (exam.startTime && new Date(exam.startTime) > now) {
-        return { status: 'upcoming', label: 'Belum Dimulai' };
-    }
-
-    if (exam.endTime && new Date(exam.endTime) < now) {
-        return { status: 'ended', label: 'Sudah Berakhir' };
-    }
-
-    return { status: 'available', label: 'Tersedia' };
+export interface ExamQuestionsListResponse {
+    questions: Array<{
+        id: number;
+        orderNumber: number;
+        question: {
+            id: number;
+            content: string;
+            questionType: string;
+            defaultScore: number;
+        };
+    }>;
+    total: number;
 }

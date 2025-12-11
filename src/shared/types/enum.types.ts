@@ -4,9 +4,9 @@
  * SHARED ENUM TYPES
  *
  * ⚠️ CRITICAL: These MUST match backend Prisma enums EXACTLY
- * Source: backend/prisma/schema.prisma
+ * Source: backend/prisma/schema.prisma + backend-api-contract.md
  *
- * DO NOT modify without verifying backend first!
+ * DO NOT modify these without checking backend first!
  */
 
 // ============================================================================
@@ -15,35 +15,37 @@
 
 /**
  * User roles
- * Backend Prisma: enum UserRole { ADMIN, PARTICIPANT }
+ * Backend: enum UserRole { ADMIN, PARTICIPANT }
  */
 export type UserRole = 'ADMIN' | 'PARTICIPANT';
 
 // ============================================================================
-// EXAM SESSION STATUS (for UserExam model)
+// EXAM ENUMS
 // ============================================================================
 
 /**
- * ⚠️ CRITICAL FIX: This is UserExam.status, NOT Exam.status!
- * Backend Prisma: enum ExamStatus { IN_PROGRESS, FINISHED, CANCELLED, TIMEOUT }
+ * Exam session status
+ * Backend: enum ExamStatus { IN_PROGRESS, FINISHED, CANCELLED, TIMEOUT }
  *
- * Applied to: UserExam.status field
- * Represents: Status of a participant's exam session
+ * ⚠️ NOTE: Backend uses FINISHED, not COMPLETED!
  */
-export type UserExamStatus = 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED' | 'TIMEOUT';
-
-// ❌ REMOVED: Frontend was using 'NOT_STARTED' | 'COMPLETED' - these DON'T exist in backend
-// ❌ REMOVED: Separate 'ExamStatus' for exam entity - that's not an enum in backend
-
-// ============================================================================
-// QUESTION TYPES
-// ============================================================================
+export type ExamStatus = 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED' | 'TIMEOUT';
 
 /**
  * Question types for CPNS exam
- * Backend Prisma: enum QuestionType { TIU, TKP, TWK }
+ * Backend: enum QuestionType { TIU, TKP, TWK }
+ *
+ * TIU = Tes Intelegensia Umum (General Intelligence Test)
+ * TKP = Tes Karakteristik Pribadi (Personal Characteristics Test)
+ * TWK = Tes Wawasan Kebangsaan (National Insight Test)
  */
 export type QuestionType = 'TIU' | 'TKP' | 'TWK';
+
+/**
+ * Answer options for multiple choice questions
+ * Backend: Stored as string, validated as A-E or null
+ */
+export type AnswerOption = 'A' | 'B' | 'C' | 'D' | 'E' | null;
 
 // ============================================================================
 // PROCTORING ENUMS
@@ -51,7 +53,7 @@ export type QuestionType = 'TIU' | 'TKP' | 'TWK';
 
 /**
  * Proctoring event types
- * Backend Prisma: enum ProctoringEventType { FACE_DETECTED, NO_FACE_DETECTED, MULTIPLE_FACES, LOOKING_AWAY }
+ * Backend: enum ProctoringEventType { FACE_DETECTED, NO_FACE_DETECTED, MULTIPLE_FACES, LOOKING_AWAY }
  */
 export type ProctoringEventType =
     | 'FACE_DETECTED'
@@ -60,12 +62,13 @@ export type ProctoringEventType =
     | 'LOOKING_AWAY';
 
 /**
- * ⚠️ CRITICAL FIX: Backend stores as string, only uses 3 levels
- * Backend: severity is stored as string with values 'LOW' | 'MEDIUM' | 'HIGH'
- *
- * ❌ REMOVED 'INFO' - backend never returns this value
+ * Proctoring violation severity levels
+ * Backend: Stored as string in database ('LOW', 'MEDIUM', 'HIGH')
  */
-export type ViolationSeverity = 'LOW' | 'MEDIUM' | 'HIGH';
+export type Severity = 'LOW' | 'MEDIUM' | 'HIGH';
+
+/** @deprecated Use `Severity` instead */
+export type ProctoringEventSeverity = Severity;
 
 // ============================================================================
 // TOKEN ENUMS
@@ -73,56 +76,92 @@ export type ViolationSeverity = 'LOW' | 'MEDIUM' | 'HIGH';
 
 /**
  * Token types for authentication
- * Backend Prisma: enum TokenType { ACCESS, REFRESH, RESET_PASSWORD, VERIFY_EMAIL }
+ * Backend: enum TokenType { ACCESS, REFRESH, RESET_PASSWORD, VERIFY_EMAIL }
  */
 export type TokenType = 'ACCESS' | 'REFRESH' | 'RESET_PASSWORD' | 'VERIFY_EMAIL';
 
 // ============================================================================
-// ENUM CONSTANTS (for dropdowns, filters, etc)
+// ENUM CONSTANTS (for dropdowns, filters, validation)
 // ============================================================================
 
-/**
- * User role options for forms
- */
-export const USER_ROLE_OPTIONS = [
-    { value: 'PARTICIPANT' as const, label: 'Participant' },
-    { value: 'ADMIN' as const, label: 'Administrator' },
+/** All user roles */
+export const USER_ROLES: readonly UserRole[] = ['ADMIN', 'PARTICIPANT'] as const;
+
+/** All exam statuses */
+export const EXAM_STATUSES: readonly ExamStatus[] = [
+    'IN_PROGRESS',
+    'FINISHED',
+    'CANCELLED',
+    'TIMEOUT',
 ] as const;
 
-/**
- * User exam status options for filters
- */
-export const USER_EXAM_STATUS_OPTIONS = [
-    { value: 'IN_PROGRESS' as const, label: 'In Progress' },
-    { value: 'FINISHED' as const, label: 'Finished' },
-    { value: 'CANCELLED' as const, label: 'Cancelled' },
-    { value: 'TIMEOUT' as const, label: 'Timeout' },
+/** All question types */
+export const QUESTION_TYPES: readonly QuestionType[] = ['TIU', 'TKP', 'TWK'] as const;
+
+/** All answer options (without null) */
+export const ANSWER_OPTIONS: readonly Exclude<AnswerOption, null>[] = [
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
 ] as const;
 
-/**
- * Question type options for forms/filters
- */
-export const QUESTION_TYPE_OPTIONS = [
-    { value: 'TIU' as const, label: 'TIU - General Intelligence' },
-    { value: 'TKP' as const, label: 'TKP - Personal Characteristics' },
-    { value: 'TWK' as const, label: 'TWK - National Insight' },
+/** All proctoring event types */
+export const PROCTORING_EVENT_TYPES: readonly ProctoringEventType[] = [
+    'FACE_DETECTED',
+    'NO_FACE_DETECTED',
+    'MULTIPLE_FACES',
+    'LOOKING_AWAY',
 ] as const;
 
-/**
- * Proctoring event type options for filters
- */
-export const PROCTORING_EVENT_TYPE_OPTIONS = [
-    { value: 'FACE_DETECTED' as const, label: 'Face Detected' },
-    { value: 'NO_FACE_DETECTED' as const, label: 'No Face Detected' },
-    { value: 'MULTIPLE_FACES' as const, label: 'Multiple Faces' },
-    { value: 'LOOKING_AWAY' as const, label: 'Looking Away' },
-] as const;
+/** All severity levels */
+export const SEVERITY_LEVELS: readonly Severity[] = ['LOW', 'MEDIUM', 'HIGH'] as const;
 
-/**
- * Severity level options for filters
- */
-export const SEVERITY_OPTIONS = [
-    { value: 'LOW' as const, label: 'Low' },
-    { value: 'MEDIUM' as const, label: 'Medium' },
-    { value: 'HIGH' as const, label: 'High' },
-] as const;
+// ============================================================================
+// DISPLAY LABELS (for UI rendering)
+// ============================================================================
+
+/** Human-readable labels for exam statuses */
+export const EXAM_STATUS_LABELS: Record<ExamStatus, string> = {
+    IN_PROGRESS: 'In Progress',
+    FINISHED: 'Finished',
+    CANCELLED: 'Cancelled',
+    TIMEOUT: 'Timed Out',
+};
+
+/** Human-readable labels for question types */
+export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
+    TIU: 'TIU - Tes Intelegensia Umum',
+    TKP: 'TKP - Tes Karakteristik Pribadi',
+    TWK: 'TWK - Tes Wawasan Kebangsaan',
+};
+
+/** Short labels for question types */
+export const QUESTION_TYPE_SHORT_LABELS: Record<QuestionType, string> = {
+    TIU: 'TIU',
+    TKP: 'TKP',
+    TWK: 'TWK',
+};
+
+/** Human-readable labels for proctoring events */
+export const PROCTORING_EVENT_LABELS: Record<ProctoringEventType, string> = {
+    FACE_DETECTED: 'Face Detected',
+    NO_FACE_DETECTED: 'No Face Detected',
+    MULTIPLE_FACES: 'Multiple Faces',
+    LOOKING_AWAY: 'Looking Away',
+};
+
+/** Human-readable labels for severity */
+export const SEVERITY_LABELS: Record<Severity, string> = {
+    LOW: 'Low',
+    MEDIUM: 'Medium',
+    HIGH: 'High',
+};
+
+/** Severity colors for UI (Tailwind classes) */
+export const SEVERITY_COLORS: Record<Severity, string> = {
+    LOW: 'text-green-600 bg-green-100',
+    MEDIUM: 'text-yellow-600 bg-yellow-100',
+    HIGH: 'text-red-600 bg-red-100',
+};

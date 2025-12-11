@@ -1,31 +1,23 @@
 // src/features/users/types/users.types.ts
 
 /**
- * User Types
+ * Users Types
  *
- * ✅ AUDIT FIX v3:
- * - All response types are the inner data (what ApiResponse.data contains)
- * - Uses shared PaginationMeta
- *
- * Backend endpoints:
- * - Participant: /api/v1/me
- * - Admin: /api/v1/admin/users/*
+ * Source: backend-api-contract.md + backend users.validation.ts
  */
 
+import type { UserRole } from '@/shared/types/enum.types';
 import type { PaginationMeta } from '@/shared/types/api.types';
 
-// ============================================================================
-// ENUMS
-// ============================================================================
-
-export type UserRole = 'ADMIN' | 'PARTICIPANT';
+// Re-export for convenience
+export type { UserRole };
 
 // ============================================================================
-// BASE ENTITIES
+// USER ENTITY
 // ============================================================================
 
 /**
- * User entity - matches backend public fields
+ * User entity (matches backend Prisma User model)
  */
 export interface User {
     id: number;
@@ -38,7 +30,7 @@ export interface User {
 }
 
 /**
- * User with counts (for admin views)
+ * User with counts (for admin detail view)
  */
 export interface UserWithCounts extends User {
     _count: {
@@ -51,6 +43,9 @@ export interface UserWithCounts extends User {
 // API REQUEST TYPES
 // ============================================================================
 
+/**
+ * Request to create user (admin)
+ */
 export interface CreateUserRequest {
     email: string;
     password: string;
@@ -58,6 +53,9 @@ export interface CreateUserRequest {
     role?: UserRole;
 }
 
+/**
+ * Request to update user (admin)
+ */
 export interface UpdateUserRequest {
     email?: string;
     password?: string;
@@ -66,71 +64,17 @@ export interface UpdateUserRequest {
     isEmailVerified?: boolean;
 }
 
+/**
+ * Request to update own profile
+ */
 export interface UpdateProfileRequest {
     name?: string;
     password?: string;
 }
 
-// ============================================================================
-// API RESPONSE TYPES
-// These are the shapes inside ApiResponse.data
-// ============================================================================
-
 /**
- * GET /admin/users response
+ * Query params for GET /admin/users
  */
-export interface UsersListResponse {
-    data: User[];
-    pagination: PaginationMeta;
-}
-
-/**
- * GET /admin/users/:id response
- */
-export interface UserDetailResponse {
-    user: UserWithCounts;
-}
-
-/**
- * POST /admin/users response
- */
-export interface CreateUserResponse {
-    user: User;
-}
-
-/**
- * PATCH /admin/users/:id response
- */
-export interface UpdateUserResponse {
-    user: User;
-}
-
-/**
- * DELETE /admin/users/:id response
- */
-export interface DeleteUserResponse {
-    success: boolean;
-    message?: string;
-}
-
-/**
- * GET /me response
- */
-export interface ProfileResponse {
-    user: User;
-}
-
-/**
- * PATCH /me response
- */
-export interface UpdateProfileResponse {
-    user: User;
-}
-
-// ============================================================================
-// QUERY PARAMS TYPES
-// ============================================================================
-
 export interface UsersQueryParams {
     page?: number;
     limit?: number;
@@ -138,4 +82,59 @@ export interface UsersQueryParams {
     search?: string;
     sortBy?: 'createdAt' | 'name' | 'email' | 'role';
     sortOrder?: 'asc' | 'desc';
+}
+
+// ============================================================================
+// API RESPONSE TYPES
+// ============================================================================
+
+/**
+ * GET /admin/users
+ * ✅ Uses correct PaginationMeta
+ */
+export interface UsersListResponse {
+    data: User[];
+    pagination: PaginationMeta;
+}
+
+/**
+ * GET /admin/users/:id
+ */
+export interface UserDetailResponse {
+    user: UserWithCounts;
+}
+
+/**
+ * POST /admin/users
+ */
+export interface CreateUserResponse {
+    user: User;
+}
+
+/**
+ * PATCH /admin/users/:id
+ */
+export interface UpdateUserResponse {
+    user: User;
+}
+
+/**
+ * DELETE /admin/users/:id
+ */
+export interface DeleteUserResponse {
+    success: boolean;
+}
+
+/**
+ * GET /me
+ */
+export interface ProfileResponse {
+    user: User;
+}
+
+/**
+ * PATCH /me
+ */
+export interface UpdateProfileResponse {
+    user: User;
 }
