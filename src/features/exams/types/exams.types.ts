@@ -1,13 +1,26 @@
+/**
+ * EXAMS TYPES
+ */
+
 import type { PaginationMeta } from '@/shared/types/api.types';
-import type { UserExam, UserExamSession, ExamQuestion, ParticipantAnswer } from '@/features/exam-sessions/types/exam-sessions.types';
+import type {
+    UserExam,
+    UserExamSession,
+    ExamQuestion,
+    ParticipantAnswer,
+} from '@/features/exam-sessions/types/exam-sessions.types';
 
 // Re-export for convenience
 export type { UserExam };
 
 // ============================================================================
-// EXAM ENTITY
+// EXAM ENTITY (matches backend Exam model)
 // ============================================================================
 
+/**
+ * Full Exam entity as returned by backend
+ * Source: backend-api-contract.md Section 4.1
+ */
 export interface Exam {
     id: number;
     title: string;
@@ -19,9 +32,10 @@ export interface Exam {
     createdBy: number;
     createdAt: string;
     updatedAt: string;
+    // Optional relations (included in some responses)
     _count?: {
         examQuestions: number;
-        userExams: number;
+        userExams?: number;
     };
     creator?: {
         id: number;
@@ -30,6 +44,19 @@ export interface Exam {
     };
 }
 
+/**
+ * ExamWithCount - Exam with question count (used in list views)
+ * Source: backend-api-contract.md Section 4.1
+ */
+export interface ExamWithCount extends Exam {
+    _count: {
+        examQuestions: number;
+    };
+}
+
+/**
+ * Public exam view for participants (excludes sensitive fields)
+ */
 export interface ExamPublic {
     id: number;
     title: string;
@@ -68,6 +95,7 @@ export interface AdminExamsQueryParams extends ExamsQueryParams {
 
 /**
  * Request to create exam
+ * POST /admin/exams
  */
 export interface CreateExamRequest {
     title: string;
@@ -80,6 +108,7 @@ export interface CreateExamRequest {
 
 /**
  * Request to update exam
+ * PATCH /admin/exams/:id
  */
 export interface UpdateExamRequest {
     title?: string;
@@ -92,17 +121,27 @@ export interface UpdateExamRequest {
 
 /**
  * Request to attach questions to exam
+ * POST /admin/exams/:id/questions
  */
 export interface AttachQuestionsRequest {
     questionIds: number[];
 }
 
+/**
+ * Request to detach questions from exam
+ * DELETE /admin/exams/:id/questions
+ */
+export interface DetachQuestionsRequest {
+    questionIds: number[];
+}
+
 // ============================================================================
-// API RESPONSE TYPES
+// API RESPONSE TYPES (Aligned with backend contract)
 // ============================================================================
 
 /**
  * GET /exams (participant list)
+ * Returns paginated list of available exams
  */
 export interface ExamsListResponse {
     data: ExamPublic[];
@@ -111,6 +150,7 @@ export interface ExamsListResponse {
 
 /**
  * GET /admin/exams (admin list)
+ * Returns paginated list of all exams with creator info
  */
 export interface AdminExamsListResponse {
     data: Exam[];
@@ -118,20 +158,101 @@ export interface AdminExamsListResponse {
 }
 
 /**
- * GET /exams/:id (single exam)
+ * GET /exams/:id (single exam detail)
+ * Returns exam wrapped in { exam: Exam }
  */
 export interface ExamDetailResponse {
     exam: Exam;
 }
 
 /**
+ * GET /admin/exams/:id (admin exam detail)
+ * Same structure as ExamDetailResponse but with full data
+ */
+export interface AdminExamDetailResponse {
+    exam: Exam;
+}
+
+/**
  * POST /exams/:id/start
+ * Returns started session with questions and existing answers
  */
 export interface StartExamResponse {
     userExam: UserExamSession;
     questions: ExamQuestion[];
     answers: ParticipantAnswer[];
 }
+
+/**
+ * POST /admin/exams
+ * Returns created exam
+ */
+export interface CreateExamResponse {
+    exam: Exam;
+}
+
+/**
+ * PATCH /admin/exams/:id
+ * Returns updated exam
+ */
+export interface UpdateExamResponse {
+    exam: Exam;
+}
+
+/**
+ * DELETE /admin/exams/:id
+ * Returns success message
+ */
+export interface DeleteExamResponse {
+    message: string;
+}
+
+/**
+ * POST /admin/exams/:id/questions
+ * Returns attach result
+ */
+export interface AttachQuestionsResponse {
+    message: string;
+    attached: number;
+    alreadyAttached?: number;
+}
+
+/**
+ * DELETE /admin/exams/:id/questions
+ * Returns detach result
+ */
+export interface DetachQuestionsResponse {
+    message: string;
+    detached: number;
+}
+
+/**
+ * GET /admin/exams/:id/questions
+ * Returns exam's questions with pagination
+ */
+export interface ExamQuestionsListResponse {
+    data: Array<{
+        id: number;
+        orderNumber: number;
+        question: {
+            id: number;
+            content: string;
+            questionType: string;
+            defaultScore: number;
+        };
+    }>;
+    pagination: PaginationMeta;
+}
+
+// ============================================================================
+// TYPE ALIASES FOR BACKWARD COMPATIBILITY
+// ============================================================================
+
+/** @deprecated Use ExamsListResponse instead */
+export type ExamsResponse = ExamsListResponse;
+
+/** @deprecated Use AdminExamsListResponse instead */
+export type AdminExamsResponse = AdminExamsListResponse;
 
 // ============================================================================
 // UTILITY FUNCTIONS

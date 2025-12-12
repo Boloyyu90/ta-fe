@@ -1,18 +1,12 @@
-// src/features/proctoring/api/proctoring.api.ts
-
 /**
  * PROCTORING API CLIENT
  *
- * ============================================================================
- * PHASE 2 FIX v2: Aligned with Phase 1 ProctoringEventsParams
- * ============================================================================
- *
- * ProctoringEventsParams has these fields (NO severity):
+ * Query params for events endpoints:
  * - page?: number
  * - limit?: number
  * - eventType?: ProctoringEventType
- * - startDate?: string
- * - endDate?: string
+ * - startDate?: string (ISO datetime)
+ * - endDate?: string (ISO datetime)
  * - sortOrder?: 'asc' | 'desc'
  *
  * Backend endpoints:
@@ -28,9 +22,9 @@ import type {
     // Request types
     AnalyzeFaceRequest,
     LogEventRequest,
-    ProctoringEventsParams,
-    AdminProctoringEventsParams,
-    // Response types (Phase 1 aligned)
+    ProctoringEventsQueryParams,
+    AdminProctoringEventsQueryParams,
+    // Response types
     AnalyzeFaceResponse,
     ProctoringEventsResponse,
     AdminProctoringEventsResponse,
@@ -65,17 +59,14 @@ export const proctoringApi = {
      * Get proctoring events for a session (participant view)
      * GET /api/v1/proctoring/exam-sessions/:sessionId/events
      *
-     * ✅ FIXED: Removed severity from params (doesn't exist in Phase 1 types)
-     *
      * @returns ProctoringEventsResponse = { data: ProctoringEvent[], pagination: PaginationMeta }
      */
     getEvents: async (
         sessionId: number,
-        params: ProctoringEventsParams = {}
+        params: ProctoringEventsQueryParams = {}
     ): Promise<ProctoringEventsResponse> => {
         const queryParams = new URLSearchParams();
 
-        // ✅ Only use fields that exist in ProctoringEventsParams
         if (params.page) queryParams.append('page', params.page.toString());
         if (params.limit) queryParams.append('limit', params.limit.toString());
         if (params.eventType) queryParams.append('eventType', params.eventType);
@@ -111,14 +102,13 @@ export const proctoringApi = {
      * Get all proctoring events (admin view)
      * GET /api/v1/admin/proctoring/events
      *
-     * @returns AdminProctoringEventsResponse = { data: ProctoringEventWithDetails[], pagination: PaginationMeta }
+     * @returns AdminProctoringEventsResponse = { data: ProctoringEvent[], pagination: PaginationMeta }
      */
     getAdminEvents: async (
-        params: AdminProctoringEventsParams = {}
+        params: AdminProctoringEventsQueryParams = {}
     ): Promise<AdminProctoringEventsResponse> => {
         const queryParams = new URLSearchParams();
 
-        // ✅ Use fields from AdminProctoringEventsParams (extends ProctoringEventsParams + userExamId)
         if (params.page) queryParams.append('page', params.page.toString());
         if (params.limit) queryParams.append('limit', params.limit.toString());
         if (params.eventType) queryParams.append('eventType', params.eventType);
@@ -138,17 +128,14 @@ export const proctoringApi = {
      * Get proctoring events for specific session (admin view)
      * GET /api/v1/admin/proctoring/exam-sessions/:userExamId/events
      *
-     * ✅ FIXED: Removed severity from params
-     *
      * @returns ProctoringEventsResponse = { data: ProctoringEvent[], pagination: PaginationMeta }
      */
     getAdminSessionEvents: async (
         userExamId: number,
-        params: ProctoringEventsParams = {}
+        params: ProctoringEventsQueryParams = {}
     ): Promise<ProctoringEventsResponse> => {
         const queryParams = new URLSearchParams();
 
-        // ✅ Only use fields that exist in ProctoringEventsParams
         if (params.page) queryParams.append('page', params.page.toString());
         if (params.limit) queryParams.append('limit', params.limit.toString());
         if (params.eventType) queryParams.append('eventType', params.eventType);

@@ -1,17 +1,5 @@
-// src/features/exams/api/exams.api.ts
-
 /**
  * EXAMS API CLIENT
- *
- * ============================================================================
- * PHASE 2 FIX: Correct type parameter usage
- * ============================================================================
- *
- * apiClient methods return Promise<ApiResponse<T>>
- * We pass T (payload type), not ApiResponse<T>
- * Access payload via response.data
- *
- * Types imported from: @/features/exams/types/exams.types.ts (Phase 1)
  *
  * Backend endpoints:
  * - Participant: /api/v1/exams/*
@@ -29,10 +17,10 @@ import type {
     AttachQuestionsRequest,
     DetachQuestionsRequest,
     // Response types (Phase 1 aligned)
-    ExamsResponse,
+    ExamsListResponse,
     ExamDetailResponse,
     StartExamResponse,
-    AdminExamsResponse,
+    AdminExamsListResponse,
     AdminExamDetailResponse,
     CreateExamResponse,
     UpdateExamResponse,
@@ -50,9 +38,9 @@ import type {
  * Get available exams (participant view)
  * GET /api/v1/exams
  *
- * @returns ExamsResponse = { data: ExamPublic[], pagination: PaginationMeta }
+ * @returns ExamsListResponse = { data: ExamPublic[], pagination: PaginationMeta }
  */
-export const getExams = async (params: ExamsQueryParams = {}): Promise<ExamsResponse> => {
+export const getExams = async (params: ExamsQueryParams = {}): Promise<ExamsListResponse> => {
     const { page = 1, limit = 10, search, sortBy, sortOrder } = params;
 
     const queryParams = new URLSearchParams({
@@ -64,7 +52,7 @@ export const getExams = async (params: ExamsQueryParams = {}): Promise<ExamsResp
     if (sortBy) queryParams.append('sortBy', sortBy);
     if (sortOrder) queryParams.append('sortOrder', sortOrder);
 
-    const response = await apiClient.get<ExamsResponse>(`/exams?${queryParams.toString()}`);
+    const response = await apiClient.get<ExamsListResponse>(`/exams?${queryParams.toString()}`);
     return response.data;
 };
 
@@ -98,11 +86,11 @@ export const startExam = async (examId: number): Promise<StartExamResponse> => {
  * Get all exams (admin view)
  * GET /api/v1/admin/exams
  *
- * @returns AdminExamsResponse = { data: Exam[], pagination: PaginationMeta }
+ * @returns AdminExamsListResponse = { data: Exam[], pagination: PaginationMeta }
  */
 export const getAdminExams = async (
     params: AdminExamsQueryParams = {}
-): Promise<AdminExamsResponse> => {
+): Promise<AdminExamsListResponse> => {
     const { page = 1, limit = 10, search, sortBy, sortOrder, createdBy } = params;
 
     const queryParams = new URLSearchParams({
@@ -115,7 +103,7 @@ export const getAdminExams = async (
     if (sortOrder) queryParams.append('sortOrder', sortOrder);
     if (createdBy) queryParams.append('createdBy', createdBy.toString());
 
-    const response = await apiClient.get<AdminExamsResponse>(
+    const response = await apiClient.get<AdminExamsListResponse>(
         `/admin/exams?${queryParams.toString()}`
     );
     return response.data;
@@ -133,29 +121,7 @@ export const getAdminExam = async (examId: number): Promise<AdminExamDetailRespo
 };
 
 /**
- * Get exam questions (admin view)
- * GET /api/v1/admin/exams/:id/questions
- *
- * @returns ExamQuestionsListResponse = { questions: [...], total: number }
- */
-export const getExamQuestions = async (
-    examId: number,
-    params?: { type?: 'TIU' | 'TWK' | 'TKP' }
-): Promise<ExamQuestionsListResponse> => {
-    const queryParams = new URLSearchParams();
-    if (params?.type) queryParams.append('type', params.type);
-
-    const queryString = queryParams.toString();
-    const url = queryString
-        ? `/admin/exams/${examId}/questions?${queryString}`
-        : `/admin/exams/${examId}/questions`;
-
-    const response = await apiClient.get<ExamQuestionsListResponse>(url);
-    return response.data;
-};
-
-/**
- * Create new exam
+ * Create a new exam
  * POST /api/v1/admin/exams
  *
  * @returns CreateExamResponse = { exam: Exam }
@@ -166,7 +132,7 @@ export const createExam = async (data: CreateExamRequest): Promise<CreateExamRes
 };
 
 /**
- * Update exam
+ * Update an existing exam
  * PATCH /api/v1/admin/exams/:id
  *
  * @returns UpdateExamResponse = { exam: Exam }
@@ -180,10 +146,10 @@ export const updateExam = async (
 };
 
 /**
- * Delete exam
+ * Delete an exam
  * DELETE /api/v1/admin/exams/:id
  *
- * @returns DeleteExamResponse = { success: boolean, message: string }
+ * @returns DeleteExamResponse = { message: string }
  */
 export const deleteExam = async (examId: number): Promise<DeleteExamResponse> => {
     const response = await apiClient.delete<DeleteExamResponse>(`/admin/exams/${examId}`);
@@ -191,10 +157,10 @@ export const deleteExam = async (examId: number): Promise<DeleteExamResponse> =>
 };
 
 /**
- * Attach questions to exam
+ * Attach questions to an exam
  * POST /api/v1/admin/exams/:id/questions
  *
- * @returns AttachQuestionsResponse = { attached: number, total: number }
+ * @returns AttachQuestionsResponse = { message, attached, alreadyAttached? }
  */
 export const attachQuestions = async (
     examId: number,
@@ -208,10 +174,10 @@ export const attachQuestions = async (
 };
 
 /**
- * Detach questions from exam
+ * Detach questions from an exam
  * DELETE /api/v1/admin/exams/:id/questions
  *
- * @returns DetachQuestionsResponse = { detached: number, remaining: number }
+ * @returns DetachQuestionsResponse = { message, detached }
  */
 export const detachQuestions = async (
     examId: number,
@@ -220,6 +186,28 @@ export const detachQuestions = async (
     const response = await apiClient.delete<DetachQuestionsResponse>(
         `/admin/exams/${examId}/questions`,
         { data }
+    );
+    return response.data;
+};
+
+/**
+ * Get questions attached to an exam
+ * GET /api/v1/admin/exams/:id/questions
+ *
+ * @returns ExamQuestionsListResponse = { data: ExamQuestion[], pagination }
+ */
+export const getExamQuestions = async (
+    examId: number,
+    params: { page?: number; limit?: number } = {}
+): Promise<ExamQuestionsListResponse> => {
+    const { page = 1, limit = 10 } = params;
+    const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+    });
+
+    const response = await apiClient.get<ExamQuestionsListResponse>(
+        `/admin/exams/${examId}/questions?${queryParams.toString()}`
     );
     return response.data;
 };
@@ -236,10 +224,10 @@ export const examsApi = {
     // Admin
     getAdminExams,
     getAdminExam,
-    getExamQuestions,
     createExam,
     updateExam,
     deleteExam,
     attachQuestions,
     detachQuestions,
+    getExamQuestions,
 };

@@ -1,3 +1,7 @@
+/**
+ * EXAM SESSIONS TYPES
+ */
+
 import type {
     ExamStatus,
     QuestionType,
@@ -60,7 +64,7 @@ export interface ExamInfo {
     title: string;
     description: string | null;
     passingScore?: number;
-    durationMinutes?: number;
+    durationMinutes?: number;   // Optional for some contexts
 }
 
 /**

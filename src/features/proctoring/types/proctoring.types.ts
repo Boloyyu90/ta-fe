@@ -1,5 +1,15 @@
 /**
- * Proctoring Types
+ * PROCTORING TYPES
+ *
+ * ============================================================================
+ * ALIGNED WITH BACKEND CONTRACT (backend-api-contract.md)
+ * ============================================================================
+ *
+ * Key endpoints:
+ * - POST /proctoring/exam-sessions/:id/analyze-face → AnalyzeFaceResponse
+ * - GET /proctoring/exam-sessions/:id/events → ProctoringEventsResponse
+ * - POST /proctoring/events → LogEventResponse
+ * - GET /admin/proctoring/events → AdminProctoringEventsResponse
  */
 
 import type {
@@ -25,6 +35,7 @@ export interface ProctoringEvent {
     severity: Severity;
     timestamp: string;
     metadata: Record<string, unknown> | null;
+    // Optional: included in admin responses
     userExam?: {
         id: number;
         userId: number;
@@ -76,11 +87,14 @@ export interface Violation {
  * Face analysis result from YOLO service
  */
 export interface FaceAnalysisResult {
-    eventType: ProctoringEventType;
-    severity: Severity;
+    status: 'success' | 'timeout' | 'error';
+    violations: string[];
     confidence: number;
-    faceCount: number;
     message: string;
+    metadata?: {
+        processingTimeMs: number;
+        error?: string;
+    };
 }
 
 /**
@@ -99,38 +113,80 @@ export interface WebcamState {
 
 /**
  * Request to analyze face
+ * POST /proctoring/exam-sessions/:id/analyze-face
  */
 export interface AnalyzeFaceRequest {
     imageBase64: string;
 }
 
 /**
- * Query params for proctoring events
+ * Request to log proctoring event manually
+ * POST /proctoring/events
+ */
+export interface LogEventRequest {
+    userExamId: number;
+    eventType: ProctoringEventType;
+    metadata?: Record<string, unknown>;
+}
+
+/**
+ * Query params for proctoring events (participant)
+ * GET /proctoring/exam-sessions/:id/events
  */
 export interface ProctoringEventsQueryParams {
     page?: number;
     limit?: number;
     eventType?: ProctoringEventType;
-    userExamId?: number;
     startDate?: string;
     endDate?: string;
     sortOrder?: 'asc' | 'desc';
 }
 
+/**
+ * Query params for admin proctoring events
+ * GET /admin/proctoring/events
+ */
+export interface AdminProctoringEventsQueryParams extends ProctoringEventsQueryParams {
+    userExamId?: number;
+}
+
 // ============================================================================
-// API RESPONSE TYPES
+// TYPE ALIASES FOR BACKWARD COMPATIBILITY
+// ============================================================================
+
+/** @deprecated Use ProctoringEventsQueryParams instead */
+export type ProctoringEventsParams = ProctoringEventsQueryParams;
+
+/** @deprecated Use AdminProctoringEventsQueryParams instead */
+export type AdminProctoringEventsParams = AdminProctoringEventsQueryParams;
+
+// ============================================================================
+// API RESPONSE TYPES (Aligned with backend contract)
 // ============================================================================
 
 /**
  * POST /proctoring/exam-sessions/:id/analyze-face
+ *
+ * ⚠️ THIS IS THE CORE ML INTEGRATION FOR THESIS DEMONSTRATION
  */
 export interface AnalyzeFaceResponse {
-    event: ProctoringEvent;
     analysis: FaceAnalysisResult;
+    eventLogged: boolean;
+    eventType: ProctoringEventType | null;
+    usedFallback: boolean;
+}
+
+/**
+ * POST /proctoring/events
+ * Returns the logged event
+ */
+export interface LogEventResponse {
+    event: ProctoringEvent;
 }
 
 /**
  * GET /proctoring/exam-sessions/:id/events
+ * Returns paginated list of proctoring events
  */
 export interface ProctoringEventsResponse {
     data: ProctoringEvent[];
@@ -139,6 +195,7 @@ export interface ProctoringEventsResponse {
 
 /**
  * GET /admin/proctoring/events
+ * Returns paginated list with user exam details
  */
 export interface AdminProctoringEventsResponse {
     data: ProctoringEvent[];

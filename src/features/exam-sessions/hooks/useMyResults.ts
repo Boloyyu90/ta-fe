@@ -1,25 +1,49 @@
-// src/features/exam-sessions/hooks/useMyResults.ts
-
 /**
  * Hook to fetch user's completed exam results
- *
- * ✅ AUDIT FIX v2:
- * - Returns MyResultsResponse (with correct PaginationMeta)
- * - Uses correct endpoint via examSessionsApi.getMyResults
  *
  * Backend: GET /api/v1/results
  */
 
 import { useQuery } from '@tanstack/react-query';
 import { examSessionsApi } from '../api/exam-sessions.api';
-import type { MyResultsResponse, GetMyResultsParams } from '../types/exam-sessions.types';
+import type {
+    ExamResult,
+    GetMyResultsParams,
+    MyResultsResponse,
+} from '../types/exam-sessions.types';
+import type { PaginationMeta } from '@/shared/types/api.types';
 
-export const useMyResults = (params?: GetMyResultsParams) => {
-    return useQuery<MyResultsResponse, Error>({
-        queryKey: ['my-results', params],
-        queryFn: () => examSessionsApi.getMyResults(params),
+export interface UseMyResultsOptions extends GetMyResultsParams {
+    enabled?: boolean;
+}
+
+export interface UseMyResultsResult {
+    data: ExamResult[] | undefined;
+    pagination: PaginationMeta | undefined;
+    isLoading: boolean;
+    isError: boolean;
+    error: Error | null;
+    refetch: () => void;
+}
+
+export function useMyResults(params: UseMyResultsOptions = {}): UseMyResultsResult {
+    const { page = 1, limit = 10, enabled = true } = params;
+
+    const query = useQuery<MyResultsResponse, Error>({
+        queryKey: ['my-results', { page, limit }],
+        queryFn: () => examSessionsApi.getMyResults({ page, limit }),
+        enabled,
+        staleTime: 60 * 1000, // 1 minute
     });
-};
 
-// Default export for flexibility
+    return {
+        data: query.data?.data,
+        pagination: query.data?.pagination,
+        isLoading: query.isLoading,
+        isError: query.isError,
+        error: query.error,
+        refetch: query.refetch,
+    };
+}
+
 export default useMyResults;

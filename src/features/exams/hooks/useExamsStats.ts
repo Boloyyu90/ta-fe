@@ -1,49 +1,52 @@
 /**
- * Hook for fetching exam statistics (dashboard)
+ * Hook for computing exam statistics from list data
  */
 
-import { useQuery } from '@tanstack/react-query';
-import { examsApi } from '../api/exams.api';
+import { useMemo } from 'react';
+import type { ExamPublic, Exam } from '../types/exams.types';
 
-export interface ExamsStats {
+export interface ExamStats {
     totalExams: number;
     totalQuestions: number;
-    averagePassingScore: number;
+    totalDuration: number;
+    averageDuration: number;
+    averageQuestionsPerExam: number;
 }
 
-export function useExamsStats() {
-    return useQuery<ExamsStats, Error>({
-        queryKey: ['exams-stats'],
-        queryFn: async () => {
-            const response = await examsApi.getExams({
-                limit: 100, // Get more exams for stats
-            });
-
-            const exams = response.data;
-            const totalExams = exams.length;
-
-            // Count total questions
-            const totalQuestions = exams.reduce(
-                (sum, exam) => sum + (exam._count?.examQuestions ?? 0),
-                0
-            );
-
-            const totalPassingScore = exams.reduce(
-                (sum, exam) => sum + (exam.passingScore ?? 0),
-                0
-            );
-            const averagePassingScore = totalExams > 0
-                ? Math.round(totalPassingScore / totalExams)
-                : 0;
-
+export function useExamsStats(exams: ExamPublic[] | Exam[] | undefined): ExamStats {
+    return useMemo(() => {
+        if (!exams || exams.length === 0) {
             return {
-                totalExams,
-                totalQuestions,
-                averagePassingScore,
+                totalExams: 0,
+                totalQuestions: 0,
+                totalDuration: 0,
+                averageDuration: 0,
+                averageQuestionsPerExam: 0,
             };
-        },
-        staleTime: 5 * 60 * 1000, // 5 minutes
-    });
+        }
+
+        const totalExams = exams.length;
+
+        const totalQuestions = exams.reduce(
+            (sum: number, exam: ExamPublic | Exam) =>
+                sum + (exam._count?.examQuestions ?? 0),
+            0
+        );
+
+        const totalDuration = exams.reduce(
+            (sum: number, exam: ExamPublic | Exam) =>
+                sum + exam.durationMinutes,
+            0
+        );
+
+        return {
+            totalExams,
+            totalQuestions,
+            totalDuration,
+            averageDuration: totalExams > 0 ? Math.round(totalDuration / totalExams) : 0,
+            averageQuestionsPerExam: totalExams > 0 ? Math.round(totalQuestions / totalExams) : 0,
+        };
+    }, [exams]);
 }
 
 export default useExamsStats;

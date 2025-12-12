@@ -1,17 +1,17 @@
-// src/features/proctoring/hooks/useAnalyzeFace.ts
-
 /**
  * Hook to analyze face via YOLO
  *
- * ✅ AUDIT FIX v4: eventLogged is now properly typed in AnalyzeFaceResponse
+ * Backend: POST /api/v1/proctoring/exam-sessions/:id/analyze-face
+ * Response: { analysis, eventLogged, eventType, usedFallback }
  *
- * ✅ Rate limited: 30 requests/minute
- * ✅ Invalidates events cache on violation
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { proctoringApi } from '../api/proctoring.api';
-import type { AnalyzeFaceRequest, AnalyzeFaceResponse } from '../types/proctoring.types';
+import type {
+    AnalyzeFaceRequest,
+    AnalyzeFaceResponse,
+} from '../types/proctoring.types';
 
 export function useAnalyzeFace(sessionId: number) {
     const queryClient = useQueryClient();
@@ -21,15 +21,16 @@ export function useAnalyzeFace(sessionId: number) {
             proctoringApi.analyzeFace(sessionId, data),
 
         onSuccess: (data: AnalyzeFaceResponse) => {
-            // ✅ FIX: eventLogged is now properly typed
             if (data.eventLogged) {
                 queryClient.invalidateQueries({
-                    queryKey: ['proctoring-events', sessionId]
+                    queryKey: ['proctoring-events', sessionId],
                 });
             }
         },
 
-        // Don't retry on errors (rate limiting)
+        // Don't retry on errors (rate limiting consideration)
         retry: false,
     });
 }
+
+export default useAnalyzeFace;
