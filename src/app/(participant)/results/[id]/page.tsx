@@ -42,12 +42,48 @@ const statusConfig: Record<ExamStatus, {
 
 export default function ResultDetailPage() {
     const params = useParams();
-    const sessionId = params.id ? Number(params.id) : undefined;
+
+    // ✅ FIX: Parse and validate sessionId
+    // params.id can be string | string[] | undefined
+    const rawId = params.id;
+    const parsedId = typeof rawId === 'string' ? Number(rawId) : NaN;
+    const isValidId = !Number.isNaN(parsedId) && parsedId > 0;
+
+    // ✅ FIX: Use validated number for useResultDetail
+    // useResultDetail accepts number | undefined, so we can pass undefined for invalid IDs
+    const sessionId = isValidId ? parsedId : undefined;
 
     const { data: result, isLoading, isError } = useResultDetail(sessionId);
 
-    // Fetch proctoring events
-    const { data: eventsResponse } = useProctoringEvents(sessionId);
+    // ✅ FIX: useProctoringEvents requires number, not number | undefined
+    // Pass the parsed number (or 0 as fallback) and use enabled to control the query
+    const { data: eventsResponse } = useProctoringEvents(
+        isValidId ? parsedId : 0,  // Pass 0 as fallback (query will be disabled anyway)
+        undefined,                  // No additional params
+        isValidId                   // enabled: only run query if ID is valid
+    );
+
+    // Handle invalid ID early
+    if (!isValidId) {
+        return (
+            <div className="container mx-auto py-8">
+                <Card>
+                    <CardContent className="py-8 text-center">
+                        <AlertTriangle className="h-12 w-12 mx-auto text-destructive mb-4" />
+                        <p className="text-muted-foreground mb-4">
+                            ID hasil ujian tidak valid.
+                        </p>
+                        <Button asChild>
+                            <Link href="/results">
+                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                Kembali ke Daftar Hasil
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     if (isLoading) {
         return (
@@ -101,6 +137,7 @@ export default function ResultDetailPage() {
     const statusInfo = statusConfig[status] ?? statusConfig.FINISHED;
     const StatusIcon = statusInfo.icon;
 
+    // ✅ FIX: Properly access events from the response
     const events = eventsResponse?.data ?? [];
 
     return (

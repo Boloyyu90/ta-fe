@@ -150,9 +150,9 @@ export default function DashboardPage() {
     });
 
     // Extract data from responses
-    const inProgressSessions = inProgressData ?? [];
-    const recentResults = recentResultsData ?? [];
-    const availableExams = availableExamsData ?? [];
+    const inProgressSessions: UserExam[] = inProgressData?.data ?? [];
+    const recentResults: ExamResult[] = recentResultsData ?? [];
+    const availableExams: ExamPublic[] = availableExamsData ?? [];
 
     return (
         <div className="min-h-screen bg-muted/30">

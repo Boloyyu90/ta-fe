@@ -12,18 +12,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui
 import { ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import { useUserExams } from '@/features/exam-sessions/hooks/useUserExams';
 import { UserExamCard } from '@/features/exam-sessions/components/UserExamCard';
-import type { ExamStatus } from '@/features/exam-sessions/types/exam-sessions.types';
+import type { ExamStatus, UserExam } from '@/features/exam-sessions/types/exam-sessions.types';
 
 export default function ExamSessionsPage() {
     const [page, setPage] = useState(1);
     const [statusFilter, setStatusFilter] = useState<ExamStatus | 'all'>('all');
     const limit = 10;
 
-    const { data, pagination, isLoading, isError } = useUserExams({
+    const { data, isLoading, isError } = useUserExams({
         page,
         limit,
         status: statusFilter === 'all' ? undefined : statusFilter,
     });
+
+    // Extract from wrapper response
+    const pagination = data?.pagination;
+    const sessions: UserExam[] = data?.data ?? [];
+
+    if (isLoading) {
 
     if (isLoading) {
         return (
@@ -51,8 +57,6 @@ export default function ExamSessionsPage() {
             </div>
         );
     }
-
-    const sessions = data ?? [];
 
     return (
         <div className="container mx-auto py-8 space-y-6">
@@ -97,7 +101,7 @@ export default function ExamSessionsPage() {
                         </Card>
                     ) : (
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {sessions.map((session) => (
+                            {sessions.map((session: UserExam) => (
                                 <UserExamCard key={session.id} userExam={session} />
                             ))}
                         </div>
@@ -133,4 +137,4 @@ export default function ExamSessionsPage() {
             )}
         </div>
     );
-}
+}}

@@ -1,4 +1,3 @@
-// src/app/(participant)/exam-session/[id]/page.tsx
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -45,7 +44,7 @@ export default function ExamSessionPage() {
     const [remainingMs, setRemainingMs] = useState<number>(0);
 
     // Extract data
-    const userExam = sessionData?.userExam;
+    const userExam = sessionData;
     const questions = questionsData?.questions || [];
     const currentQuestion = questions[currentQuestionIndex];
 
