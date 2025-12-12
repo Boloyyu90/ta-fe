@@ -1,93 +1,143 @@
-// src/app/(participant)/exams/page.tsx
-
 /**
  * Exams List Page
- *
- * ✅ AUDIT FIX v4: ExamCard now accepts Exam type (with optional _count)
  */
 
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { examsApi } from '@/features/exams/api/exams.api';
-import { ExamCard } from '@/features/exams/components/ExamCard';
-import { ExamsPagination } from '@/features/exams/components/ExamsPagination';
-import type { ExamsResponse, ExamsQueryParams } from '@/features/exams/types/exams.types';
-import { Card, CardContent } from '@/shared/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Skeleton } from '@/shared/components/ui/skeleton';
-import { Search, FileText } from 'lucide-react';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/shared/components/ui/select';
+import { ChevronLeft, ChevronRight, BookOpen, Search } from 'lucide-react';
+import { useExams } from '@/features/exams/hooks';
+import { ExamCard } from '@/features/exams/components/ExamCard';
+import type { ExamsQueryParams } from '@/features/exams/types/exams.types';
 
 export default function ExamsPage() {
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
-    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [sortBy, setSortBy] = useState<ExamsQueryParams['sortBy']>('createdAt');
+    const [sortOrder, setSortOrder] = useState<ExamsQueryParams['sortOrder']>('desc');
+    const limit = 12;
 
-    const params: ExamsQueryParams = {
+    const { data, pagination, isLoading, isError } = useExams({
         page,
-        limit: itemsPerPage,
+        limit,
         search: search || undefined,
-        status: 'active',
-    };
-
-    const { data, isLoading, error } = useQuery<ExamsResponse>({
-        queryKey: ['exams', params],
-        queryFn: () => examsApi.getExams(params),
+        sortBy,
+        sortOrder,
     });
 
-    const exams = data?.data ?? [];
-    const pagination = data?.pagination;
+    const handleSearch = (value: string) => {
+        setSearch(value);
+        setPage(1); // Reset to first page on search
+    };
 
-    return (
-        <div className="container mx-auto py-8 space-y-6">
-            {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold">Daftar Ujian</h1>
-                <p className="text-muted-foreground">
-                    Pilih ujian yang tersedia untuk memulai
-                </p>
-            </div>
-
-            {/* Search */}
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                    placeholder="Cari ujian..."
-                    value={search}
-                    onChange={(e) => {
-                        setSearch(e.target.value);
-                        setPage(1); // Reset to first page on search
-                    }}
-                    className="pl-10"
-                />
-            </div>
-
-            {/* Loading State */}
-            {isLoading && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                        <Skeleton key={i} className="h-64" />
-                    ))}
-                </div>
-            )}
-
-            {/* Error State */}
-            {error && (
+    if (isError) {
+        return (
+            <div className="container mx-auto py-8">
                 <Card>
-                    <CardContent className="py-12 text-center">
-                        <p className="text-destructive">
+                    <CardContent className="py-8 text-center">
+                        <p className="text-muted-foreground">
                             Gagal memuat daftar ujian. Silakan coba lagi.
                         </p>
                     </CardContent>
                 </Card>
-            )}
+            </div>
+        );
+    }
+
+    const exams = data ?? [];
+
+    return (
+        <div className="container mx-auto py-8 space-y-6">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+                <BookOpen className="h-8 w-8 text-primary" />
+                <div>
+                    <h1 className="text-2xl font-bold">Daftar Ujian</h1>
+                    <p className="text-muted-foreground">
+                        Pilih ujian yang ingin Anda kerjakan
+                    </p>
+                </div>
+            </div>
+
+            {/* Filters */}
+            <Card>
+                <CardContent className="py-4">
+                    <div className="flex flex-col md:flex-row gap-4">
+                        {/* Search */}
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Cari ujian..."
+                                value={search}
+                                onChange={(e) => handleSearch(e.target.value)}
+                                className="pl-10"
+                            />
+                        </div>
+
+                        {/* Sort By */}
+                        <Select
+                            value={sortBy}
+                            onValueChange={(v) => setSortBy(v as ExamsQueryParams['sortBy'])}
+                        >
+                            <SelectTrigger className="w-full md:w-[180px]">
+                                <SelectValue placeholder="Urutkan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="createdAt">Tanggal</SelectItem>
+                                <SelectItem value="title">Judul</SelectItem>
+                                <SelectItem value="durationMinutes">Durasi</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        {/* Sort Order */}
+                        <Select
+                            value={sortOrder}
+                            onValueChange={(v) => setSortOrder(v as ExamsQueryParams['sortOrder'])}
+                        >
+                            <SelectTrigger className="w-full md:w-[140px]">
+                                <SelectValue placeholder="Urutan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="desc">Terbaru</SelectItem>
+                                <SelectItem value="asc">Terlama</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Exams Grid */}
-            {!isLoading && exams.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {isLoading ? (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <Skeleton key={i} className="h-64" />
+                    ))}
+                </div>
+            ) : exams.length === 0 ? (
+                <Card>
+                    <CardContent className="py-12 text-center">
+                        <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground">
+                            {search
+                                ? `Tidak ditemukan ujian dengan kata kunci "${search}"`
+                                : 'Tidak ada ujian tersedia saat ini'}
+                        </p>
+                    </CardContent>
+                </Card>
+            ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {exams.map((exam) => (
-                        // ✅ FIX: ExamCard now accepts Exam type
                         <ExamCard key={exam.id} exam={exam} />
                     ))}
                 </div>
@@ -95,28 +145,29 @@ export default function ExamsPage() {
 
             {/* Pagination */}
             {pagination && pagination.totalPages > 1 && (
-                <ExamsPagination
-                    currentPage={pagination.page}
-                    totalPages={pagination.totalPages}
-                    totalItems={pagination.total}
-                    itemsPerPage={pagination.limit}
-                    onPageChange={setPage}
-                    onItemsPerPageChange={setItemsPerPage}
-                />
-            )}
-
-            {/* Empty State */}
-            {!isLoading && exams.length === 0 && (
-                <Card>
-                    <CardContent className="py-12 text-center">
-                        <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                        <p className="text-muted-foreground text-lg">
-                            {search
-                                ? `Tidak ada ujian yang cocok dengan "${search}"`
-                                : 'Belum ada ujian yang tersedia'}
-                        </p>
-                    </CardContent>
-                </Card>
+                <div className="flex items-center justify-center gap-4 pt-4">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={!pagination.hasPrev}
+                    >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Sebelumnya
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                        Halaman {pagination.page} dari {pagination.totalPages}
+                    </span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => p + 1)}
+                        disabled={!pagination.hasNext}
+                    >
+                        Selanjutnya
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                </div>
             )}
         </div>
     );

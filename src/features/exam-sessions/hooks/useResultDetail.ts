@@ -1,25 +1,51 @@
-// src/features/exam-sessions/hooks/useResultDetail.ts
-
 /**
  * Hook to fetch detailed result for a specific exam session
- *
- * ✅ AUDIT FIX v4: Fixed null checks for totalScore and passingScore
- *
- * Backend: GET /api/v1/exam-sessions/:id (for completed sessions)
  */
 
 import { useQuery } from '@tanstack/react-query';
 import { examSessionsApi } from '../api/exam-sessions.api';
-import type { ResultDetail, UserExam } from '../types/exam-sessions.types';
+import type { UserExam, ExamResult, ExamStatus } from '../types/exam-sessions.types';
+
+/**
+ * Result detail for display
+ */
+export interface ResultDetail {
+    id: number;
+    exam: {
+        id: number;
+        title: string;
+        description: string | null;
+        passingScore: number;
+        durationMinutes?: number;
+    };
+    user: {
+        id: number;
+        name: string;
+        email: string;
+    };
+    startedAt: string | null;
+    submittedAt: string | null;
+    totalScore: number | null;
+    status: ExamStatus;
+    duration: number | null;
+    answeredQuestions: number;
+    totalQuestions: number;
+    passed: boolean | null;
+    scoresByType: Array<{
+        type: string;
+        score: number;
+        maxScore: number;
+        correctAnswers: number;
+        totalQuestions: number;
+    }>;
+}
 
 /**
  * Transform UserExam to ResultDetail format
- * ✅ FIX: Added proper null checks for totalScore and passingScore
  */
 function transformToResultDetail(userExam: UserExam): ResultDetail {
-    // Safe null checks for passing calculation
+    const passingScore = userExam.exam.passingScore ?? 0;
     const totalScore = userExam.totalScore ?? null;
-    const passingScore = userExam.exam?.passingScore ?? 0;
 
     // Calculate passed status with null safety
     let passed: boolean | null = null;
@@ -32,43 +58,40 @@ function transformToResultDetail(userExam: UserExam): ResultDetail {
         exam: {
             id: userExam.exam.id,
             title: userExam.exam.title,
-            description: userExam.exam.description ?? null,
-            passingScore: userExam.exam.passingScore,
-            durationMinutes: userExam.exam.durationMinutes,
+            description: userExam.exam.description,
+            passingScore: passingScore,
+            durationMinutes: userExam.durationMinutes ?? undefined,
         },
         user: {
             id: userExam.userId,
-            name: '', // Will be filled by backend if available
-            email: '',
+            name: userExam.user?.name ?? '',
+            email: userExam.user?.email ?? '',
         },
-        startedAt: userExam.startTime ?? userExam.createdAt,
-        submittedAt: userExam.submittedAt ?? null,
+        startedAt: userExam.startedAt,
+        submittedAt: userExam.submittedAt,
         totalScore: totalScore,
         status: userExam.status,
-        duration: userExam.timeSpent ?? null,
+        // Duration is calculated on backend or derived
+        duration: null,
         answeredQuestions: userExam.answeredQuestions,
         totalQuestions: userExam.totalQuestions,
-        scoresByType: [],
-        // Extended fields
-        tiuScore: userExam.tiuScore,
-        twkScore: userExam.twkScore,
-        tkpScore: userExam.tkpScore,
-        violationCount: userExam.violationCount,
         passed: passed,
+        // scoresByType is empty from UserExam - would need separate API call
+        scoresByType: [],
     };
 }
 
-export const useResultDetail = (sessionId: number | undefined) => {
+export function useResultDetail(sessionId: number | undefined) {
     return useQuery<ResultDetail, Error>({
         queryKey: ['result-detail', sessionId],
         queryFn: async () => {
             if (!sessionId) throw new Error('Session ID is required');
 
-            const response = await examSessionsApi.getExamSession(sessionId);
+            const response = await examSessionsApi.getUserExam(sessionId);
             return transformToResultDetail(response.userExam);
         },
         enabled: sessionId !== undefined && sessionId > 0,
     });
-};
+}
 
 export default useResultDetail;

@@ -1,76 +1,134 @@
+/**
+ * Exam Sessions List Page
+ */
+
 'use client';
 
 import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { Button } from '@/shared/components/ui/button';
+import { Skeleton } from '@/shared/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
+import { ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import { useUserExams } from '@/features/exam-sessions/hooks/useUserExams';
 import { UserExamCard } from '@/features/exam-sessions/components/UserExamCard';
-import { Card, CardContent } from '@/shared/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
-import type { UserExamStatus } from '@/features/exam-sessions/types/exam-sessions.types';
+import type { ExamStatus } from '@/features/exam-sessions/types/exam-sessions.types';
 
-/**
- * Exam Sessions List Page
- *
- * Shows all user's exam sessions with filtering by status
- */
 export default function ExamSessionsPage() {
-    const [statusFilter, setStatusFilter] = useState<UserExamStatus | undefined>(undefined);
+    const [page, setPage] = useState(1);
+    const [statusFilter, setStatusFilter] = useState<ExamStatus | 'all'>('all');
+    const limit = 10;
 
-    // Fetch user exams with proper generics
-    // Returns: { data: { data: UserExam[], pagination: {...} } }
-    const { data, isLoading } = useUserExams({
-        status: statusFilter,
-        page: 1,
-        limit: 20,
+    const { data, pagination, isLoading, isError } = useUserExams({
+        page,
+        limit,
+        status: statusFilter === 'all' ? undefined : statusFilter,
     });
 
-    // Access the sessions array from the data wrapper
-    // data is { data: UserExam[], pagination: {...} }
-    const sessions = data?.data || [];
-
-    return (
-        <div className="container mx-auto py-8 space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold">Ujian Saya</h1>
-                <p className="text-gray-600 mt-2">
-                    Daftar ujian yang telah Anda daftarkan
-                </p>
-            </div>
-
-            {/* Status Filter */}
-            <Tabs
-                value={statusFilter || 'all'}
-                onValueChange={(value) =>
-                    setStatusFilter(value === 'all' ? undefined : (value as UserExamStatus))
-                }
-            >
-                <TabsList>
-                    <TabsTrigger value="all">Semua</TabsTrigger>
-                    <TabsTrigger value="NOT_STARTED">Belum Dimulai</TabsTrigger>
-                    <TabsTrigger value="IN_PROGRESS">Sedang Berlangsung</TabsTrigger>
-                    <TabsTrigger value="FINISHED">Selesai</TabsTrigger>
-                </TabsList>
-            </Tabs>
-
-            {/* Sessions Grid */}
-            {isLoading ? (
-                <div className="text-center py-12 text-gray-500">
-                    Memuat data...
+    if (isLoading) {
+        return (
+            <div className="container mx-auto py-8 space-y-6">
+                <Skeleton className="h-10 w-48" />
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <Skeleton key={i} className="h-64" />
+                    ))}
                 </div>
-            ) : sessions.length === 0 ? (
+            </div>
+        );
+    }
+
+    if (isError) {
+        return (
+            <div className="container mx-auto py-8">
                 <Card>
-                    <CardContent className="text-center py-12">
-                        <p className="text-gray-600">
-                            {statusFilter
-                                ? `Tidak ada ujian dengan status ${statusFilter}`
-                                : 'Belum ada ujian yang terdaftar'}
+                    <CardContent className="py-8 text-center">
+                        <p className="text-muted-foreground">
+                            Gagal memuat sesi ujian. Silakan coba lagi.
                         </p>
                     </CardContent>
                 </Card>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sessions.map((session) => (
-                        <UserExamCard key={session.id} userExam={session} />
-                    ))}
+            </div>
+        );
+    }
+
+    const sessions = data ?? [];
+
+    return (
+        <div className="container mx-auto py-8 space-y-6">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+                <BookOpen className="h-8 w-8 text-primary" />
+                <div>
+                    <h1 className="text-2xl font-bold">Sesi Ujian Saya</h1>
+                    <p className="text-muted-foreground">
+                        Daftar ujian yang sedang atau telah Anda kerjakan
+                    </p>
+                </div>
+            </div>
+
+            {/* Status Filter Tabs */}
+            <Tabs
+                value={statusFilter}
+                onValueChange={(v) => {
+                    setStatusFilter(v as ExamStatus | 'all');
+                    setPage(1);
+                }}
+            >
+                <TabsList>
+                    <TabsTrigger value="all">Semua</TabsTrigger>
+                    <TabsTrigger value="IN_PROGRESS">Berlangsung</TabsTrigger>
+                    <TabsTrigger value="FINISHED">Selesai</TabsTrigger>
+                    <TabsTrigger value="TIMEOUT">Timeout</TabsTrigger>
+                    <TabsTrigger value="CANCELLED">Dibatalkan</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value={statusFilter} className="mt-6">
+                    {sessions.length === 0 ? (
+                        <Card>
+                            <CardContent className="py-12 text-center">
+                                <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                <p className="text-muted-foreground">
+                                    {statusFilter === 'all'
+                                        ? 'Belum ada sesi ujian. Mulai ujian dari halaman Exams.'
+                                        : `Tidak ada sesi ujian dengan status "${statusFilter}".`}
+                                </p>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {sessions.map((session) => (
+                                <UserExamCard key={session.id} userExam={session} />
+                            ))}
+                        </div>
+                    )}
+                </TabsContent>
+            </Tabs>
+
+            {/* Pagination */}
+            {pagination && pagination.totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 pt-4">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={!pagination.hasPrev}
+                    >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Sebelumnya
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                        Halaman {pagination.page} dari {pagination.totalPages}
+                    </span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => p + 1)}
+                        disabled={!pagination.hasNext}
+                    >
+                        Selanjutnya
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
                 </div>
             )}
         </div>

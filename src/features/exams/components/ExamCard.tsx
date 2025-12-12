@@ -1,10 +1,5 @@
-// src/features/exams/components/ExamCard.tsx
-
 /**
  * Exam Card Component
- *
- * ✅ AUDIT FIX v4: Accepts Exam type with optional _count field
- * Falls back to 0 if _count is not present
  */
 
 'use client';
@@ -19,134 +14,144 @@ import {
     Clock,
     FileText,
     Calendar,
-    Users,
-    Play,
+    Target,
     CheckCircle,
     XCircle,
+    AlertTriangle,
 } from 'lucide-react';
-import type { Exam } from '../types/exams.types';
-import { isExamAvailable, getExamAvailabilityStatus } from '../types/exams.types';
+import type { Exam, ExamPublic } from '../types/exams.types';
+import { isExamAvailable, getExamAvailabilityStatus, formatDuration } from '../types/exams.types';
+
+// ============================================================================
+// PROPS
+// ============================================================================
 
 export interface ExamCardProps {
-    // ✅ FIX: Accept Exam type (with optional _count) instead of ExamWithCounts
-    exam: Exam;
+    exam: Exam | ExamPublic;
     showActions?: boolean;
-    onStart?: (examId: number) => void;
-    isStarting?: boolean;
 }
 
-export function ExamCard({ exam, showActions = true, onStart, isStarting }: ExamCardProps) {
-    // ✅ FIX: Safely access _count with fallback to 0
-    const questionCount = exam._count?.examQuestions ?? 0;
-    const participantCount = exam._count?.userExams ?? 0;
+// ============================================================================
+// AVAILABILITY CONFIG
+// ============================================================================
 
+const availabilityConfig = {
+    available: {
+        label: 'Tersedia',
+        variant: 'default' as const,
+        icon: CheckCircle,
+        color: 'text-green-600',
+    },
+    upcoming: {
+        label: 'Segera',
+        variant: 'secondary' as const,
+        icon: Clock,
+        color: 'text-blue-600',
+    },
+    ended: {
+        label: 'Berakhir',
+        variant: 'outline' as const,
+        icon: XCircle,
+        color: 'text-gray-500',
+    },
+    'no-questions': {
+        label: 'Belum Ada Soal',
+        variant: 'outline' as const,
+        icon: AlertTriangle,
+        color: 'text-yellow-600',
+    },
+};
+
+// ============================================================================
+// COMPONENT
+// ============================================================================
+
+export function ExamCard({ exam, showActions = true }: ExamCardProps) {
     const availability = getExamAvailabilityStatus(exam);
-    const canStart = isExamAvailable(exam);
+    const availInfo = availabilityConfig[availability];
+    const AvailIcon = availInfo.icon;
+    const canStart = availability === 'available';
 
-    const getAvailabilityBadge = () => {
-        const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-            available: 'default',
-            upcoming: 'secondary',
-            ended: 'destructive',
-            inactive: 'outline',
-        };
-
-        const icons: Record<string, typeof CheckCircle> = {
-            available: CheckCircle,
-            upcoming: Clock,
-            ended: XCircle,
-            inactive: XCircle,
-        };
-
-        const Icon = icons[availability.status];
-
-        return (
-            <Badge variant={variants[availability.status]} className="flex items-center gap-1">
-                <Icon className="h-3 w-3" />
-                {availability.label}
-            </Badge>
-        );
-    };
-
-    const handleStart = () => {
-        if (onStart && canStart) {
-            onStart(exam.id);
-        }
-    };
+    // Question count from _count
+    const questionCount = exam._count?.examQuestions ?? 0;
 
     return (
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="h-full hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                    <div className="space-y-1 flex-1">
-                        <CardTitle className="text-lg line-clamp-1">{exam.title}</CardTitle>
-                        {exam.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-2">
-                                {exam.description}
-                            </p>
-                        )}
-                    </div>
-                    {getAvailabilityBadge()}
+                <div className="flex items-start justify-between gap-4">
+                    <CardTitle className="text-lg line-clamp-2">
+                        {exam.title}
+                    </CardTitle>
+                    <Badge variant={availInfo.variant} className="shrink-0">
+                        <AvailIcon className={`h-3 w-3 mr-1 ${availInfo.color}`} />
+                        {availInfo.label}
+                    </Badge>
                 </div>
             </CardHeader>
 
             <CardContent className="space-y-4">
-                {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                {/* Description */}
+                {exam.description && (
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                        {exam.description}
+                    </p>
+                )}
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-4 text-sm">
                     {/* Duration */}
-                    <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>{exam.durationMinutes} menit</span>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        <span>{formatDuration(exam.durationMinutes)}</span>
                     </div>
 
-                    {/* Questions Count */}
-                    <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                    {/* Question Count */}
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                        <FileText className="h-4 w-4" />
                         <span>{questionCount} soal</span>
                     </div>
 
                     {/* Passing Score */}
-                    <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                        <Target className="h-4 w-4" />
                         <span>Passing: {exam.passingScore}</span>
                     </div>
 
-                    {/* Participants */}
-                    <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span>{participantCount} peserta</span>
-                    </div>
-
-                    {/* Schedule (if available) */}
+                    {/* Schedule (if set) */}
                     {exam.startTime && (
-                        <div className="flex items-center gap-2 col-span-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
                             <span>
-                                {format(new Date(exam.startTime), 'PPP', { locale: localeId })}
-                                {exam.endTime && (
-                                    <> - {format(new Date(exam.endTime), 'PPP', { locale: localeId })}</>
-                                )}
+                                {format(new Date(exam.startTime), 'dd MMM', { locale: localeId })}
                             </span>
                         </div>
                     )}
                 </div>
 
+                {/* Time Window Info */}
+                {(exam.startTime || exam.endTime) && (
+                    <div className="text-xs text-muted-foreground border-t pt-3">
+                        {exam.startTime && (
+                            <p>Mulai: {format(new Date(exam.startTime), 'PPp', { locale: localeId })}</p>
+                        )}
+                        {exam.endTime && (
+                            <p>Berakhir: {format(new Date(exam.endTime), 'PPp', { locale: localeId })}</p>
+                        )}
+                    </div>
+                )}
+
                 {/* Actions */}
                 {showActions && (
-                    <div className="flex gap-2">
-                        <Link href={`/exams/${exam.id}`} className="flex-1">
-                            <Button variant="outline" className="w-full">
-                                Detail
+                    <div className="pt-2">
+                        {canStart ? (
+                            <Button asChild className="w-full">
+                                <Link href={`/exams/${exam.id}`}>
+                                    Lihat Detail
+                                </Link>
                             </Button>
-                        </Link>
-                        {canStart && (
-                            <Button
-                                onClick={handleStart}
-                                disabled={isStarting}
-                                className="flex-1"
-                            >
-                                <Play className="mr-2 h-4 w-4" />
-                                {isStarting ? 'Memulai...' : 'Mulai'}
+                        ) : (
+                            <Button variant="outline" className="w-full" disabled>
+                                {availability === 'upcoming' ? 'Belum Dimulai' : 'Tidak Tersedia'}
                             </Button>
                         )}
                     </div>

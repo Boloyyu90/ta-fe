@@ -1,53 +1,63 @@
-// src/features/exam-sessions/components/AnswerReviewCard.tsx
+/**
+ * Answer Review Card Component
+ */
 
 'use client';
 
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { CheckCircle2, XCircle } from 'lucide-react';
-import type { AnswerWithQuestion, QuestionType } from '../types/exam-sessions.types';
+import type { AnswerWithQuestion } from '../types/exam-sessions.types';
+import type { QuestionType } from '@/shared/types/enum.types';
 
-/**
- * AnswerReviewCard Component
- *
- * Displays a single answer with its associated question for review
- *
- * ⚠️ CRITICAL: Backend structure changed!
- * OLD: answer.questionContent, answer.options, answer.selectedAnswer, answer.score
- * NEW: answer.examQuestion.content, answer.examQuestion.options, answer.selectedOption, answer.isCorrect
- *
- * Backend contract (API page 22-23):
- * - AnswerWithQuestion.examQuestion: { id, examQuestionId, content, options, questionType, orderNumber, imageUrl? }
- * - AnswerWithQuestion.selectedOption: 'A' | 'B' | 'C' | 'D' | 'E' | null
- * - AnswerWithQuestion.isCorrect: boolean (no score field returned)
- */
+// ============================================================================
+// PROPS
+// ============================================================================
 
 interface AnswerReviewCardProps {
     answer: AnswerWithQuestion;
+    index: number;
     showCorrectAnswer?: boolean;
 }
 
-// Type badge color mapping
+// ============================================================================
+// CONFIG
+// ============================================================================
+
 const typeColors: Record<QuestionType, string> = {
     TIU: 'bg-blue-100 text-blue-800 border-blue-200',
     TWK: 'bg-green-100 text-green-800 border-green-200',
     TKP: 'bg-purple-100 text-purple-800 border-purple-200',
 };
 
-// Type labels for display
 const typeLabels: Record<QuestionType, string> = {
     TIU: 'Tes Intelegensia Umum',
     TWK: 'Tes Wawasan Kebangsaan',
     TKP: 'Tes Karakteristik Pribadi',
 };
 
-export function AnswerReviewCard({ answer, showCorrectAnswer = true }: AnswerReviewCardProps) {
-    /**
-     * Extract data from nested examQuestion
-     * ⚠️ All question data is in answer.examQuestion!
-     */
-    const { content, options, questionType, orderNumber, imageUrl } = answer.examQuestion;
-    const { selectedOption, isCorrect } = answer;
+// ============================================================================
+// COMPONENT
+// ============================================================================
+
+export function AnswerReviewCard({
+                                     answer,
+                                     index,
+                                     showCorrectAnswer = true
+                                 }: AnswerReviewCardProps) {
+    const {
+        questionContent,
+        options,
+        questionType,
+        selectedOption,
+        correctAnswer,
+        isCorrect,
+        score,
+        orderNumber,
+    } = answer;
+
+    // Use orderNumber if available, otherwise use index
+    const displayNumber = orderNumber ?? index + 1;
 
     return (
         <Card className="overflow-hidden">
@@ -69,19 +79,19 @@ export function AnswerReviewCard({ answer, showCorrectAnswer = true }: AnswerRev
                             {isCorrect ? (
                                 <div className="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
                                     <CheckCircle2 className="h-4 w-4" />
-                                    Correct
+                                    Benar
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
                                     <XCircle className="h-4 w-4" />
-                                    Incorrect
+                                    Salah
                                 </div>
                             )}
                         </div>
                     )}
                     {selectedOption === null && (
                         <Badge variant="outline" className="text-muted-foreground">
-                            Not Answered
+                            Tidak Dijawab
                         </Badge>
                     )}
                 </div>
@@ -89,94 +99,82 @@ export function AnswerReviewCard({ answer, showCorrectAnswer = true }: AnswerRev
                 {/* Question Number */}
                 <div className="mb-3">
                     <span className="text-sm font-semibold text-muted-foreground">
-                        Question {orderNumber}
+                        Soal {displayNumber}
                     </span>
                 </div>
 
                 {/* Question Content */}
                 <div className="mb-4">
                     <p className="text-base leading-relaxed">
-                        {content}
+                        {questionContent}
                     </p>
                 </div>
 
-                {/* Question Image (if exists) */}
-                {imageUrl && (
-                    <div className="mb-4">
-                        <img
-                            src={imageUrl}
-                            alt={`Question ${orderNumber} illustration`}
-                            className="max-h-64 w-full rounded-lg border object-contain"
-                        />
-                    </div>
-                )}
+                {/* Score Display */}
+                <div className="mb-4 flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Skor:</span>
+                    <span className={`font-semibold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                        {score}
+                    </span>
+                </div>
 
                 {/* Answer Options */}
                 <div className="space-y-2">
                     {(['A', 'B', 'C', 'D', 'E'] as const).map((optionKey) => {
                         const optionText = options[optionKey];
                         const isSelected = selectedOption === optionKey;
-                        const isCorrectOption = showCorrectAnswer && answer.examQuestion.orderNumber > 0; // Note: correctAnswer not in examQuestion response
+                        const isCorrectOption = showCorrectAnswer && correctAnswer === optionKey;
 
-                        /**
-                         * Styling logic:
-                         * 1. Selected & Correct: Green background
-                         * 2. Selected & Incorrect: Red background
-                         * 3. Not selected: Default background
-                         */
-                        let optionClassName = 'flex items-start gap-3 rounded-lg border p-4 transition-colors';
+                        // Determine styling
+                        let optionClass = 'border-gray-200 bg-gray-50';
 
-                        if (isSelected) {
-                            if (isCorrect) {
-                                optionClassName += ' border-green-500 bg-green-50';
-                            } else {
-                                optionClassName += ' border-red-500 bg-red-50';
-                            }
-                        } else {
-                            optionClassName += ' border-gray-200 bg-white';
+                        if (isSelected && isCorrect) {
+                            // Selected and correct
+                            optionClass = 'border-green-500 bg-green-50';
+                        } else if (isSelected && !isCorrect) {
+                            // Selected but wrong
+                            optionClass = 'border-red-500 bg-red-50';
+                        } else if (isCorrectOption && showCorrectAnswer) {
+                            // Not selected but is correct answer
+                            optionClass = 'border-green-300 bg-green-50/50';
                         }
 
                         return (
-                            <div key={optionKey} className={optionClassName}>
-                                <div className="flex items-center">
-                                    {/* Option Label */}
-                                    <div
-                                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 font-semibold ${
-                                            isSelected
-                                                ? isCorrect
-                                                    ? 'border-green-600 bg-green-600 text-white'
-                                                    : 'border-red-600 bg-red-600 text-white'
-                                                : 'border-gray-300 bg-white text-gray-700'
-                                        }`}
-                                    >
-                                        {optionKey}
-                                    </div>
+                            <div
+                                key={optionKey}
+                                className={`flex items-start gap-3 rounded-lg border p-3 transition-colors ${optionClass}`}
+                            >
+                                <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-sm font-medium ${
+                                    isSelected
+                                        ? isCorrect
+                                            ? 'border-green-500 bg-green-500 text-white'
+                                            : 'border-red-500 bg-red-500 text-white'
+                                        : isCorrectOption && showCorrectAnswer
+                                            ? 'border-green-500 text-green-500'
+                                            : 'border-gray-300 text-gray-500'
+                                }`}>
+                                    {optionKey}
                                 </div>
-                                <div className="flex-1">
-                                    <p className="text-sm leading-relaxed">{optionText}</p>
-                                </div>
-                                {/* Show status icon for selected answer */}
+                                <span className="text-sm">{optionText}</span>
+
+                                {/* Indicators */}
                                 {isSelected && (
-                                    <div className="flex items-center">
-                                        {isCorrect ? (
-                                            <CheckCircle2 className="h-5 w-5 text-green-600" />
-                                        ) : (
-                                            <XCircle className="h-5 w-5 text-red-600" />
-                                        )}
-                                    </div>
+                                    <span className="ml-auto text-xs font-medium">
+                                        {isCorrect ? '✓ Jawaban Anda' : '✗ Jawaban Anda'}
+                                    </span>
+                                )}
+                                {!isSelected && isCorrectOption && showCorrectAnswer && (
+                                    <span className="ml-auto text-xs font-medium text-green-600">
+                                        ✓ Jawaban Benar
+                                    </span>
                                 )}
                             </div>
                         );
                     })}
                 </div>
-
-                {/* Explanation or Note */}
-                {!selectedOption && (
-                    <div className="mt-4 rounded-lg bg-amber-50 p-4 text-sm text-amber-800">
-                        You did not answer this question.
-                    </div>
-                )}
             </CardContent>
         </Card>
     );
 }
+
+export default AnswerReviewCard;

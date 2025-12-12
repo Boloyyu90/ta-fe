@@ -1,144 +1,273 @@
-// src/app/(participant)/results/[id]/page.tsx
+/**
+ * Result Detail Page
+ */
 
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { examSessionsApi } from '@/features/exam-sessions/api/exam-sessions.api';
-import { proctoringApi } from '@/features/proctoring/api/proctoring.api';
-import { formatDate, formatDuration } from '@/shared/lib/formatters';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
-import type { ProctoringEvent } from '@/features/proctoring/types/proctoring.types';
+import { Button } from '@/shared/components/ui/button';
+import { Progress } from '@/shared/components/ui/progress';
+import { Skeleton } from '@/shared/components/ui/skeleton';
+import {
+    Trophy,
+    XCircle,
+    Clock,
+    FileText,
+    ArrowLeft,
+    Eye,
+    CheckCircle,
+    AlertTriangle,
+} from 'lucide-react';
+import Link from 'next/link';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
+import { useResultDetail } from '@/features/exam-sessions/hooks/useResultDetail';
+import { useProctoringEvents } from '@/features/proctoring/hooks/useProctoringEvents';
+import { ProctoringEventsList } from '@/features/proctoring/components/ProctoringEventsList';
+import type { ExamStatus } from '@/shared/types/enum.types';
 
-export default function ResultsDetailPage() {
+// Status config
+const statusConfig: Record<ExamStatus, {
+    label: string;
+    variant: 'default' | 'secondary' | 'destructive' | 'outline';
+    icon: typeof CheckCircle;
+}> = {
+    IN_PROGRESS: { label: 'Sedang Berlangsung', variant: 'default', icon: Clock },
+    FINISHED: { label: 'Selesai', variant: 'secondary', icon: CheckCircle },
+    TIMEOUT: { label: 'Waktu Habis', variant: 'destructive', icon: AlertTriangle },
+    CANCELLED: { label: 'Dibatalkan', variant: 'outline', icon: XCircle },
+};
+
+export default function ResultDetailPage() {
     const params = useParams();
-    const sessionId = Number(params.id);
+    const sessionId = params.id ? Number(params.id) : undefined;
 
-    const { data: sessionData, isLoading: sessionLoading } = useQuery({
-        queryKey: ['exam-session', sessionId],
-        queryFn: () => examSessionsApi.getExamSession(sessionId),
-    });
+    const { data: result, isLoading, isError } = useResultDetail(sessionId);
 
-    const { data: eventsData, isLoading: eventsLoading } = useQuery({
-        queryKey: ['proctoring-events', sessionId],
-        queryFn: () => proctoringApi.getEvents(sessionId),
-    });
+    // Fetch proctoring events
+    const { data: eventsResponse } = useProctoringEvents(sessionId);
 
-    if (sessionLoading || eventsLoading) {
-        return <div className="flex justify-center p-8">Loading results...</div>;
+    if (isLoading) {
+        return (
+            <div className="container mx-auto py-8 space-y-6">
+                <Skeleton className="h-10 w-64" />
+                <div className="grid gap-6 md:grid-cols-2">
+                    <Skeleton className="h-64" />
+                    <Skeleton className="h-64" />
+                </div>
+            </div>
+        );
     }
 
-    if (!sessionData) {
-        return <div className="flex justify-center p-8">Results not found</div>;
+    if (isError || !result) {
+        return (
+            <div className="container mx-auto py-8">
+                <Card>
+                    <CardContent className="py-8 text-center">
+                        <p className="text-muted-foreground">
+                            Gagal memuat hasil ujian. Silakan coba lagi.
+                        </p>
+                        <Button asChild className="mt-4">
+                            <Link href="/results">
+                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                Kembali ke Daftar Hasil
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
     }
 
-    const { userExam } = sessionData;
+    const {
+        exam,
+        totalScore,
+        status,
+        answeredQuestions,
+        totalQuestions,
+        startedAt,
+        submittedAt,
+        passed,
+        scoresByType,
+    } = result;
 
-    // ✅ FIXED: eventsData is already an array of ProctoringEvent[]
-    const events = eventsData || [];
+    const passingScore = exam.passingScore ?? 0;
+    const scorePercentage = passingScore > 0
+        ? Math.min(((totalScore ?? 0) / passingScore) * 100, 100)
+        : 0;
+
+    const statusInfo = statusConfig[status] ?? statusConfig.FINISHED;
+    const StatusIcon = statusInfo.icon;
+
+    const events = eventsResponse?.data ?? [];
 
     return (
-        <div className="space-y-6 p-6">
-            <div>
-                <h1 className="text-2xl font-bold">Exam Results</h1>
-                <p className="text-muted-foreground">{userExam.exam.title}</p>
+        <div className="container mx-auto py-8 space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold">{exam.title}</h1>
+                    <p className="text-muted-foreground">Hasil Ujian</p>
+                </div>
+                <Button asChild variant="outline">
+                    <Link href="/results">
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Kembali
+                    </Link>
+                </Button>
             </div>
 
-            {/* Score Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Your Score</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="text-4xl font-bold">{userExam.totalScore || 0}</div>
-                    <div className="space-y-2">
-                        <div className="flex justify-between">
-                            <span>TIU Score:</span>
-                            <span className="font-medium">{userExam.tiuScore || 0}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span>TWK Score:</span>
-                            <span className="font-medium">{userExam.twkScore || 0}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span>TKP Score:</span>
-                            <span className="font-medium">{userExam.tkpScore || 0}</span>
-                        </div>
-                    </div>
-                    <div className="flex justify-between pt-4 border-t">
-                        <span>Status:</span>
-                        <Badge variant={userExam.status === 'FINISHED' ? 'default' : 'secondary'}>
-                            {userExam.status}
-                        </Badge>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Exam Info Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Exam Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                    <div className="flex justify-between">
-                        <span>Started:</span>
-                        <span className="font-medium">{formatDate(userExam.startTime)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span>Submitted:</span>
-                        <span className="font-medium">{formatDate(userExam.submittedAt)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span>Duration:</span>
-                        <span className="font-medium">
-                            {formatDuration(userExam.exam.durationMinutes)}
-                        </span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span>Time Spent:</span>
-                        <span className="font-medium">
-                            {formatDuration(userExam.timeSpent ? Math.round(userExam.timeSpent / 60) : 0)}
-                        </span>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Proctoring Events Card */}
-            {events.length > 0 && (
+            {/* Main Content Grid */}
+            <div className="grid gap-6 md:grid-cols-2">
+                {/* Score Card */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Proctoring Events</CardTitle>
+                        <CardTitle className="flex items-center justify-between">
+                            <span>Hasil</span>
+                            <Badge variant={statusInfo.variant}>
+                                <StatusIcon className="h-3 w-3 mr-1" />
+                                {statusInfo.label}
+                            </Badge>
+                        </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-6">
+                        {/* Pass/Fail Indicator */}
+                        {status === 'FINISHED' && passed !== null && passingScore > 0 && (
+                            <div className={`flex items-center gap-3 p-4 rounded-lg ${
+                                passed
+                                    ? 'bg-green-50 text-green-700 border border-green-200'
+                                    : 'bg-red-50 text-red-700 border border-red-200'
+                            }`}>
+                                {passed ? (
+                                    <>
+                                        <Trophy className="h-8 w-8" />
+                                        <div>
+                                            <p className="font-bold text-lg">LULUS</p>
+                                            <p className="text-sm opacity-80">
+                                                Selamat! Anda berhasil mencapai passing score.
+                                            </p>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <XCircle className="h-8 w-8" />
+                                        <div>
+                                            <p className="font-bold text-lg">TIDAK LULUS</p>
+                                            <p className="text-sm opacity-80">
+                                                Anda belum mencapai passing score.
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Score Display */}
                         <div className="space-y-2">
-                            {events.map((event: ProctoringEvent) => ( // ✅ Explicit type annotation
-                                <div
-                                    key={event.id}
-                                    className="flex items-center justify-between p-3 rounded-lg border"
-                                >
-                                    <div>
-                                        <p className="font-medium">{event.eventType}</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {formatDate(event.timestamp)}
-                                        </p>
-                                    </div>
-                                    <Badge
-                                        variant={
-                                            event.severity === 'HIGH'
-                                                ? 'destructive'
-                                                : event.severity === 'MEDIUM'
-                                                    ? 'default'
-                                                    : 'secondary'
-                                        }
-                                    >
-                                        {event.severity}
-                                    </Badge>
-                                </div>
-                            ))}
+                            <div className="flex justify-between items-end">
+                                <span className="text-4xl font-bold">
+                                    {totalScore ?? 0}
+                                </span>
+                                <span className="text-muted-foreground">
+                                    / {passingScore > 0 ? passingScore : '-'} (passing score)
+                                </span>
+                            </div>
+                            {passingScore > 0 && (
+                                <Progress
+                                    value={scorePercentage}
+                                    className={`h-3 ${passed ? '[&>div]:bg-green-500' : '[&>div]:bg-red-500'}`}
+                                />
+                            )}
+                        </div>
+
+                        {/* Stats */}
+                        <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                            <div>
+                                <p className="text-sm text-muted-foreground">Soal Dijawab</p>
+                                <p className="text-xl font-semibold">
+                                    {answeredQuestions}/{totalQuestions}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Akurasi</p>
+                                <p className="text-xl font-semibold">
+                                    {totalQuestions > 0
+                                        ? Math.round((answeredQuestions / totalQuestions) * 100)
+                                        : 0}%
+                                </p>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* Details Card */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Detail</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {/* Time Info */}
+                        {startedAt && (
+                            <div className="flex items-center gap-3">
+                                <Clock className="h-5 w-5 text-muted-foreground" />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Dimulai</p>
+                                    <p className="font-medium">
+                                        {format(new Date(startedAt), 'PPpp', { locale: localeId })}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {submittedAt && (
+                            <div className="flex items-center gap-3">
+                                <FileText className="h-5 w-5 text-muted-foreground" />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Selesai</p>
+                                    <p className="font-medium">
+                                        {format(new Date(submittedAt), 'PPpp', { locale: localeId })}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Score by Type */}
+                        {scoresByType && scoresByType.length > 0 && (
+                            <div className="pt-4 border-t">
+                                <p className="text-sm text-muted-foreground mb-3">
+                                    Skor per Kategori
+                                </p>
+                                <div className="space-y-2">
+                                    {scoresByType.map((st) => (
+                                        <div key={st.type} className="flex justify-between items-center">
+                                            <span className="font-medium">{st.type}</span>
+                                            <span className="text-muted-foreground">
+                                                {st.score}/{st.maxScore}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="pt-4 border-t">
+                            <Button asChild className="w-full">
+                                <Link href={`/exam-sessions/${sessionId}/review`}>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    Review Jawaban
+                                </Link>
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Proctoring Events */}
+            {events.length > 0 && (
+                <ProctoringEventsList events={events} />
             )}
         </div>
     );

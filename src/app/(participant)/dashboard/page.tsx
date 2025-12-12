@@ -1,12 +1,8 @@
-'use client';
-
 /**
  * PARTICIPANT DASHBOARD
- *
- * ✅ HYDRATION FIX: Uses client-side only rendering for time-sensitive content
- * ✅ TYPE-SAFE: All data properly typed with existing backend contracts
- * ✅ SSR-SAFE: No localStorage access during initial render
  */
+
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/features/auth/hooks';
@@ -31,8 +27,17 @@ import {
     Timer,
     Award,
     Camera,
+    Trophy,
+    XCircle,
 } from 'lucide-react';
 import Link from 'next/link';
+import type { ExamStatus } from '@/shared/types/enum.types';
+import type { UserExam, ExamResult } from '@/features/exam-sessions/types/exam-sessions.types';
+import type { ExamPublic } from '@/features/exams/types/exams.types';
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
 
 /**
  * Format duration in minutes to readable string
@@ -58,84 +63,69 @@ function formatTimeSpent(seconds: number): string {
 }
 
 /**
- * Format date to relative time (client-side only to avoid hydration issues)
+ * TimeAgo component - client-side only to avoid hydration issues
  */
-function useRelativeTime(date: string | Date): string {
-    const [relativeTime, setRelativeTime] = useState<string>('');
+function TimeAgo({ date }: { date: string | Date }) {
+    const [relativeTime, setRelativeTime] = useState<string>('...');
 
     useEffect(() => {
-        // Only run on client side
-        if (typeof window !== 'undefined') {
-            const now = new Date();
-            const target = new Date(date);
-            const diffInSeconds = Math.floor((now.getTime() - target.getTime()) / 1000);
+        const now = new Date();
+        const target = new Date(date);
+        const diffInSeconds = Math.floor((now.getTime() - target.getTime()) / 1000);
 
-            if (diffInSeconds < 60) {
-                setRelativeTime('baru saja');
-            } else if (diffInSeconds < 3600) {
-                const minutes = Math.floor(diffInSeconds / 60);
-                setRelativeTime(`${minutes} menit yang lalu`);
-            } else if (diffInSeconds < 86400) {
-                const hours = Math.floor(diffInSeconds / 3600);
-                setRelativeTime(`${hours} jam yang lalu`);
-            } else {
-                const days = Math.floor(diffInSeconds / 86400);
-                setRelativeTime(`${days} hari yang lalu`);
-            }
+        if (diffInSeconds < 60) {
+            setRelativeTime('baru saja');
+        } else if (diffInSeconds < 3600) {
+            const minutes = Math.floor(diffInSeconds / 60);
+            setRelativeTime(`${minutes} menit lalu`);
+        } else if (diffInSeconds < 86400) {
+            const hours = Math.floor(diffInSeconds / 3600);
+            setRelativeTime(`${hours} jam lalu`);
+        } else {
+            const days = Math.floor(diffInSeconds / 86400);
+            setRelativeTime(`${days} hari lalu`);
         }
     }, [date]);
 
-    return relativeTime;
+    return <span>{relativeTime}</span>;
 }
 
-/**
- * Get status badge configuration
- */
-function getStatusBadge(status: string): { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' } {
-    const configs: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-        IN_PROGRESS: { label: 'Sedang Berlangsung', variant: 'default' },
-        FINISHED: { label: 'Selesai', variant: 'secondary' },
-        TIMEOUT: { label: 'Waktu Habis', variant: 'destructive' },
-        CANCELLED: { label: 'Dibatalkan', variant: 'outline' },
-    };
-    return configs[status] || { label: status, variant: 'outline' };
-}
+// ============================================================================
+// STATUS CONFIG (Only valid backend statuses)
+// ============================================================================
 
-/**
- * Loading skeleton for stats cards
- */
-function StatsCardSkeleton() {
-    return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-                <Skeleton className="h-8 w-16 mb-1" />
-                <Skeleton className="h-3 w-32" />
-            </CardContent>
-        </Card>
-    );
-}
+const statusConfig: Record<ExamStatus, {
+    label: string;
+    variant: 'default' | 'secondary' | 'destructive' | 'outline';
+    icon: typeof CheckCircle2;
+}> = {
+    IN_PROGRESS: {
+        label: 'Berlangsung',
+        variant: 'default',
+        icon: PlayCircle,
+    },
+    FINISHED: {
+        label: 'Selesai',
+        variant: 'secondary',
+        icon: CheckCircle2,
+    },
+    TIMEOUT: {
+        label: 'Timeout',
+        variant: 'destructive',
+        icon: AlertCircle,
+    },
+    CANCELLED: {
+        label: 'Dibatalkan',
+        variant: 'outline',
+        icon: XCircle,
+    },
+};
 
-/**
- * Time display component with hydration safety
- */
-function TimeAgo({ date }: { date: string }) {
-    const timeAgo = useRelativeTime(date);
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
-    if (!timeAgo) {
-        return <span className="text-xs text-muted-foreground">...</span>;
-    }
-
-    return <span className="text-xs text-muted-foreground">{timeAgo}</span>;
-}
-
-/**
- * Main Dashboard Component
- */
-export default function ParticipantDashboardPage() {
+export default function DashboardPage() {
     const { user } = useAuth();
     const [isMounted, setIsMounted] = useState(false);
 
@@ -155,15 +145,14 @@ export default function ParticipantDashboardPage() {
         limit: 6
     });
     const { data: availableExamsData, isLoading: examsLoading } = useExams({
-        status: 'active',
         page: 1,
         limit: 6
     });
 
     // Extract data from responses
-    const inProgressSessions = inProgressData?.data || [];
-    const recentResults = recentResultsData?.data || [];
-    const availableExams = availableExamsData?.data || [];
+    const inProgressSessions = inProgressData ?? [];
+    const recentResults = recentResultsData ?? [];
+    const availableExams = availableExamsData ?? [];
 
     return (
         <div className="min-h-screen bg-muted/30">
@@ -182,65 +171,77 @@ export default function ParticipantDashboardPage() {
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     {statsLoading ? (
                         <>
-                            <StatsCardSkeleton />
-                            <StatsCardSkeleton />
-                            <StatsCardSkeleton />
-                            <StatsCardSkeleton />
+                            <Skeleton className="h-32" />
+                            <Skeleton className="h-32" />
+                            <Skeleton className="h-32" />
+                            <Skeleton className="h-32" />
                         </>
                     ) : (
                         <>
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Ujian Diselesaikan</CardTitle>
-                                    <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                                    <CardTitle className="text-sm font-medium">
+                                        Ujian Selesai
+                                    </CardTitle>
+                                    <BookOpen className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">{stats?.completedExams || 0}</div>
+                                    <div className="text-2xl font-bold">
+                                        {stats?.completedExams ?? 0}
+                                    </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Total ujian yang telah Anda selesaikan
+                                        Total ujian yang telah diselesaikan
                                     </p>
                                 </CardContent>
                             </Card>
 
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Sedang Berlangsung</CardTitle>
-                                    <PlayCircle className="h-4 w-4 text-muted-foreground" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold">{inProgressSessions.length}</div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Ujian yang sedang Anda kerjakan
-                                    </p>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Rata-rata Skor</CardTitle>
+                                    <CardTitle className="text-sm font-medium">
+                                        Rata-rata Skor
+                                    </CardTitle>
                                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-2xl font-bold">
-                                        {stats?.averageScore ? stats.averageScore.toFixed(1) : '0.0'}
+                                        {stats?.averageScore ?? 0}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Dari {stats?.completedExams || 0} ujian
+                                        Dari semua ujian yang diselesaikan
                                     </p>
                                 </CardContent>
                             </Card>
 
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Total Waktu</CardTitle>
+                                    <CardTitle className="text-sm font-medium">
+                                        Total Waktu
+                                    </CardTitle>
                                     <Clock className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-2xl font-bold">
-                                        {stats?.totalTime ? formatTimeSpent(stats.totalTime) : '0 menit'}
+                                        {formatTimeSpent(stats?.totalTime ?? 0)}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Waktu mengerjakan ujian
+                                        Total waktu mengerjakan ujian
+                                    </p>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">
+                                        Ujian Aktif
+                                    </CardTitle>
+                                    <PlayCircle className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">
+                                        {inProgressSessions.length}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Ujian yang sedang berlangsung
                                     </p>
                                 </CardContent>
                             </Card>
@@ -248,175 +249,160 @@ export default function ParticipantDashboardPage() {
                     )}
                 </div>
 
-                {/* Active / In-Progress Sessions */}
+                {/* Active Sessions */}
                 {inProgressSessions.length > 0 && (
                     <Card>
                         <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle>Ujian Sedang Berlangsung</CardTitle>
-                                    <CardDescription>
-                                        Lanjutkan ujian yang sedang Anda kerjakan
-                                    </CardDescription>
-                                </div>
-                                <Badge variant="default" className="ml-auto">
-                                    {inProgressSessions.length} Aktif
-                                </Badge>
-                            </div>
+                            <CardTitle className="flex items-center gap-2">
+                                <PlayCircle className="h-5 w-5 text-primary" />
+                                Ujian Berlangsung
+                            </CardTitle>
+                            <CardDescription>
+                                Lanjutkan ujian yang sedang Anda kerjakan
+                            </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {inProgressLoading ? (
-                                <div className="space-y-3">
-                                    {[1, 2].map((i) => (
-                                        <Skeleton key={i} className="h-24 w-full" />
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {inProgressSessions.map((session) => (
-                                        <div
-                                            key={session.id}
-                                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                                        >
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <h3 className="font-semibold">{session.exam.title}</h3>
-                                                    <Badge variant={getStatusBadge(session.status).variant}>
-                                                        {getStatusBadge(session.status).label}
+                            <div className="grid gap-4 md:grid-cols-2">
+                                {inProgressSessions.map((session: UserExam) => {
+                                    const statusInfo = statusConfig[session.status];
+                                    const StatusIcon = statusInfo?.icon ?? PlayCircle;
+
+                                    return (
+                                        <Card key={session.id} className="border-primary/20">
+                                            <CardContent className="p-4">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <h3 className="font-semibold line-clamp-1">
+                                                        {session.exam.title}
+                                                    </h3>
+                                                    <Badge variant={statusInfo?.variant ?? 'default'}>
+                                                        <StatusIcon className="h-3 w-3 mr-1" />
+                                                        {statusInfo?.label ?? session.status}
                                                     </Badge>
                                                 </div>
-                                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                    <span className="flex items-center gap-1">
-                                                        <Timer className="h-4 w-4" />
-                                                        {formatDuration(session.exam.durationMinutes)}
-                                                    </span>
-                                                    {isMounted && (
-                                                        <span className="flex items-center gap-1">
-                                                            <Calendar className="h-4 w-4" />
-                                                            Dimulai <TimeAgo date={session.startTime || session.createdAt} />
-                                                        </span>
+
+                                                <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                                                    {/* ✅ PHASE 3 FIX: Use durationMinutes from root */}
+                                                    {session.durationMinutes && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Timer className="h-4 w-4" />
+                                                            {formatDuration(session.durationMinutes)}
+                                                        </div>
                                                     )}
+                                                    {/* ✅ PHASE 3 FIX: Use startedAt (not startTime) */}
+                                                    {isMounted && session.startedAt && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Calendar className="h-4 w-4" />
+                                                            Dimulai <TimeAgo date={session.startedAt} />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex items-center gap-2">
+                                                        <Target className="h-4 w-4" />
+                                                        {session.answeredQuestions}/{session.totalQuestions} soal
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <Link href={`/exam-session/${session.id}`}>
-                                                <Button>
-                                                    <PlayCircle className="h-4 w-4 mr-2" />
-                                                    Lanjutkan
+
+                                                <Button asChild className="w-full">
+                                                    <Link href={`/exam-sessions/${session.id}/take`}>
+                                                        <PlayCircle className="h-4 w-4 mr-2" />
+                                                        Lanjutkan
+                                                    </Link>
                                                 </Button>
-                                            </Link>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })}
+                            </div>
                         </CardContent>
                     </Card>
                 )}
 
-                {/* Recent Results Summary */}
+                {/* Recent Results */}
                 <Card>
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle>Hasil Ujian Terbaru</CardTitle>
-                                <CardDescription>
-                                    Riwayat 6 ujian terakhir yang telah Anda selesaikan
-                                </CardDescription>
-                            </div>
-                            {recentResults.length > 0 && (
-                                <Link href="/results">
-                                    <Button variant="outline" size="sm">
-                                        Lihat Semua
-                                    </Button>
-                                </Link>
-                            )}
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle className="flex items-center gap-2">
+                                <Trophy className="h-5 w-5 text-primary" />
+                                Hasil Terbaru
+                            </CardTitle>
+                            <CardDescription>
+                                Hasil ujian yang baru saja Anda selesaikan
+                            </CardDescription>
                         </div>
+                        <Button asChild variant="outline" size="sm">
+                            <Link href="/results">Lihat Semua</Link>
+                        </Button>
                     </CardHeader>
                     <CardContent>
                         {resultsLoading ? (
-                            <div className="grid gap-4 md:grid-cols-2">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <Skeleton key={i} className="h-32 w-full" />
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                {[1, 2, 3].map((i) => (
+                                    <Skeleton key={i} className="h-40" />
                                 ))}
                             </div>
                         ) : recentResults.length === 0 ? (
-                            <div className="text-center py-12">
-                                <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                                <p className="text-muted-foreground">
-                                    Anda belum menyelesaikan ujian apapun
-                                </p>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    Mulai ujian untuk melihat hasil di sini
-                                </p>
+                            <div className="text-center py-8 text-muted-foreground">
+                                <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p>Belum ada hasil ujian</p>
                             </div>
                         ) : (
-                            <div className="grid gap-4 md:grid-cols-2">
-                                {recentResults.map((result) => {
-                                    const statusBadge = getStatusBadge(result.status);
-                                    const isPassed = result.totalScore !== null && result.totalScore !== undefined
-                                        ? result.totalScore >= result.exam.passingScore
-                                        : null;
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                {recentResults.map((result: ExamResult) => {
+                                    const passingScore = result.exam.passingScore ?? 0;
+                                    const isPassed = result.totalScore !== null &&
+                                        passingScore > 0 &&
+                                        result.totalScore >= passingScore;
 
                                     return (
-                                        <div
-                                            key={result.id}
-                                            className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
-                                        >
-                                            <div className="flex items-start justify-between mb-3">
-                                                <div className="flex-1">
-                                                    <h3 className="font-semibold line-clamp-1">{result.exam.title}</h3>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <Badge variant={statusBadge.variant} className="text-xs">
-                                                            {statusBadge.label}
-                                                        </Badge>
-                                                        {isPassed !== null && (
-                                                            <Badge
-                                                                variant={isPassed ? 'default' : 'destructive'}
-                                                                className="text-xs"
-                                                            >
-                                                                {isPassed ? 'Lulus' : 'Tidak Lulus'}
-                                                            </Badge>
+                                        <Card key={result.id}>
+                                            <CardContent className="p-4">
+                                                <h3 className="font-semibold line-clamp-1 mb-2">
+                                                    {result.exam.title}
+                                                </h3>
+
+                                                {/* Pass/Fail Badge */}
+                                                {passingScore > 0 && (
+                                                    <Badge
+                                                        variant={isPassed ? 'default' : 'destructive'}
+                                                        className="mb-3"
+                                                    >
+                                                        {isPassed ? (
+                                                            <>
+                                                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                                Lulus
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <XCircle className="h-3 w-3 mr-1" />
+                                                                Tidak Lulus
+                                                            </>
                                                         )}
+                                                    </Badge>
+                                                )}
+
+                                                <div className="space-y-1 text-sm">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">Skor</span>
+                                                        <span className="font-medium">
+                                                            {result.totalScore ?? 0}
+                                                            {passingScore > 0 && ` / ${passingScore}`}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">Dijawab</span>
+                                                        <span>
+                                                            {result.answeredQuestions}/{result.totalQuestions}
+                                                        </span>
                                                     </div>
                                                 </div>
-                                                {result.totalScore !== null && result.totalScore !== undefined && (
-                                                    <div className="text-right">
-                                                        <div className="text-2xl font-bold">{result.totalScore}</div>
-                                                        <div className="text-xs text-muted-foreground">
-                                                            / {result.exam.passingScore} min
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
 
-                                            {/* Score Breakdown by Type */}
-                                            {result.scoresByType && result.scoresByType.length > 0 && (
-                                                <div className="space-y-2 mb-3">
-                                                    {result.scoresByType.map((scoreType) => (
-                                                        <div key={scoreType.type} className="flex items-center justify-between text-sm">
-                                                            <span className="text-muted-foreground">{scoreType.type}</span>
-                                                            <span className="font-medium">
-                                                                {scoreType.score} / {scoreType.maxScore}
-                                                                <span className="text-muted-foreground ml-2">
-                                                                    ({scoreType.correctAnswers}/{scoreType.totalQuestions})
-                                                                </span>
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            <div className="flex items-center justify-between pt-3 border-t">
-                                                {isMounted && result.submittedAt && (
-                                                    <TimeAgo date={result.submittedAt} />
-                                                )}
-                                                <Link href={`/results/${result.id}`} className="ml-auto">
-                                                    <Button variant="ghost" size="sm">
-                                                        <Eye className="h-4 w-4 mr-1" />
+                                                <Button asChild variant="outline" size="sm" className="w-full mt-4">
+                                                    <Link href={`/results/${result.id}`}>
+                                                        <Eye className="h-4 w-4 mr-2" />
                                                         Detail
-                                                    </Button>
-                                                </Link>
-                                            </div>
-                                        </div>
+                                                    </Link>
+                                                </Button>
+                                            </CardContent>
+                                        </Card>
                                     );
                                 })}
                             </div>
@@ -426,111 +412,85 @@ export default function ParticipantDashboardPage() {
 
                 {/* Available Exams */}
                 <Card>
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle>Ujian Tersedia</CardTitle>
-                                <CardDescription>
-                                    Ujian yang dapat Anda mulai sekarang
-                                </CardDescription>
-                            </div>
-                            {availableExams.length > 0 && (
-                                <Link href="/exams">
-                                    <Button variant="outline" size="sm">
-                                        Lihat Semua
-                                    </Button>
-                                </Link>
-                            )}
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle className="flex items-center gap-2">
+                                <BookOpen className="h-5 w-5 text-primary" />
+                                Ujian Tersedia
+                            </CardTitle>
+                            <CardDescription>
+                                Mulai ujian baru
+                            </CardDescription>
                         </div>
+                        <Button asChild variant="outline" size="sm">
+                            <Link href="/exams">Lihat Semua</Link>
+                        </Button>
                     </CardHeader>
                     <CardContent>
                         {examsLoading ? (
                             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                                 {[1, 2, 3].map((i) => (
-                                    <Skeleton key={i} className="h-40 w-full" />
+                                    <Skeleton key={i} className="h-40" />
                                 ))}
                             </div>
                         ) : availableExams.length === 0 ? (
-                            <div className="text-center py-12">
-                                <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                                <p className="text-muted-foreground">
-                                    Tidak ada ujian yang tersedia saat ini
-                                </p>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    Periksa kembali nanti untuk ujian baru
-                                </p>
+                            <div className="text-center py-8 text-muted-foreground">
+                                <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p>Tidak ada ujian tersedia saat ini</p>
                             </div>
                         ) : (
                             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                {availableExams.map((exam) => (
-                                    <div
-                                        key={exam.id}
-                                        className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
-                                    >
-                                        <div className="mb-3">
-                                            <h3 className="font-semibold line-clamp-2 mb-2">{exam.title}</h3>
+                                {availableExams.map((exam: ExamPublic) => (
+                                    <Card key={exam.id}>
+                                        <CardContent className="p-4">
+                                            <h3 className="font-semibold line-clamp-1 mb-2">
+                                                {exam.title}
+                                            </h3>
                                             {exam.description && (
-                                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                                <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                                                     {exam.description}
                                                 </p>
                                             )}
-                                        </div>
 
-                                        <div className="space-y-2 mb-4 text-sm">
-                                            <div className="flex items-center gap-2 text-muted-foreground">
-                                                <Timer className="h-4 w-4" />
-                                                <span>{formatDuration(exam.durationMinutes)}</span>
+                                            <div className="space-y-1 text-sm text-muted-foreground mb-4">
+                                                <div className="flex items-center gap-2">
+                                                    <Timer className="h-4 w-4" />
+                                                    {formatDuration(exam.durationMinutes)}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Target className="h-4 w-4" />
+                                                    {exam._count?.examQuestions ?? 0} soal
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Award className="h-4 w-4" />
+                                                    <span>Passing: {exam.passingScore}</span>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-2 text-muted-foreground">
-                                                <Target className="h-4 w-4" />
-                                                <span>Passing Score: {exam.passingScore}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-muted-foreground">
-                                                <BookOpen className="h-4 w-4" />
-                                                <span>{exam._count?.examQuestions || 0} Soal</span>
-                                            </div>
-                                        </div>
 
-                                        <Link href={`/exams/${exam.id}`} className="block">
-                                            <Button className="w-full" size="sm">
-                                                <PlayCircle className="h-4 w-4 mr-2" />
-                                                Mulai Ujian
+                                            <Button asChild className="w-full">
+                                                <Link href={`/exams/${exam.id}`}>
+                                                    Mulai Ujian
+                                                </Link>
                                             </Button>
-                                        </Link>
-                                    </div>
+                                        </CardContent>
+                                    </Card>
                                 ))}
                             </div>
                         )}
                     </CardContent>
                 </Card>
 
-                {/* Proctoring Info */}
-                <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900">
-                    <CardHeader>
-                        <div className="flex items-center gap-2">
-                            <Camera className="h-5 w-5 text-amber-600 dark:text-amber-500" />
-                            <CardTitle className="text-amber-900 dark:text-amber-100">
-                                Sistem Proctoring
-                            </CardTitle>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2 text-sm text-amber-800 dark:text-amber-200">
-                            <p>
-                                Sistem ujian ini menggunakan <strong>pengawasan otomatis (proctoring)</strong> untuk menjaga integritas ujian.
+                {/* Proctoring Notice */}
+                <Card className="bg-primary/5 border-primary/20">
+                    <CardContent className="flex items-center gap-4 py-6">
+                        <Camera className="h-10 w-10 text-primary flex-shrink-0" />
+                        <div>
+                            <h3 className="font-semibold">Fitur Proctoring Aktif</h3>
+                            <p className="text-sm text-muted-foreground">
+                                Ujian menggunakan deteksi wajah YOLO untuk memastikan
+                                integritas ujian. Pastikan kamera Anda aktif dan wajah
+                                terlihat jelas saat mengerjakan ujian.
                             </p>
-                            <ul className="list-disc list-inside space-y-1 ml-2">
-                                <li>Webcam akan aktif selama ujian untuk deteksi wajah</li>
-                                <li>Sistem akan mencatat pelanggaran seperti tidak terdeteksi wajah atau multiple faces</li>
-                                <li>Pelanggaran berlebihan dapat menyebabkan ujian dibatalkan otomatis</li>
-                                <li>Pastikan pencahayaan cukup dan webcam berfungsi dengan baik</li>
-                            </ul>
-                            <div className="mt-3 p-3 bg-white dark:bg-amber-950/50 rounded border border-amber-300 dark:border-amber-800">
-                                <p className="font-medium flex items-center gap-2">
-                                    <Award className="h-4 w-4" />
-                                    Tips: Kerjakan ujian di ruangan yang tenang dengan pencahayaan yang baik
-                                </p>
-                            </div>
                         </div>
                     </CardContent>
                 </Card>

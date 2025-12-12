@@ -1,10 +1,5 @@
-// src/features/exam-sessions/components/UserExamCard.tsx
-
 /**
  * User Exam Session Card Component
- *
- * ✅ AUDIT FIX v3: Removed examDate references (doesn't exist on Exam type)
- * Uses startTime/endTime instead for scheduling info
  */
 
 'use client';
@@ -26,25 +21,30 @@ import {
     Calendar,
     Timer,
 } from 'lucide-react';
-import type { UserExam, UserExamStatus } from '../types/exam-sessions.types';
+import type { UserExam, ExamStatus } from '../types/exam-sessions.types';
+
+// ============================================================================
+// PROPS
+// ============================================================================
 
 export interface UserExamCardProps {
     userExam: UserExam;
     showActions?: boolean;
 }
 
-const statusConfig: Record<UserExamStatus, {
+// ============================================================================
+// STATUS CONFIG (Only valid backend statuses)
+// ============================================================================
+
+/**
+ * Status configuration
+ */
+const statusConfig: Record<ExamStatus, {
     label: string;
     variant: 'default' | 'secondary' | 'destructive' | 'outline';
     icon: typeof CheckCircle2;
     canContinue: boolean;
 }> = {
-    NOT_STARTED: {
-        label: 'Belum Dimulai',
-        variant: 'outline',
-        icon: Clock,
-        canContinue: true,
-    },
     IN_PROGRESS: {
         label: 'Sedang Berlangsung',
         variant: 'default',
@@ -52,12 +52,6 @@ const statusConfig: Record<UserExamStatus, {
         canContinue: true,
     },
     FINISHED: {
-        label: 'Selesai',
-        variant: 'secondary',
-        icon: CheckCircle2,
-        canContinue: false,
-    },
-    COMPLETED: {
         label: 'Selesai',
         variant: 'secondary',
         icon: CheckCircle2,
@@ -77,142 +71,118 @@ const statusConfig: Record<UserExamStatus, {
     },
 };
 
-export function UserExamCard({ userExam, showActions = true }: UserExamCardProps) {
-    const { exam, status, answeredQuestions, totalQuestions, remainingTimeMs, startTime, totalScore } = userExam;
+// ============================================================================
+// COMPONENT
+// ============================================================================
 
-    const statusInfo = statusConfig[status] || statusConfig.NOT_STARTED;
+export function UserExamCard({ userExam, showActions = true }: UserExamCardProps) {
+       const {
+        exam,
+        status,
+        answeredQuestions,
+        totalQuestions,
+        remainingTimeMs,
+        startedAt,
+        totalScore,
+        durationMinutes,       } = userExam;
+
+    const statusInfo = statusConfig[status] ?? statusConfig.IN_PROGRESS;
     const StatusIcon = statusInfo.icon;
 
     const progress = totalQuestions > 0
-        ? (answeredQuestions / totalQuestions) * 100
+        ? Math.round((answeredQuestions / totalQuestions) * 100)
         : 0;
 
     // Format remaining time
-    const formatRemainingTime = (ms: number | null) => {
-        if (ms === null || ms <= 0) return 'Waktu habis';
+    const formatRemainingTime = (ms: number | null): string => {
+        if (ms === null || ms <= 0) return '0:00';
         const totalSeconds = Math.floor(ms / 1000);
-        const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;
-
-        if (hours > 0) {
-            return `${hours}j ${minutes}m ${seconds}d`;
-        }
-        return `${minutes}m ${seconds}d`;
-    };
-
-    // Get action button config
-    const getActionButton = () => {
-        if (!showActions) return null;
-
-        if (statusInfo.canContinue) {
-            return (
-                <Link href={`/exam-session/${userExam.id}`}>
-                    <Button className="w-full">
-                        <Play className="mr-2 h-4 w-4" />
-                        {status === 'NOT_STARTED' ? 'Mulai Ujian' : 'Lanjutkan Ujian'}
-                    </Button>
-                </Link>
-            );
-        }
-
-        // Completed states - show result link
-        return (
-            <Link href={`/results/${userExam.id}`}>
-                <Button variant="outline" className="w-full">
-                    <FileText className="mr-2 h-4 w-4" />
-                    Lihat Hasil
-                </Button>
-            </Link>
-        );
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     };
 
     return (
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="h-full hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                    <div className="space-y-1 flex-1">
-                        <CardTitle className="text-lg line-clamp-1">{exam.title}</CardTitle>
-                        {exam.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-2">
-                                {exam.description}
-                            </p>
-                        )}
-                    </div>
-                    <Badge variant={statusInfo.variant} className="flex items-center gap-1 ml-2">
-                        <StatusIcon className="h-3 w-3" />
+                <div className="flex items-start justify-between gap-4">
+                    <CardTitle className="text-lg line-clamp-2">
+                        {exam.title}
+                    </CardTitle>
+                    <Badge variant={statusInfo.variant} className="shrink-0">
+                        <StatusIcon className="h-3 w-3 mr-1" />
                         {statusInfo.label}
                     </Badge>
                 </div>
             </CardHeader>
 
             <CardContent className="space-y-4">
-                {/* Progress Section (for in-progress exams) */}
-                {status === 'IN_PROGRESS' && (
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                            <span>Progress</span>
-                            <span>{answeredQuestions}/{totalQuestions} soal</span>
-                        </div>
-                        <Progress value={progress} className="h-2" />
+                {/* Progress Bar */}
+                <div className="space-y-2">
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Progress</span>
+                        <span>{answeredQuestions}/{totalQuestions} soal</span>
                     </div>
-                )}
+                    <Progress value={progress} className="h-2" />
+                </div>
 
-                {/* Score Section (for completed exams) */}
-                {!statusInfo.canContinue && totalScore !== null && totalScore !== undefined && (
-                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <span className="text-sm font-medium">Skor Akhir</span>
-                        <span className="text-xl font-bold">{totalScore}</span>
-                    </div>
-                )}
-
-                {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                {/* Time Info */}
+                <div className="grid grid-cols-2 gap-4 text-sm">
                     {/* Duration */}
-                    <div className="flex items-center gap-2">
-                        <Timer className="h-4 w-4 text-muted-foreground" />
-                        <span>{exam.durationMinutes} menit</span>
-                    </div>
-
-                    {/* Questions Count */}
-                    <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span>{totalQuestions} soal</span>
-                    </div>
+                    {durationMinutes && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Timer className="h-4 w-4" />
+                            <span>{durationMinutes} menit</span>
+                        </div>
+                    )}
 
                     {/* Remaining Time (for in-progress) */}
                     {status === 'IN_PROGRESS' && remainingTimeMs !== null && (
-                        <div className="flex items-center gap-2 col-span-2">
-                            <Clock className="h-4 w-4 text-orange-500" />
-                            <span className="text-orange-600 font-medium">
-                                Sisa: {formatRemainingTime(remainingTimeMs)}
-                            </span>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Clock className="h-4 w-4" />
+                            <span>Sisa: {formatRemainingTime(remainingTimeMs)}</span>
                         </div>
                     )}
 
-                    {/* Start Time (if available) */}
-                    {startTime && (
-                        <div className="flex items-center gap-2 col-span-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span>
-                                Dimulai: {format(new Date(startTime), 'PPp', { locale: localeId })}
-                            </span>
-                        </div>
-                    )}
-
-                    {/* Exam Schedule (if exam has startTime/endTime) */}
-                    {exam.startTime && (
-                        <div className="flex items-center gap-2 col-span-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span>
-                                Jadwal: {format(new Date(exam.startTime), 'PPP', { locale: localeId })}
-                            </span>
+                    {/* Score (for finished) */}
+                    {(status === 'FINISHED' || status === 'TIMEOUT') && totalScore !== null && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <FileText className="h-4 w-4" />
+                            <span>Skor: {totalScore}</span>
                         </div>
                     )}
                 </div>
 
-                {/* Action Button */}
-                {getActionButton()}
+                {/* Started At */}
+                {startedAt && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        <span>
+                            Dimulai: {format(new Date(startedAt), 'PPp', { locale: localeId })}
+                        </span>
+                    </div>
+                )}
+
+                {/* Actions */}
+                {showActions && (
+                    <div className="pt-2">
+                        {statusInfo.canContinue ? (
+                            <Button asChild className="w-full">
+                                <Link href={`/exam-sessions/${userExam.id}/take`}>
+                                    <Play className="h-4 w-4 mr-2" />
+                                    Lanjutkan Ujian
+                                </Link>
+                            </Button>
+                        ) : (
+                            <Button asChild variant="outline" className="w-full">
+                                <Link href={`/results/${userExam.id}`}>
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    Lihat Hasil
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

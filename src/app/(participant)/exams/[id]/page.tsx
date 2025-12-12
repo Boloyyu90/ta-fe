@@ -1,252 +1,312 @@
-// src/app/(participant)/exams/[id]/page.tsx
-
 /**
  * Exam Detail Page
- *
- * ✅ AUDIT FIX v4:
- * - Access exam from data?.exam (not data?.data)
- * - Use startExamMutation.mutate and startExamMutation.isPending
  */
 
 'use client';
 
-import { use } from 'react';
-import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import { id as localeId } from 'date-fns/locale';
-import { examsApi } from '@/features/exams/api/exams.api';
-import { useStartExam } from '@/features/exams/hooks/useStartExam';
-import { isExamAvailable, getExamAvailabilityStatus } from '@/features/exams/types/exams.types';
-import type { ExamDetailResponse } from '@/features/exams/types/exams.types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { useParams, useRouter } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { Skeleton } from '@/shared/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/shared/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/shared/components/ui/alert';
 import {
     Clock,
     FileText,
     Calendar,
-    Users,
-    Play,
+    Target,
     CheckCircle,
     XCircle,
-    AlertCircle,
+    AlertTriangle,
     ArrowLeft,
-    Trophy,
+    Play,
+    Camera,
+    Info,
 } from 'lucide-react';
 import Link from 'next/link';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
+import { useExam } from '@/features/exams/hooks/useExam';
+import { useStartExam } from '@/features/exams/hooks/useStartExam';
+import {
+    isExamAvailable,
+    getExamAvailabilityStatus,
+    formatDuration
+} from '@/features/exams/types/exams.types';
 
-interface PageProps {
-    params: Promise<{ id: string }>;
-}
+// Availability config for UI
+const availabilityConfig = {
+    available: {
+        label: 'Tersedia',
+        description: 'Ujian ini siap untuk dikerjakan',
+        icon: CheckCircle,
+        color: 'text-green-600',
+        canStart: true,
+    },
+    upcoming: {
+        label: 'Segera',
+        description: 'Ujian ini belum dimulai',
+        icon: Clock,
+        color: 'text-blue-600',
+        canStart: false,
+    },
+    ended: {
+        label: 'Berakhir',
+        description: 'Waktu pengerjaan ujian telah habis',
+        icon: XCircle,
+        color: 'text-gray-500',
+        canStart: false,
+    },
+    'no-questions': {
+        label: 'Belum Ada Soal',
+        description: 'Ujian ini belum memiliki soal',
+        icon: AlertTriangle,
+        color: 'text-yellow-600',
+        canStart: false,
+    },
+};
 
-export default function ExamDetailPage({ params }: PageProps) {
-    const resolvedParams = use(params);
+export default function ExamDetailPage() {
+    const params = useParams();
     const router = useRouter();
-    const examId = parseInt(resolvedParams.id as string);
+    const examId = params.id ? Number(params.id) : undefined;
 
-    const { data, isLoading, error } = useQuery<ExamDetailResponse>({
-        queryKey: ['exam', examId],
-        queryFn: () => examsApi.getExam(examId),
-    });
-
-    // ✅ FIX: Get both naming conventions from hook
+    const { data: exam, isLoading, isError } = useExam(examId);
     const startExamMutation = useStartExam();
 
-    const handleStartExam = () => {
-        // ✅ FIX: Use mutate (which is now exposed)
-        startExamMutation.mutate(examId);
+    const handleStartExam = async () => {
+        if (!examId) return;
+
+        try {
+            const result = await startExamMutation.mutateAsync(examId);
+            // Redirect to exam session
+            router.push(`/exam-sessions/${result.userExam.id}/take`);
+        } catch (error) {
+            // Error handled by mutation
+            console.error('Failed to start exam:', error);
+        }
     };
 
     if (isLoading) {
         return (
             <div className="container mx-auto py-8 space-y-6">
-                <Skeleton className="h-8 w-64" />
-                <Skeleton className="h-64" />
+                <Skeleton className="h-10 w-64" />
+                <div className="grid gap-6 md:grid-cols-3">
+                    <Skeleton className="h-64 md:col-span-2" />
+                    <Skeleton className="h-64" />
+                </div>
             </div>
         );
     }
 
-    if (error) {
+    if (isError || !exam) {
         return (
             <div className="container mx-auto py-8">
-                <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                        Failed to load exam details. Please try again later.
-                    </AlertDescription>
-                </Alert>
-            </div>
-        );
-    }
-
-    // ✅ FIX: Access exam from data?.exam (not data?.data)
-    const exam = data?.exam;
-
-    if (!exam) {
-        return (
-            <div className="container mx-auto py-8">
-                <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                        Exam not found.
-                    </AlertDescription>
-                </Alert>
+                <Card>
+                    <CardContent className="py-8 text-center">
+                        <p className="text-muted-foreground">
+                            Gagal memuat detail ujian. Silakan coba lagi.
+                        </p>
+                        <Button asChild className="mt-4">
+                            <Link href="/exams">
+                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                Kembali ke Daftar Ujian
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
 
     const availability = getExamAvailabilityStatus(exam);
-    const isAvailable = isExamAvailable(exam);
+    const availInfo = availabilityConfig[availability];
+    const AvailIcon = availInfo.icon;
     const questionCount = exam._count?.examQuestions ?? 0;
-    const participantCount = exam._count?.userExams ?? 0;
-
-    const getStatusBadge = () => {
-        const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-            available: 'default',
-            upcoming: 'secondary',
-            ended: 'destructive',
-            inactive: 'outline',
-        };
-
-        const icons: Record<string, typeof CheckCircle> = {
-            available: CheckCircle,
-            upcoming: Clock,
-            ended: XCircle,
-            inactive: XCircle,
-        };
-
-        const Icon = icons[availability.status];
-
-        return (
-            <Badge variant={variants[availability.status]} className="flex items-center gap-1">
-                <Icon className="h-3 w-3" />
-                {availability.label}
-            </Badge>
-        );
-    };
 
     return (
         <div className="container mx-auto py-8 space-y-6">
             {/* Back Button */}
-            <Link href="/exams">
-                <Button variant="ghost" size="sm">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Kembali ke Daftar Ujian
-                </Button>
-            </Link>
+            <Button asChild variant="ghost" size="sm">
+                <Link href="/exams">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Kembali
+                </Link>
+            </Button>
 
-            {/* Header Card */}
-            <Card>
-                <CardHeader>
-                    <div className="flex items-start justify-between">
-                        <div className="space-y-2">
-                            <CardTitle className="text-2xl">{exam.title}</CardTitle>
-                            {exam.description && (
-                                <p className="text-muted-foreground">{exam.description}</p>
-                            )}
-                        </div>
-                        {getStatusBadge()}
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    {/* Info Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                            <Clock className="h-8 w-8 text-blue-500" />
-                            <div>
-                                <p className="text-sm text-muted-foreground">Durasi</p>
-                                <p className="font-semibold">{exam.durationMinutes} menit</p>
+            <div className="grid gap-6 md:grid-cols-3">
+                {/* Main Content */}
+                <div className="md:col-span-2 space-y-6">
+                    {/* Exam Info */}
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <CardTitle className="text-2xl">{exam.title}</CardTitle>
+                                    {exam.description && (
+                                        <CardDescription className="mt-2">
+                                            {exam.description}
+                                        </CardDescription>
+                                    )}
+                                </div>
+                                <Badge
+                                    variant={availability === 'available' ? 'default' : 'outline'}
+                                    className="shrink-0"
+                                >
+                                    <AvailIcon className={`h-3 w-3 mr-1 ${availInfo.color}`} />
+                                    {availInfo.label}
+                                </Badge>
                             </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                            <FileText className="h-8 w-8 text-green-500" />
-                            <div>
-                                <p className="text-sm text-muted-foreground">Jumlah Soal</p>
-                                <p className="font-semibold">{questionCount} soal</p>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                        <Clock className="h-4 w-4" />
+                                        <span className="text-sm">Durasi</span>
+                                    </div>
+                                    <p className="font-semibold">{formatDuration(exam.durationMinutes)}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                        <FileText className="h-4 w-4" />
+                                        <span className="text-sm">Jumlah Soal</span>
+                                    </div>
+                                    <p className="font-semibold">{questionCount} soal</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                        <Target className="h-4 w-4" />
+                                        <span className="text-sm">Passing Score</span>
+                                    </div>
+                                    <p className="font-semibold">{exam.passingScore}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                        <Calendar className="h-4 w-4" />
+                                        <span className="text-sm">Dibuat</span>
+                                    </div>
+                                    <p className="font-semibold">
+                                        {format(new Date(exam.createdAt), 'dd MMM yyyy', { locale: localeId })}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
+                        </CardContent>
+                    </Card>
 
-                        <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                            <Trophy className="h-8 w-8 text-yellow-500" />
-                            <div>
-                                <p className="text-sm text-muted-foreground">Passing Score</p>
-                                <p className="font-semibold">{exam.passingScore}</p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                            <Users className="h-8 w-8 text-purple-500" />
-                            <div>
-                                <p className="text-sm text-muted-foreground">Peserta</p>
-                                <p className="font-semibold">{participantCount}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Schedule */}
+                    {/* Schedule Info (if set) */}
                     {(exam.startTime || exam.endTime) && (
-                        <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                            <Calendar className="h-6 w-6 text-muted-foreground" />
-                            <div>
-                                <p className="text-sm text-muted-foreground">Jadwal Ujian</p>
-                                <p className="font-medium">
-                                    {exam.startTime && format(new Date(exam.startTime), 'PPP HH:mm', { locale: localeId })}
-                                    {exam.startTime && exam.endTime && ' - '}
-                                    {exam.endTime && format(new Date(exam.endTime), 'PPP HH:mm', { locale: localeId })}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Calendar className="h-5 w-5" />
+                                    Jadwal Ujian
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                {exam.startTime && (
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Waktu Mulai</span>
+                                        <span className="font-medium">
+                                            {format(new Date(exam.startTime), 'PPpp', { locale: localeId })}
+                                        </span>
+                                    </div>
+                                )}
+                                {exam.endTime && (
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Waktu Berakhir</span>
+                                        <span className="font-medium">
+                                            {format(new Date(exam.endTime), 'PPpp', { locale: localeId })}
+                                        </span>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Rules */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <Info className="h-5 w-5" />
+                                Aturan Ujian
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="space-y-2 text-sm text-muted-foreground">
+                                <li className="flex items-start gap-2">
+                                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                                    Pastikan koneksi internet stabil selama ujian berlangsung
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                                    Jawaban akan tersimpan otomatis setiap kali Anda memilih opsi
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                                    Anda dapat berpindah antar soal selama waktu ujian masih tersedia
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
+                                    Ujian akan otomatis berakhir jika waktu habis
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <Camera className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                                    Proctoring aktif: pastikan wajah Anda terlihat di kamera
+                                </li>
+                            </ul>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Sidebar */}
+                <div className="space-y-6">
+                    {/* Start Exam Card */}
+                    <Card className="sticky top-6">
+                        <CardHeader>
+                            <CardTitle className="text-lg">Mulai Ujian</CardTitle>
+                            <CardDescription>{availInfo.description}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {/* Proctoring Notice */}
+                            <Alert>
+                                <Camera className="h-4 w-4" />
+                                <AlertTitle>Proctoring Aktif</AlertTitle>
+                                <AlertDescription>
+                                    Ujian ini menggunakan deteksi wajah untuk menjaga integritas.
+                                    Izinkan akses kamera saat diminta.
+                                </AlertDescription>
+                            </Alert>
+
+                            {/* Start Button */}
+                            <Button
+                                className="w-full"
+                                size="lg"
+                                disabled={!availInfo.canStart || startExamMutation.isPending}
+                                onClick={handleStartExam}
+                            >
+                                {startExamMutation.isPending ? (
+                                    'Memulai...'
+                                ) : (
+                                    <>
+                                        <Play className="h-4 w-4 mr-2" />
+                                        Mulai Ujian
+                                    </>
+                                )}
+                            </Button>
+
+                            {/* Warning if can't start */}
+                            {!availInfo.canStart && (
+                                <p className="text-sm text-muted-foreground text-center">
+                                    {availability === 'upcoming' && 'Ujian belum dimulai'}
+                                    {availability === 'ended' && 'Waktu ujian telah berakhir'}
+                                    {availability === 'no-questions' && 'Ujian belum memiliki soal'}
                                 </p>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Start Button */}
-                    <div className="flex justify-center pt-4">
-                        <Button
-                            size="lg"
-                            onClick={handleStartExam}
-                            // ✅ FIX: Use isPending (now exposed from hook)
-                            disabled={!isAvailable || startExamMutation.isPending}
-                            className="w-full md:w-auto px-8"
-                        >
-                            <Play className="mr-2 h-5 w-5" />
-                            {/* ✅ FIX: Use isPending */}
-                            {startExamMutation.isPending ? 'Starting...' : 'Start Exam'}
-                        </Button>
-                    </div>
-
-                    {/* Warning for unavailable exam */}
-                    {!isAvailable && (
-                        <Alert>
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>
-                                {availability.status === 'upcoming' && 'Ujian belum dimulai. Silakan tunggu hingga waktu yang ditentukan.'}
-                                {availability.status === 'ended' && 'Ujian sudah berakhir.'}
-                                {availability.status === 'inactive' && 'Ujian tidak aktif.'}
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* Rules Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Aturan Ujian</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                        <li>Pastikan koneksi internet stabil selama ujian berlangsung</li>
-                        <li>Ujian akan otomatis berakhir ketika waktu habis</li>
-                        <li>Jawaban akan tersimpan otomatis setiap kali Anda memilih jawaban</li>
-                        <li>Webcam akan diaktifkan untuk proctoring selama ujian</li>
-                        <li>Jangan membuka tab atau aplikasi lain selama ujian</li>
-                        <li>Pastikan wajah Anda terlihat jelas di webcam</li>
-                    </ul>
-                </CardContent>
-            </Card>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
         </div>
     );
 }

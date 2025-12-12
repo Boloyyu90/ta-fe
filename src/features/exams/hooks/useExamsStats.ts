@@ -1,35 +1,49 @@
-// src/features/exams/hooks/useExamsStats.ts
+/**
+ * Hook for fetching exam statistics (dashboard)
+ */
 
 import { useQuery } from '@tanstack/react-query';
 import { examsApi } from '../api/exams.api';
 
-/**
- * Hook to fetch exam statistics
- * Calculates aggregate stats from active exams
- *
- * ⚠️ FIXED: examsApi.getExams() returns { data: Exam[], pagination: {...} }
- * NOT a plain array
- */
+export interface ExamsStats {
+    totalExams: number;
+    totalQuestions: number;
+    averagePassingScore: number;
+}
+
 export function useExamsStats() {
-    return useQuery({
+    return useQuery<ExamsStats, Error>({
         queryKey: ['exams-stats'],
         queryFn: async () => {
-            // ✅ FIXED: Destructure the data array from response
-            const { data: exams } = await examsApi.getExams({ status: 'active' });
+            const response = await examsApi.getExams({
+                limit: 100, // Get more exams for stats
+            });
 
-            // Now we can safely use array methods
+            const exams = response.data;
             const totalExams = exams.length;
-            const totalDuration = exams.reduce((sum, exam) => sum + exam.durationMinutes, 0); // ✅ durationMinutes
-            const averageDuration = totalExams > 0 ? Math.round(totalDuration / totalExams) : 0;
 
-            const totalPassingScore = exams.reduce((sum, exam) => sum + exam.passingScore, 0);
-            const averagePassingScore = totalExams > 0 ? Math.round(totalPassingScore / totalExams) : 0;
+            // Count total questions
+            const totalQuestions = exams.reduce(
+                (sum, exam) => sum + (exam._count?.examQuestions ?? 0),
+                0
+            );
+
+            const totalPassingScore = exams.reduce(
+                (sum, exam) => sum + (exam.passingScore ?? 0),
+                0
+            );
+            const averagePassingScore = totalExams > 0
+                ? Math.round(totalPassingScore / totalExams)
+                : 0;
 
             return {
                 totalExams,
-                averageDuration,
+                totalQuestions,
                 averagePassingScore,
             };
         },
+        staleTime: 5 * 60 * 1000, // 5 minutes
     });
 }
+
+export default useExamsStats;

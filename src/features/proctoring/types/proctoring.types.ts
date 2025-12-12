@@ -1,95 +1,68 @@
-// src/features/proctoring/types/proctoring.types.ts
-
 /**
- * PROCTORING TYPES - ALIGNED WITH BACKEND CONTRACT
- *
- * ✅ Imports enums from shared (no local redefinitions)
- * ✅ Imports PaginationMeta from shared
- * ✅ Matches backend API contract exactly
- * ✅ Severity: LOW | MEDIUM | HIGH (no INFO)
- *
- * @see backend-api-contract.md Section 7 - Proctoring Module
+ * Proctoring Types
  */
 
-import type { ProctoringEventType, Severity } from '@/shared/types/enum.types';
+import type {
+    ProctoringEventType,
+    Severity,
+} from '@/shared/types/enum.types';
 import type { PaginationMeta } from '@/shared/types/api.types';
 
 // Re-export for convenience
 export type { ProctoringEventType, Severity };
 
 // ============================================================================
-// ANALYSIS STATUS (ML Service Response)
+// PROCTORING EVENT MODELS
 // ============================================================================
 
 /**
- * Status of face analysis from ML service
- */
-export type AnalysisStatus = 'success' | 'error' | 'timeout';
-
-// ============================================================================
-// PROCTORING EVENT (Backend Entity)
-// ============================================================================
-
-/**
- * Proctoring event entity
- * Matches backend ProctoringEvent model
- *
- * @see GET /proctoring/exam-sessions/:userExamId/events
+ * Proctoring event as returned by backend
  */
 export interface ProctoringEvent {
     id: number;
     userExamId: number;
     eventType: ProctoringEventType;
     severity: Severity;
-    timestamp: string; // ISO datetime
+    timestamp: string;
     metadata: Record<string, unknown> | null;
-}
-
-/**
- * Proctoring event with user exam details (admin view)
- *
- * @see GET /admin/proctoring/events
- */
-export interface ProctoringEventWithDetails extends ProctoringEvent {
-    userExam: {
+    userExam?: {
         id: number;
         userId: number;
         examId: number;
         status: string;
-        user: {
+        user?: {
             id: number;
             name: string;
             email: string;
         };
-        exam: {
+        exam?: {
             id: number;
             title: string;
         };
     };
 }
 
-// ============================================================================
-// WEBCAM STATE (Frontend Only)
-// ============================================================================
-
 /**
- * Webcam state for UI
- * Used by useWebcam hook and ProctoringMonitor component
+ * Metadata structure for face detection events
+ * Extracted from metadata JSON
  */
-export interface WebcamState {
-    isActive: boolean;
-    stream: MediaStream | null;
-    error: string | null;
-    lastCapture: string | null; // Base64 image
+export interface FaceDetectionMetadata {
+    confidence: number;
+    faceCount: number;
+    boundingBox?: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    };
 }
 
 // ============================================================================
-// VIOLATION (UI State)
+// UI TYPES (for proctoring monitor)
 // ============================================================================
 
 /**
- * UI-friendly violation representation
- * Used by Zustand store for real-time violation tracking
+ * Violation for UI display (simplified)
  */
 export interface Violation {
     id: string;
@@ -100,13 +73,24 @@ export interface Violation {
 }
 
 /**
- * Violation counts for UI display
+ * Face analysis result from YOLO service
  */
-export interface ViolationCounts {
-    low: number;
-    medium: number;
-    high: number;
-    total: number;
+export interface FaceAnalysisResult {
+    eventType: ProctoringEventType;
+    severity: Severity;
+    confidence: number;
+    faceCount: number;
+    message: string;
+}
+
+/**
+ * Webcam state for proctoring store
+ */
+export interface WebcamState {
+    isActive: boolean;
+    stream: MediaStream | null;
+    error: string | null;
+    hasPermission: boolean | null;
 }
 
 // ============================================================================
@@ -114,42 +98,23 @@ export interface ViolationCounts {
 // ============================================================================
 
 /**
- * Face analysis request
- * POST /proctoring/exam-sessions/:userExamId/analyze-face
+ * Request to analyze face
  */
 export interface AnalyzeFaceRequest {
     imageBase64: string;
 }
 
 /**
- * Log proctoring event request
- * POST /proctoring/events
+ * Query params for proctoring events
  */
-export interface LogEventRequest {
-    userExamId: number;
-    eventType: ProctoringEventType;
-    metadata?: Record<string, unknown>;
-}
-
-/**
- * Query params for getting proctoring events
- * GET /proctoring/exam-sessions/:userExamId/events
- */
-export interface ProctoringEventsParams {
+export interface ProctoringEventsQueryParams {
     page?: number;
     limit?: number;
     eventType?: ProctoringEventType;
-    startDate?: string; // ISO datetime
-    endDate?: string;   // ISO datetime
-    sortOrder?: 'asc' | 'desc';
-}
-
-/**
- * Query params for admin proctoring events
- * GET /admin/proctoring/events
- */
-export interface AdminProctoringEventsParams extends ProctoringEventsParams {
     userExamId?: number;
+    startDate?: string;
+    endDate?: string;
+    sortOrder?: 'asc' | 'desc';
 }
 
 // ============================================================================
@@ -157,51 +122,15 @@ export interface AdminProctoringEventsParams extends ProctoringEventsParams {
 // ============================================================================
 
 /**
- * Face analysis metadata from ML service
- */
-export interface FaceAnalysisMetadata {
-    processingTimeMs?: number;
-    modelVersion?: string;
-    faceCount?: number;
-    rawDetections?: unknown;
-    error?: string;
-}
-
-/**
- * Face analysis result from ML service
- *
- * @see POST /proctoring/exam-sessions/:userExamId/analyze-face
- */
-export interface FaceAnalysisResult {
-    status: AnalysisStatus;
-    violations: string[]; // ViolationType values as strings
-    confidence: number;
-    message: string;
-    metadata?: FaceAnalysisMetadata;
-}
-
-/**
- * Complete analyze-face response payload
- *
- * Backend returns this inside ApiResponse wrapper:
- * { success: true, data: AnalyzeFaceResponse, ... }
- *
- * @see backend-api-contract.md Section 7.1
+ * POST /proctoring/exam-sessions/:id/analyze-face
  */
 export interface AnalyzeFaceResponse {
+    event: ProctoringEvent;
     analysis: FaceAnalysisResult;
-    eventLogged: boolean;
-    eventType: ProctoringEventType | null;
-    usedFallback: boolean;
 }
 
 /**
- * Proctoring events list response payload
- *
- * Backend returns this inside ApiResponse wrapper:
- * { success: true, data: { data: [...], pagination: {...} }, ... }
- *
- * @see GET /proctoring/exam-sessions/:userExamId/events
+ * GET /proctoring/exam-sessions/:id/events
  */
 export interface ProctoringEventsResponse {
     data: ProctoringEvent[];
@@ -209,126 +138,50 @@ export interface ProctoringEventsResponse {
 }
 
 /**
- * Admin proctoring events list response payload
- *
- * @see GET /admin/proctoring/events
+ * GET /admin/proctoring/events
  */
 export interface AdminProctoringEventsResponse {
-    data: ProctoringEventWithDetails[];
+    data: ProctoringEvent[];
     pagination: PaginationMeta;
 }
 
-/**
- * Log event response payload
- *
- * Backend returns this inside ApiResponse wrapper:
- * { success: true, data: { event: {...} }, ... }
- *
- * @see POST /proctoring/events
- */
-export interface LogEventResponse {
-    event: ProctoringEvent;
-}
-
 // ============================================================================
-// HELPER TYPES FOR SEVERITY MAPPING
+// HELPER FUNCTIONS
 // ============================================================================
 
 /**
- * Severity configuration for UI display
+ * Extract confidence from metadata
  */
-export interface SeverityConfig {
-    label: string;
-    color: string;      // Tailwind text color
-    bgColor: string;    // Tailwind background color
-    icon: string;       // Icon name (lucide-react)
+export function getConfidenceFromMetadata(
+    metadata: Record<string, unknown> | null
+): number | null {
+    if (!metadata) return null;
+    const confidence = metadata.confidence;
+    if (typeof confidence === 'number') return confidence;
+    return null;
 }
 
 /**
- * Map of severity to UI config
+ * Extract face count from metadata
  */
-export type SeverityConfigMap = Record<Severity, SeverityConfig>;
-
-/**
- * Event type configuration for UI display
- */
-export interface EventTypeConfig {
-    label: string;
-    description: string;
-    severity: Severity;
-    icon: string;
+export function getFaceCountFromMetadata(
+    metadata: Record<string, unknown> | null
+): number | null {
+    if (!metadata) return null;
+    const faceCount = metadata.faceCount;
+    if (typeof faceCount === 'number') return faceCount;
+    return null;
 }
 
 /**
- * Map of event type to UI config
+ * Create violation message from event
  */
-export type EventTypeConfigMap = Record<ProctoringEventType, EventTypeConfig>;
-
-// ============================================================================
-// CONSTANTS (for UI)
-// ============================================================================
-
-/**
- * Severity UI configuration
- * Use with SeverityBadge component
- */
-export const SEVERITY_CONFIG: SeverityConfigMap = {
-    LOW: {
-        label: 'Low',
-        color: 'text-green-600',
-        bgColor: 'bg-green-50 dark:bg-green-950/30',
-        icon: 'CheckCircle',
-    },
-    MEDIUM: {
-        label: 'Medium',
-        color: 'text-yellow-600',
-        bgColor: 'bg-yellow-50 dark:bg-yellow-950/30',
-        icon: 'AlertTriangle',
-    },
-    HIGH: {
-        label: 'High',
-        color: 'text-red-600',
-        bgColor: 'bg-red-50 dark:bg-red-950/30',
-        icon: 'AlertCircle',
-    },
-};
-
-/**
- * Event type UI configuration
- * Use with EventTypeBadge component
- */
-export const EVENT_TYPE_CONFIG: EventTypeConfigMap = {
-    FACE_DETECTED: {
-        label: 'Face Detected',
-        description: 'Normal state - face properly detected',
-        severity: 'LOW',
-        icon: 'CheckCircle',
-    },
-    NO_FACE_DETECTED: {
-        label: 'No Face Detected',
-        description: 'No face visible in camera frame',
-        severity: 'HIGH',
-        icon: 'UserX',
-    },
-    MULTIPLE_FACES: {
-        label: 'Multiple Faces',
-        description: 'More than one person detected',
-        severity: 'HIGH',
-        icon: 'Users',
-    },
-    LOOKING_AWAY: {
-        label: 'Looking Away',
-        description: 'Face not looking at screen',
-        severity: 'MEDIUM',
-        icon: 'Eye',
-    },
-};
-
-/**
- * Violation thresholds for auto-cancellation
- * @see backend-api-contract.md Business Rules - Proctoring
- */
-export const VIOLATION_THRESHOLDS = {
-    HIGH_VIOLATIONS_LIMIT: 3,    // 3 HIGH violations → exam cancelled
-    MEDIUM_VIOLATIONS_LIMIT: 10, // 10 MEDIUM violations → exam cancelled
-} as const;
+export function createViolationMessage(eventType: ProctoringEventType): string {
+    const messages: Record<ProctoringEventType, string> = {
+        FACE_DETECTED: 'Wajah terdeteksi dengan baik',
+        NO_FACE_DETECTED: 'Wajah tidak terdeteksi. Pastikan wajah Anda terlihat di kamera.',
+        MULTIPLE_FACES: 'Terdeteksi lebih dari satu wajah. Pastikan hanya Anda yang terlihat.',
+        LOOKING_AWAY: 'Anda terdeteksi tidak melihat ke layar.',
+    };
+    return messages[eventType] ?? 'Event proctoring terdeteksi';
+}

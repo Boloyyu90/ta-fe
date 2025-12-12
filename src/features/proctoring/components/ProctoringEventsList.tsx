@@ -1,103 +1,107 @@
-// src/features/proctoring/components/ProctoringEventsList.tsx
-
 /**
  * Proctoring Events List Component
- *
- * ✅ AUDIT FIX v3:
- * - Import ViolationSeverity from proctoring types (re-exported)
- * - Use details and mlConfidence from ProctoringEvent
  */
 
 'use client';
 
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
-import { Badge } from '@/shared/components/ui/badge';
-import { ScrollArea } from '@/shared/components/ui/scroll-area';
 import {
-    AlertTriangle,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/shared/components/ui/table';
+import { Badge } from '@/shared/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import {
     Eye,
     EyeOff,
     Users,
-    AlertCircle,
-    CheckCircle,
+    AlertTriangle,
 } from 'lucide-react';
-import type { ProctoringEvent, ViolationSeverity, ProctoringEventType } from '../types/proctoring.types';
+import type { ProctoringEvent } from '../types/proctoring.types';
+import type { Severity, ProctoringEventType } from '@/shared/types/enum.types';
 
-export interface ProctoringEventsListProps {
+// ============================================================================
+// PROPS
+// ============================================================================
+
+interface ProctoringEventsListProps {
     events: ProctoringEvent[];
-    isLoading?: boolean;
-    maxHeight?: string;
+    showUserInfo?: boolean;
 }
+
+// ============================================================================
+// CONFIG
+// ============================================================================
+
+const severityConfig: Record<Severity, {
+    label: string;
+    variant: 'default' | 'secondary' | 'destructive' | 'outline';
+    color: string;
+}> = {
+    LOW: {
+        label: 'Rendah',
+        variant: 'outline',
+        color: 'text-green-600 bg-green-50',
+    },
+    MEDIUM: {
+        label: 'Sedang',
+        variant: 'secondary',
+        color: 'text-yellow-600 bg-yellow-50',
+    },
+    HIGH: {
+        label: 'Tinggi',
+        variant: 'destructive',
+        color: 'text-red-600 bg-red-50',
+    },
+};
 
 const eventTypeConfig: Record<ProctoringEventType, {
     label: string;
-    icon: typeof AlertTriangle;
-    color: string;
+    icon: typeof Eye;
+    description: string;
 }> = {
     FACE_DETECTED: {
         label: 'Wajah Terdeteksi',
-        icon: CheckCircle,
-        color: 'text-green-600',
+        icon: Eye,
+        description: 'Wajah pengguna terdeteksi dengan jelas',
     },
     NO_FACE_DETECTED: {
-        label: 'Wajah Tidak Terdeteksi',
+        label: 'Tidak Ada Wajah',
         icon: EyeOff,
-        color: 'text-red-600',
+        description: 'Wajah tidak terdeteksi di frame',
     },
     MULTIPLE_FACES: {
-        label: 'Multiple Faces',
+        label: 'Banyak Wajah',
         icon: Users,
-        color: 'text-orange-600',
+        description: 'Lebih dari satu wajah terdeteksi',
     },
     LOOKING_AWAY: {
-        label: 'Tidak Melihat Layar',
-        icon: Eye,
-        color: 'text-yellow-600',
+        label: 'Melihat Ke Samping',
+        icon: AlertTriangle,
+        description: 'Pengguna tidak melihat ke layar',
     },
 };
 
-const severityConfig: Record<ViolationSeverity, {
-    variant: 'default' | 'secondary' | 'destructive' | 'outline';
-    label: string;
-}> = {
-    LOW: { variant: 'outline', label: 'Rendah' },
-    MEDIUM: { variant: 'secondary', label: 'Sedang' },
-    HIGH: { variant: 'destructive', label: 'Tinggi' },
-};
+// ============================================================================
+// COMPONENT
+// ============================================================================
 
 export function ProctoringEventsList({
                                          events,
-                                         isLoading,
-                                         maxHeight = '400px',
+                                         showUserInfo = false,
                                      }: ProctoringEventsListProps) {
-    if (isLoading) {
-        return (
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg">Riwayat Proctoring</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-center py-8 text-muted-foreground">
-                        Memuat data...
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    }
-
     if (events.length === 0) {
         return (
             <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg">Riwayat Proctoring</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-center py-8 text-muted-foreground">
-                        <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p>Belum ada event proctoring</p>
-                    </div>
+                <CardContent className="py-8">
+                    <p className="text-center text-muted-foreground">
+                        Tidak ada event proctoring
+                    </p>
                 </CardContent>
             </Card>
         );
@@ -106,64 +110,76 @@ export function ProctoringEventsList({
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-lg flex items-center justify-between">
-                    <span>Riwayat Proctoring</span>
-                    <Badge variant="outline">{events.length} events</Badge>
+                <CardTitle className="text-lg">
+                    Riwayat Proctoring ({events.length} event)
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <ScrollArea style={{ maxHeight }} className="pr-4">
-                    <div className="space-y-3">
-                        {events.map((event) => {
-                            const typeConfig = eventTypeConfig[event.eventType];
-                            const severity = severityConfig[event.severity];
-                            const Icon = typeConfig?.icon || AlertTriangle;
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Waktu</TableHead>
+                                <TableHead>Tipe Event</TableHead>
+                                <TableHead>Severity</TableHead>
+                                <TableHead>Confidence</TableHead>
+                                {showUserInfo && <TableHead>User</TableHead>}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {events.map((event) => {
+                                const eventInfo = eventTypeConfig[event.eventType];
+                                const severity = (event.severity as Severity) || 'LOW';
+                                const severityInfo = severityConfig[severity];
+                                const EventIcon = eventInfo?.icon ?? AlertTriangle;
 
-                            return (
-                                <div
-                                    key={event.id}
-                                    className="flex items-start gap-3 p-3 rounded-lg border bg-card"
-                                >
-                                    <div className={`mt-0.5 ${typeConfig?.color || 'text-gray-600'}`}>
-                                        <Icon className="h-5 w-5" />
-                                    </div>
+                                const metadata = event.metadata as Record<string, unknown> | null;
+                                const confidence = metadata?.confidence as number | undefined;
 
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="font-medium text-sm">
-                                                {typeConfig?.label || event.eventType}
-                                            </span>
-                                            <Badge variant={severity?.variant || 'outline'} className="text-xs">
-                                                {severity?.label || event.severity}
-                                            </Badge>
-                                        </div>
-
-                                        {/* ✅ FIX: details field is now on ProctoringEvent */}
-                                        {event.details && (
-                                            <p className="text-sm text-muted-foreground">
-                                                {event.details}
-                                            </p>
-                                        )}
-
-                                        {/* ✅ FIX: mlConfidence field is now on ProctoringEvent */}
-                                        {event.mlConfidence !== null && event.mlConfidence !== undefined && (
-                                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                                                <span>Confidence:</span>
-                                                <span className="font-medium">
-                                                    {(event.mlConfidence * 100).toFixed(1)}%
-                                                </span>
+                                return (
+                                    <TableRow key={event.id}>
+                                        <TableCell className="whitespace-nowrap">
+                                            {format(
+                                                new Date(event.timestamp),
+                                                'HH:mm:ss',
+                                                { locale: localeId }
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <EventIcon className="h-4 w-4 text-muted-foreground" />
+                                                <span>{eventInfo?.label ?? event.eventType}</span>
                                             </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge
+                                                variant={severityInfo.variant}
+                                                className={severityInfo.color}
+                                            >
+                                                {severityInfo.label}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            {/* ✅ PHASE 3 FIX: Use metadata.confidence */}
+                                            {confidence !== undefined && confidence !== null ? (
+                                                <span className="font-mono text-sm">
+                                                    {(confidence * 100).toFixed(1)}%
+                                                </span>
+                                            ) : (
+                                                <span className="text-muted-foreground">-</span>
+                                            )}
+                                        </TableCell>
+                                        {showUserInfo && (
+                                            <TableCell>
+                                                {event.userExam?.user?.name ?? '-'}
+                                            </TableCell>
                                         )}
-
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            {format(new Date(event.timestamp), 'PPp', { locale: localeId })}
-                                        </p>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </ScrollArea>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </div>
             </CardContent>
         </Card>
     );

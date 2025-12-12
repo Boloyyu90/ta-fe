@@ -1,101 +1,150 @@
-// src/app/(participant)/exam-sessions/[id]/review/page.tsx
+/**
+ * Exam Review Page
+*/
 
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { examSessionsApi } from '@/features/exam-sessions/api/exam-sessions.api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { Skeleton } from '@/shared/components/ui/skeleton';
+import { CheckCircle, XCircle, ArrowLeft, Home } from 'lucide-react';
+import Link from 'next/link';
+import { useExamAnswers } from '@/features/exam-sessions/hooks/useExamAnswers';
+import { AnswerReviewCard } from '@/features/exam-sessions/components/AnswerReviewCard';
 
 export default function ExamReviewPage() {
     const params = useParams();
-    const sessionId = Number(params.id);
+    const sessionId = params.id ? Number(params.id) : undefined;
 
-    const { data: answersData, isLoading } = useQuery({
-        queryKey: ['exam-answers', sessionId],
-        queryFn: () => examSessionsApi.getExamAnswers(sessionId),
-    });
+    const { data: answersData, isLoading, isError } = useExamAnswers(sessionId);
 
     if (isLoading) {
-        return <div className="flex justify-center p-8">Loading answers...</div>;
+        return (
+            <div className="container mx-auto py-8 space-y-6">
+                <Skeleton className="h-10 w-64" />
+                <div className="grid gap-4">
+                    {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-48" />
+                    ))}
+                </div>
+            </div>
+        );
     }
 
-    if (!answersData || !answersData.answers) {
-        return <div className="flex justify-center p-8">No answers found</div>;
+    if (isError || !answersData) {
+        return (
+            <div className="container mx-auto py-8">
+                <Card>
+                    <CardContent className="py-8 text-center">
+                        <p className="text-muted-foreground">
+                            Gagal memuat data review. Silakan coba lagi.
+                        </p>
+                        <Button asChild className="mt-4">
+                            <Link href="/dashboard">
+                                <Home className="h-4 w-4 mr-2" />
+                                Kembali ke Dashboard
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
     }
+
+    const { answers, total } = answersData;
+
+    // Calculate stats
+    const correctCount = answers.filter((a) => a.isCorrect === true).length;
+    const incorrectCount = answers.filter((a) => a.isCorrect === false).length;
+    const unansweredCount = answers.filter((a) => a.selectedOption === null).length;
+    const totalScore = answers.reduce((sum, a) => sum + (a.score ?? 0), 0);
 
     return (
-        <div className="space-y-6 p-6">
-            <div>
-                <h1 className="text-2xl font-bold">Exam Review</h1>
-                <p className="text-muted-foreground">Review your submitted answers</p>
+        <div className="container mx-auto py-8 space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold">Review Jawaban</h1>
+                    <p className="text-muted-foreground">
+                        {total} soal telah dikerjakan
+                    </p>
+                </div>
+                <Button asChild variant="outline">
+                    <Link href={`/results/${sessionId}`}>
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Lihat Hasil
+                    </Link>
+                </Button>
             </div>
 
+            {/* Summary Stats */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg">Ringkasan</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center p-4 bg-green-50 rounded-lg">
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                                <CheckCircle className="h-5 w-5 text-green-600" />
+                                <span className="text-2xl font-bold text-green-600">
+                                    {correctCount}
+                                </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">Benar</p>
+                        </div>
+                        <div className="text-center p-4 bg-red-50 rounded-lg">
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                                <XCircle className="h-5 w-5 text-red-600" />
+                                <span className="text-2xl font-bold text-red-600">
+                                    {incorrectCount}
+                                </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">Salah</p>
+                        </div>
+                        <div className="text-center p-4 bg-gray-50 rounded-lg">
+                            <span className="text-2xl font-bold text-gray-600">
+                                {unansweredCount}
+                            </span>
+                            <p className="text-sm text-muted-foreground">Tidak Dijawab</p>
+                        </div>
+                        <div className="text-center p-4 bg-blue-50 rounded-lg">
+                            <span className="text-2xl font-bold text-blue-600">
+                                {totalScore}
+                            </span>
+                            <p className="text-sm text-muted-foreground">Total Skor</p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Answer Cards */}
             <div className="space-y-4">
-                {answersData.answers.map((answer, index) => (
-                    <Card key={answer.id}>
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-lg">
-                                    Question {index + 1}
-                                </CardTitle>
-                                {answer.isCorrect ? (
-                                    <Badge className="bg-green-500">
-                                        <CheckCircle className="mr-1 h-3 w-3" />
-                                        Correct
-                                    </Badge>
-                                ) : (
-                                    <Badge variant="destructive">
-                                        <XCircle className="mr-1 h-3 w-3" />
-                                        Incorrect
-                                    </Badge>
-                                )}
-                            </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* ✅ FIXED: Access via answer.examQuestion.content */}
-                            <p className="font-medium">{answer.examQuestion.content}</p>
-
-                            <div className="space-y-2">
-                                {/* ✅ FIXED: Access via answer.selectedOption */}
-                                <p>
-                                    <span className="font-medium">Your answer:</span>{' '}
-                                    {answer.selectedOption || 'Not answered'}
-                                </p>
-
-                                {/* ✅ FIXED: Correct answer is in examQuestion */}
-                                {!answer.isCorrect && (
-                                    <p className="text-green-600">
-                                        <span className="font-medium">Correct answer:</span>{' '}
-                                        {answer.examQuestion.options[
-                                            answer.examQuestion.content.match(/correct.*?([A-E])/i)?.[1] as 'A' | 'B' | 'C' | 'D' | 'E'
-                                            ] || 'N/A'}
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Show all options */}
-                            <div className="space-y-2 pt-2 border-t">
-                                <p className="font-medium text-sm text-muted-foreground">Options:</p>
-                                {(['A', 'B', 'C', 'D', 'E'] as const).map((optionKey) => (
-                                    <div
-                                        key={optionKey}
-                                        className={`p-2 rounded ${
-                                            answer.selectedOption === optionKey
-                                                ? 'bg-blue-50 border border-blue-200'
-                                                : ''
-                                        }`}
-                                    >
-                                        <span className="font-medium">{optionKey}.</span>{' '}
-                                        {answer.examQuestion.options[optionKey]}
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
+                {answers.map((answer, index) => (
+                    <AnswerReviewCard
+                        key={answer.examQuestionId}
+                        answer={answer}
+                        index={index}
+                        showCorrectAnswer={true}
+                    />
                 ))}
+            </div>
+
+            {/* Bottom Navigation */}
+            <div className="flex justify-center gap-4 pt-4">
+                <Button asChild variant="outline">
+                    <Link href="/dashboard">
+                        <Home className="h-4 w-4 mr-2" />
+                        Dashboard
+                    </Link>
+                </Button>
+                <Button asChild>
+                    <Link href={`/results/${sessionId}`}>
+                        Lihat Hasil Lengkap
+                    </Link>
+                </Button>
             </div>
         </div>
     );

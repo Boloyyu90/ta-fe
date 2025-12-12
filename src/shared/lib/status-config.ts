@@ -1,58 +1,102 @@
-// src/features/exam-sessions/utils/status-config.ts
+/**
+ * Status Configuration Utilities
+ */
+
 import {
     Clock,
     PlayCircle,
     CheckCircle,
     XCircle,
     Timer,
-    Ban,
     type LucideIcon,
 } from 'lucide-react';
-import type { UserExamStatus } from '@/features/exam-sessions/types/exam-sessions.types';
+import type { ExamStatus } from '@/shared/types/enum.types';
 
 export interface StatusConfig {
     label: string;
+    labelId: string;        // Indonesian label
     color: string;
+    bgColor: string;
     icon: LucideIcon;
+    canContinue: boolean;   // Whether user can continue this exam
 }
 
 /**
- * Get status configuration for UserExamStatus
- * Returns label, color class, and icon component
+ * Status configuration map
  */
-export function getStatusConfig(status: UserExamStatus): StatusConfig {
-    const configs: Record<UserExamStatus, StatusConfig> = {
-        NOT_STARTED: {
-            label: 'Not Started',
-            color: 'bg-gray-100 text-gray-700 border-gray-300',
-            icon: Clock,
-        },
-        IN_PROGRESS: {
-            label: 'In Progress',
-            color: 'bg-blue-100 text-blue-700 border-blue-300',
-            icon: PlayCircle,
-        },
-        FINISHED: {
-            label: 'Finished',
-            color: 'bg-green-100 text-green-700 border-green-300',
-            icon: CheckCircle,
-        },
-        TIMEOUT: {
-            label: 'Timeout',
-            color: 'bg-orange-100 text-orange-700 border-orange-300',
-            icon: Timer,
-        },
-        CANCELLED: {
-            label: 'Cancelled',
-            color: 'bg-red-100 text-red-700 border-red-300',
-            icon: XCircle,
-        },
-        COMPLETED: {
-            label: 'Completed',
-            color: 'bg-purple-100 text-purple-700 border-purple-300',
-            icon: CheckCircle,
-        },
-    };
+export const STATUS_CONFIG: Record<ExamStatus, StatusConfig> = {
+    IN_PROGRESS: {
+        label: 'In Progress',
+        labelId: 'Sedang Berlangsung',
+        color: 'text-blue-700',
+        bgColor: 'bg-blue-100 border-blue-300',
+        icon: PlayCircle,
+        canContinue: true,
+    },
+    FINISHED: {
+        label: 'Finished',
+        labelId: 'Selesai',
+        color: 'text-green-700',
+        bgColor: 'bg-green-100 border-green-300',
+        icon: CheckCircle,
+        canContinue: false,
+    },
+    TIMEOUT: {
+        label: 'Timeout',
+        labelId: 'Waktu Habis',
+        color: 'text-orange-700',
+        bgColor: 'bg-orange-100 border-orange-300',
+        icon: Timer,
+        canContinue: false,
+    },
+    CANCELLED: {
+        label: 'Cancelled',
+        labelId: 'Dibatalkan',
+        color: 'text-red-700',
+        bgColor: 'bg-red-100 border-red-300',
+        icon: XCircle,
+        canContinue: false,
+    },
+};
 
-    return configs[status];
+/**
+ * Get status configuration for ExamStatus
+ * Returns label, color class, and icon component
+ *
+ * @param status - ExamStatus value from backend
+ * @returns StatusConfig object
+ */
+export function getStatusConfig(status: ExamStatus): StatusConfig {
+    return STATUS_CONFIG[status] ?? STATUS_CONFIG.IN_PROGRESS;
+}
+
+/**
+ * Check if a status allows continuing the exam
+ */
+export function canContinueExam(status: ExamStatus): boolean {
+    return STATUS_CONFIG[status]?.canContinue ?? false;
+}
+
+/**
+ * Check if a status represents a completed exam (show results)
+ */
+export function isExamCompleted(status: ExamStatus): boolean {
+    return status === 'FINISHED' || status === 'TIMEOUT' || status === 'CANCELLED';
+}
+
+/**
+ * Get badge variant for status
+ */
+export function getStatusBadgeVariant(status: ExamStatus): 'default' | 'secondary' | 'destructive' | 'outline' {
+    switch (status) {
+        case 'IN_PROGRESS':
+            return 'default';
+        case 'FINISHED':
+            return 'secondary';
+        case 'TIMEOUT':
+        case 'CANCELLED':
+            return 'destructive';
+        default:
+            return 'outline';
+    }
 }

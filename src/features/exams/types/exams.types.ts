@@ -1,11 +1,3 @@
-// src/features/exams/types/exams.types.ts
-
-/**
- * Exams Types
- *
- * Source: backend-api-contract.md + backend exams.validation.ts
- */
-
 import type { PaginationMeta } from '@/shared/types/api.types';
 import type { UserExam, UserExamSession, ExamQuestion, ParticipantAnswer } from '@/features/exam-sessions/types/exam-sessions.types';
 
@@ -16,14 +8,12 @@ export type { UserExam };
 // EXAM ENTITY
 // ============================================================================
 
-/**
- * Exam entity (matches backend Prisma Exam model)
- */
 export interface Exam {
     id: number;
     title: string;
     description: string | null;
     durationMinutes: number;
+    passingScore: number;
     startTime: string | null;
     endTime: string | null;
     createdBy: number;
@@ -40,14 +30,12 @@ export interface Exam {
     };
 }
 
-/**
- * Exam for participant view (published exams only)
- */
 export interface ExamPublic {
     id: number;
     title: string;
     description: string | null;
     durationMinutes: number;
+    passingScore: number;
     startTime: string | null;
     endTime: string | null;
     createdAt: string;
@@ -85,6 +73,7 @@ export interface CreateExamRequest {
     title: string;
     description?: string;
     durationMinutes: number;
+    passingScore?: number;
     startTime?: string;
     endTime?: string;
 }
@@ -96,6 +85,7 @@ export interface UpdateExamRequest {
     title?: string;
     description?: string;
     durationMinutes?: number;
+    passingScore?: number;
     startTime?: string;
     endTime?: string;
 }
@@ -107,28 +97,28 @@ export interface AttachQuestionsRequest {
     questionIds: number[];
 }
 
-/**
- * Request to detach questions from exam
- */
-export interface DetachQuestionsRequest {
-    questionIds: number[];
-}
-
 // ============================================================================
 // API RESPONSE TYPES
 // ============================================================================
 
 /**
  * GET /exams (participant list)
- * ✅ Uses correct PaginationMeta from shared types
  */
-export interface ExamsResponse {
+export interface ExamsListResponse {
     data: ExamPublic[];
     pagination: PaginationMeta;
 }
 
 /**
- * GET /exams/:id (participant detail)
+ * GET /admin/exams (admin list)
+ */
+export interface AdminExamsListResponse {
+    data: Exam[];
+    pagination: PaginationMeta;
+}
+
+/**
+ * GET /exams/:id (single exam)
  */
 export interface ExamDetailResponse {
     exam: Exam;
@@ -143,72 +133,71 @@ export interface StartExamResponse {
     answers: ParticipantAnswer[];
 }
 
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
 /**
- * GET /admin/exams
+ * Check if an exam is currently available (within time window)
  */
-export interface AdminExamsResponse {
-    data: Exam[];
-    pagination: PaginationMeta;
+export function isExamAvailable(exam: Exam | ExamPublic): boolean {
+    const now = new Date();
+
+    // If no time restrictions, exam is always available
+    if (!exam.startTime && !exam.endTime) {
+        return true;
+    }
+
+    // Check start time
+    if (exam.startTime && new Date(exam.startTime) > now) {
+        return false; // Not started yet
+    }
+
+    // Check end time
+    if (exam.endTime && new Date(exam.endTime) < now) {
+        return false; // Already ended
+    }
+
+    return true;
 }
 
 /**
- * GET /admin/exams/:id
+ * Get exam availability status for display
  */
-export interface AdminExamDetailResponse {
-    exam: Exam;
+export type ExamAvailabilityStatus = 'available' | 'upcoming' | 'ended' | 'no-questions';
+
+export function getExamAvailabilityStatus(exam: Exam | ExamPublic): ExamAvailabilityStatus {
+    const now = new Date();
+
+    // Check if exam has questions
+    if (exam._count && exam._count.examQuestions === 0) {
+        return 'no-questions';
+    }
+
+    // Check if upcoming (not started yet)
+    if (exam.startTime && new Date(exam.startTime) > now) {
+        return 'upcoming';
+    }
+
+    // Check if ended
+    if (exam.endTime && new Date(exam.endTime) < now) {
+        return 'ended';
+    }
+
+    return 'available';
 }
 
 /**
- * POST /admin/exams
+ * Format duration in minutes to human readable string
  */
-export interface CreateExamResponse {
-    exam: Exam;
-}
-
-/**
- * PATCH /admin/exams/:id
- */
-export interface UpdateExamResponse {
-    exam: Exam;
-}
-
-/**
- * DELETE /admin/exams/:id
- */
-export interface DeleteExamResponse {
-    success: boolean;
-    message: string;
-}
-
-/**
- * POST /admin/exams/:id/questions (attach)
- */
-export interface AttachQuestionsResponse {
-    attached: number;
-    total: number;
-}
-
-/**
- * DELETE /admin/exams/:id/questions (detach)
- */
-export interface DetachQuestionsResponse {
-    detached: number;
-    remaining: number;
-}
-
-/**
- * GET /admin/exams/:id/questions
- */
-export interface ExamQuestionsListResponse {
-    questions: Array<{
-        id: number;
-        orderNumber: number;
-        question: {
-            id: number;
-            content: string;
-            questionType: string;
-            defaultScore: number;
-        };
-    }>;
-    total: number;
+export function formatDuration(minutes: number): string {
+    if (minutes < 60) {
+        return `${minutes} menit`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (remainingMinutes === 0) {
+        return `${hours} jam`;
+    }
+    return `${hours} jam ${remainingMinutes} menit`;
 }
