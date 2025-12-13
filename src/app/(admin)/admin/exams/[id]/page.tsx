@@ -121,7 +121,8 @@ export default function AdminExamDetailPage({ params }: PageProps) {
     const deleteMutation = useDeleteExam();
 
     const exam = examData?.exam;
-    const examQuestions = examQuestionsData?.data || [];
+    const examQuestions = examQuestionsData?.questions ?? [];
+    const totalQuestions = examQuestionsData?.total ?? 0;
     const allQuestions = allQuestionsData?.data || [];
 
     // Filter out already attached questions from available questions

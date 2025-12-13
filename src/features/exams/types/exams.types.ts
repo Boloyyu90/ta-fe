@@ -9,6 +9,8 @@ import type {
     ExamQuestion,
     ParticipantAnswer,
 } from '@/features/exam-sessions/types/exam-sessions.types';
+import type { QuestionType } from '@/shared/types/enum.types';
+
 
 // Re-export for convenience
 export type { UserExam };
@@ -227,21 +229,27 @@ export interface DetachQuestionsResponse {
 }
 
 /**
+ * A single item in GET /admin/exams/:id/questions
+ * (ExamQuestion junction row + minimal question info)
+ */
+export interface ExamQuestionItem {
+    id: number; // examQuestion (junction) id
+    orderNumber: number;
+    question: {
+        id: number;
+        content: string;
+        questionType: QuestionType;
+        defaultScore: number;
+    };
+}
+
+/**
  * GET /admin/exams/:id/questions
- * Returns exam's questions with pagination
+ * Backend-style list response (matches other list endpoints in the project)
  */
 export interface ExamQuestionsListResponse {
-    data: Array<{
-        id: number;
-        orderNumber: number;
-        question: {
-            id: number;
-            content: string;
-            questionType: string;
-            defaultScore: number;
-        };
-    }>;
-    pagination: PaginationMeta;
+    questions: ExamQuestionItem[];
+    total: number;
 }
 
 // ============================================================================
