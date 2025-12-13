@@ -39,7 +39,7 @@ import {
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 
 // Form validation schema
-// ✅ FIX: Use z.coerce.number() for form inputs (HTML inputs always return strings)
+// ✅ FIX: Use z.number() since form already converts string to number via onChange
 const createExamSchema = z.object({
     title: z
         .string()
@@ -51,12 +51,10 @@ const createExamSchema = z.object({
         .optional()
         .or(z.literal('')),
     durationMinutes: z
-        .coerce
-        .number({ required_error: 'Durasi wajib diisi' })
+        .number()
         .min(1, 'Durasi minimal 1 menit')
         .max(300, 'Durasi maksimal 300 menit (5 jam)'),
     passingScore: z
-        .coerce
         .number()
         .min(0, 'Passing score minimal 0')
         .optional(),
