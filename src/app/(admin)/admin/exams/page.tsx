@@ -1,3 +1,5 @@
+// src/app/(admin)/admin/exams/page.tsx
+
 /**
  * Admin Exams List Page
  *
@@ -116,11 +118,12 @@ export default function AdminExamsPage() {
             await deleteMutation.mutateAsync(deleteExamId);
             toast.success('Ujian berhasil dihapus');
             setDeleteExamId(null);
-        } catch (err: any) {
-            if (err.message?.includes('409') || err.message?.includes('participant')) {
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : '';
+            if (errorMessage.includes('409') || errorMessage.includes('participant')) {
                 toast.error('Tidak dapat menghapus ujian yang sudah memiliki peserta');
             } else {
-                toast.error(err.message || 'Gagal menghapus ujian');
+                toast.error(errorMessage || 'Gagal menghapus ujian');
             }
         }
     };

@@ -143,8 +143,9 @@ export default function AdminExamDetailPage({ params }: PageProps) {
             toast.success(`${selectedQuestionIds.length} soal berhasil ditambahkan`);
             setSelectedQuestionIds([]);
             setShowAddDialog(false);
-        } catch (error: any) {
-            toast.error(error.message || 'Gagal menambahkan soal');
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Gagal menambahkan soal';
+            toast.error(errorMessage);
         }
     };
 
@@ -158,8 +159,9 @@ export default function AdminExamDetailPage({ params }: PageProps) {
             });
             toast.success(`${questionsToDetach.length} soal berhasil dihapus dari ujian`);
             setQuestionsToDetach([]);
-        } catch (error: any) {
-            toast.error(error.message || 'Gagal menghapus soal');
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Gagal menghapus soal';
+            toast.error(errorMessage);
         }
     };
 
@@ -168,11 +170,12 @@ export default function AdminExamDetailPage({ params }: PageProps) {
             await deleteMutation.mutateAsync(examId);
             toast.success('Ujian berhasil dihapus');
             router.push('/admin/exams');
-        } catch (error: any) {
-            if (error.message?.includes('409') || error.message?.includes('participant')) {
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : '';
+            if (errorMessage.includes('409') || errorMessage.includes('participant')) {
                 toast.error('Tidak dapat menghapus ujian yang sudah memiliki peserta');
             } else {
-                toast.error(error.message || 'Gagal menghapus ujian');
+                toast.error(errorMessage || 'Gagal menghapus ujian');
             }
         } finally {
             setShowDeleteDialog(false);
@@ -571,8 +574,8 @@ export default function AdminExamDetailPage({ params }: PageProps) {
                                                         questionsToDetach.length === examQuestions.length &&
                                                         examQuestions.length > 0
                                                     }
-                                                    onCheckedChange={(checked) => {
-                                                        if (checked) {
+                                                    onCheckedChange={(checked: boolean | 'indeterminate') => {
+                                                        if (checked === true) {
                                                             setQuestionsToDetach(
                                                                 examQuestions.map((eq) => eq.question.id)
                                                             );

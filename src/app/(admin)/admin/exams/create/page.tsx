@@ -1,3 +1,5 @@
+// src/app/(admin)/admin/exams/create/page.tsx
+
 /**
  * Admin Create Exam Page
  *
@@ -12,12 +14,11 @@
 
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { z } from 'zod';
 import { toast } from 'sonner';
 import { useCreateExam } from '@/features/exams/hooks';
 
@@ -38,6 +39,7 @@ import {
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 
 // Form validation schema
+// ✅ FIX: Use z.coerce.number() for form inputs (HTML inputs always return strings)
 const createExamSchema = z.object({
     title: z
         .string()
@@ -49,11 +51,13 @@ const createExamSchema = z.object({
         .optional()
         .or(z.literal('')),
     durationMinutes: z
-        .number({ invalid_type_error: 'Durasi harus berupa angka' })
+        .coerce
+        .number({ required_error: 'Durasi wajib diisi' })
         .min(1, 'Durasi minimal 1 menit')
         .max(300, 'Durasi maksimal 300 menit (5 jam)'),
     passingScore: z
-        .number({ invalid_type_error: 'Passing score harus berupa angka' })
+        .coerce
+        .number()
         .min(0, 'Passing score minimal 0')
         .optional(),
     startTime: z.string().optional().or(z.literal('')),
@@ -109,9 +113,10 @@ export default function CreateExamPage() {
 
             // Navigate to exam detail page to add questions
             router.push(`/admin/exams/${result.exam.id}`);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Failed to create exam:', error);
-            toast.error(error.message || 'Gagal membuat ujian');
+            const errorMessage = error instanceof Error ? error.message : 'Gagal membuat ujian';
+            toast.error(errorMessage);
         }
     };
 

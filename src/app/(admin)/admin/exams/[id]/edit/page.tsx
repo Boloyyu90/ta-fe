@@ -19,7 +19,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { z } from 'zod';
 import { toast } from 'sonner';
 import { useAdminExam, useUpdateExam } from '@/features/exams/hooks';
 
@@ -45,6 +45,7 @@ interface PageProps {
 }
 
 // Form validation schema
+// ✅ FIX: Use z.coerce.number() for form inputs (HTML inputs always return strings)
 const updateExamSchema = z.object({
     title: z
         .string()
@@ -56,11 +57,13 @@ const updateExamSchema = z.object({
         .optional()
         .or(z.literal('')),
     durationMinutes: z
-        .number({ invalid_type_error: 'Durasi harus berupa angka' })
+        .coerce
+        .number({ required_error: 'Durasi wajib diisi' })
         .min(1, 'Durasi minimal 1 menit')
         .max(300, 'Durasi maksimal 300 menit (5 jam)'),
     passingScore: z
-        .number({ invalid_type_error: 'Passing score harus berupa angka' })
+        .coerce
+        .number()
         .min(0, 'Passing score minimal 0')
         .optional(),
     startTime: z.string().optional().or(z.literal('')),
@@ -175,9 +178,10 @@ export default function EditExamPage({ params }: PageProps) {
 
             toast.success('Ujian berhasil diperbarui');
             router.push(`/admin/exams/${examId}`);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to update exam:', err);
-            toast.error(err.message || 'Gagal memperbarui ujian');
+            const errorMessage = err instanceof Error ? err.message : 'Gagal memperbarui ujian';
+            toast.error(errorMessage);
         }
     };
 
