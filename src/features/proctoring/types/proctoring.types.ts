@@ -151,16 +151,6 @@ export interface AdminProctoringEventsQueryParams extends ProctoringEventsQueryP
 }
 
 // ============================================================================
-// TYPE ALIASES FOR BACKWARD COMPATIBILITY
-// ============================================================================
-
-/** @deprecated Use ProctoringEventsQueryParams instead */
-export type ProctoringEventsParams = ProctoringEventsQueryParams;
-
-/** @deprecated Use AdminProctoringEventsQueryParams instead */
-export type AdminProctoringEventsParams = AdminProctoringEventsQueryParams;
-
-// ============================================================================
 // API RESPONSE TYPES (Aligned with backend contract)
 // ============================================================================
 

@@ -49,9 +49,6 @@ export interface ExamQuestion {
     imageUrl?: string;
 }
 
-/** @deprecated Use ExamQuestion instead */
-export type ParticipantQuestion = ExamQuestion;
-
 // ============================================================================
 // EXAM MODELS (Simplified for session context)
 // ============================================================================

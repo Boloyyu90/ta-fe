@@ -211,16 +211,3 @@ export interface AuthActions {
  */
 export type AuthStore = AuthState & AuthActions;
 
-// ============================================================================
-// BACKWARD COMPATIBILITY ALIASES (optional - for gradual migration)
-// ============================================================================
-
-/**
- * @deprecated Use LoginRequest instead
- */
-export type LoginCredentials = LoginRequest;
-
-/**
- * @deprecated Use RegisterRequest instead
- */
-export type RegisterCredentials = RegisterRequest;

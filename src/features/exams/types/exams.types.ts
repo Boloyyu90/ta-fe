@@ -10,6 +10,7 @@ import type {
     ParticipantAnswer,
 } from '@/features/exam-sessions/types/exam-sessions.types';
 import type { QuestionType } from '@/shared/types/enum.types';
+import type { Question } from '@/features/questions/types/questions.types';
 
 
 // Re-export for convenience
@@ -230,17 +231,17 @@ export interface DetachQuestionsResponse {
 
 /**
  * A single item in GET /admin/exams/:id/questions
- * (ExamQuestion junction row + minimal question info)
+ *
+ * Backend returns full question with correctAnswer (admin-only endpoint).
+ * This allows admins to verify exam content including question options and correct answers.
+ *
+ * @see Backend: GET /api/v1/admin/exams/:id/questions
+ * @see Backend contract: backend-api-contract.md lines 814-839
  */
 export interface ExamQuestionItem {
-    id: number; // examQuestion (junction) id
+    id: number;              // ExamQuestion (junction) ID
     orderNumber: number;
-    question: {
-        id: number;
-        content: string;
-        questionType: QuestionType;
-        defaultScore: number;
-    };
+    question: Question;      // Full question from question bank
 }
 
 /**
@@ -251,16 +252,6 @@ export interface ExamQuestionsListResponse {
     questions: ExamQuestionItem[];
     total: number;
 }
-
-// ============================================================================
-// TYPE ALIASES FOR BACKWARD COMPATIBILITY
-// ============================================================================
-
-/** @deprecated Use ExamsListResponse instead */
-export type ExamsResponse = ExamsListResponse;
-
-/** @deprecated Use AdminExamsListResponse instead */
-export type AdminExamsResponse = AdminExamsListResponse;
 
 // ============================================================================
 // UTILITY FUNCTIONS

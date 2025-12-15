@@ -67,9 +67,6 @@ export type ProctoringEventType =
  */
 export type Severity = 'LOW' | 'MEDIUM' | 'HIGH';
 
-/** @deprecated Use `Severity` instead */
-export type ProctoringEventSeverity = Severity;
-
 // ============================================================================
 // TOKEN ENUMS
 // ============================================================================
