@@ -120,9 +120,11 @@ export interface UpdateUserResponse {
 
 /**
  * DELETE /admin/users/:id
+ * Backend returns: { success: true, message: string }
  */
 export interface DeleteUserResponse {
     success: boolean;
+    message: string;
 }
 
 /**

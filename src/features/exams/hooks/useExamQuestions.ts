@@ -10,6 +10,19 @@ export interface UseExamQuestionsOptions {
     enabled?: boolean;
 }
 
+/**
+ * Fetches all questions for an exam.
+ *
+ * Note: Backend returns complete question list without pagination.
+ * This is acceptable for typical CPNS exams (100-150 questions).
+ *
+ * If pagination is needed for larger question sets in the future:
+ * 1. Add pagination params to backend GET /exams/:id/questions
+ * 2. Update this hook to accept { page, limit } options
+ * 3. Implement pagination UI in the consuming components
+ *
+ * @see Backend endpoint: GET /api/v1/exams/:examId/questions
+ */
 export function useExamQuestions(
     examId: number | undefined,
     options: UseExamQuestionsOptions = {}

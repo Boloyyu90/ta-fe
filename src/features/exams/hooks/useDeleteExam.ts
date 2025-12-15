@@ -2,7 +2,7 @@
  * Hook to delete an exam
  *
  * Backend: DELETE /api/v1/admin/exams/:id
- * Response: DeleteExamResponse = { message: string }
+ * Response: DeleteExamResponse = { success: boolean }
  *
  * Note: Will fail with 409 if exam has participant attempts
  */

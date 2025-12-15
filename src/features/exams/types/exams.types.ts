@@ -153,10 +153,11 @@ export interface ExamsListResponse {
 
 /**
  * GET /admin/exams (admin list)
- * Returns paginated list of all exams with creator info
+ * Returns paginated list of all exams with guaranteed question counts
+ * Backend returns ExamWithCount[] (not Exam[]) - _count.examQuestions is guaranteed
  */
 export interface AdminExamsListResponse {
-    data: Exam[];
+    data: ExamWithCount[];
     pagination: PaginationMeta;
 }
 
@@ -204,29 +205,28 @@ export interface UpdateExamResponse {
 
 /**
  * DELETE /admin/exams/:id
- * Returns success message
+ * Backend returns: { success: true }
  */
 export interface DeleteExamResponse {
-    message: string;
+    success: boolean;
 }
 
 /**
  * POST /admin/exams/:id/questions
- * Returns attach result
+ * Backend returns: { attached: number, total: number }
  */
 export interface AttachQuestionsResponse {
-    message: string;
     attached: number;
-    alreadyAttached?: number;
+    total: number;
 }
 
 /**
  * DELETE /admin/exams/:id/questions
- * Returns detach result
+ * Backend returns: { detached: number, total: number }
  */
 export interface DetachQuestionsResponse {
-    message: string;
     detached: number;
+    total: number;
 }
 
 /**

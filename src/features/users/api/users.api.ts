@@ -133,7 +133,7 @@ export const updateUser = async (
  * Delete user (admin only)
  * DELETE /api/v1/admin/users/:id
  *
- * @returns DeleteUserResponse = { success: boolean }
+ * @returns DeleteUserResponse = { success: boolean, message: string }
  */
 export const deleteUser = async (userId: number): Promise<DeleteUserResponse> => {
     const response = await apiClient.delete<DeleteUserResponse>(`/admin/users/${userId}`);

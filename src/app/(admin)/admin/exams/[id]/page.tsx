@@ -108,7 +108,7 @@ export default function AdminExamDetailPage({ params }: PageProps) {
 
     // Queries
     const { data: examData, isLoading: examLoading, isError: examError, error: examErrorMsg } = useAdminExam(examId);
-    const { data: examQuestionsData, isLoading: questionsLoading } = useExamQuestions(examId, { limit: 100 });
+    const { data: examQuestionsData, isLoading: questionsLoading } = useExamQuestions(examId);
     const { data: allQuestionsData, isLoading: allQuestionsLoading } = useQuestions({
         page: 1,
         limit: 100,

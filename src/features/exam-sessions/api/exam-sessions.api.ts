@@ -141,12 +141,13 @@ export const getMyResults = async (
 
 /**
  * Get single result details
- * GET /api/v1/results/:id
+ * GET /api/v1/exam-sessions/:id
+ * Note: Backend does NOT have /results/:id endpoint - use exam-sessions instead
  *
  * @returns ExamSessionDetailResponse = { userExam: UserExam }
  */
 export const getResultDetail = async (sessionId: number): Promise<ExamSessionDetailResponse> => {
-    const response = await apiClient.get<ExamSessionDetailResponse>(`/results/${sessionId}`);
+    const response = await apiClient.get<ExamSessionDetailResponse>(`/exam-sessions/${sessionId}`);
     return response.data;
 };
 

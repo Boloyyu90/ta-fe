@@ -4,7 +4,7 @@
  * Hook to attach questions to an exam
  *
  * Backend: POST /api/v1/admin/exams/:id/questions
- * Response: AttachQuestionsResponse = { message, attached, alreadyAttached? }
+ * Response: AttachQuestionsResponse = { attached: number, total: number }
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';

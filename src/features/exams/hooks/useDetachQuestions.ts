@@ -2,7 +2,7 @@
  * Hook to detach questions from an exam
  *
  * Backend: DELETE /api/v1/admin/exams/:id/questions
- * Response: DetachQuestionsResponse = { message, detached }
+ * Response: DetachQuestionsResponse = { detached: number, total: number }
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
