@@ -6,6 +6,8 @@
  * Reusable base types used across features
  */
 
+import { QuestionType} from "@/shared/types/enum.types";
+
 // ============================================================================
 // BASE ENTITY TYPES
 // ============================================================================
@@ -56,7 +58,7 @@ export interface MinimalExam {
 export interface MinimalQuestion {
     id: number;
     content: string;
-    questionType: string;
+    questionType: QuestionType[];
 }
 
 // ============================================================================

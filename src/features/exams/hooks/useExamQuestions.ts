@@ -1,17 +1,12 @@
-/**
- * Hook to fetch questions attached to an exam (admin view)
- *
- * Backend: GET /api/v1/admin/exams/:id/questions
- * Response: ExamQuestionsListResponse = { data: ExamQuestion[], pagination }
- */
-
 import { useQuery } from '@tanstack/react-query';
 import { examsApi } from '../api/exams.api';
 import type { ExamQuestionsListResponse } from '../types/exams.types';
+import type { QuestionType } from '@/shared/types/enum.types';
 
 export interface UseExamQuestionsOptions {
-    page?: number;
-    limit?: number;
+    /** Optional filter by question type (TIU/TKP/TWK) */
+    type?: QuestionType;
+    /** Whether the query should run; useful for conditional fetching */
     enabled?: boolean;
 }
 
@@ -19,15 +14,15 @@ export function useExamQuestions(
     examId: number | undefined,
     options: UseExamQuestionsOptions = {}
 ) {
-    const { page = 1, limit = 50, enabled = true } = options;
+    const { type, enabled = true } = options;
 
     return useQuery<ExamQuestionsListResponse, Error>({
-        queryKey: ['exam-questions', examId, { page, limit }],
+        queryKey: ['exam-questions', examId, { type }],
         queryFn: async () => {
             if (!examId) throw new Error('Exam ID is required');
-            return examsApi.getExamQuestions(examId, { page, limit });
+            return examsApi.getExamQuestions(examId, { type });
         },
-        enabled: enabled && examId !== undefined && examId > 0,
+        enabled: enabled && !!examId,
         staleTime: 60 * 1000, // 1 minute
     });
 }

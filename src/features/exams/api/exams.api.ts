@@ -29,6 +29,7 @@ import type {
     DetachQuestionsResponse,
     ExamQuestionsListResponse,
 } from '../types/exams.types';
+import type { QuestionType } from '@/shared/types/enum.types';
 
 // ============================================================================
 // PARTICIPANT ENDPOINTS
@@ -198,18 +199,17 @@ export const detachQuestions = async (
  */
 export const getExamQuestions = async (
     examId: number,
-    params: { page?: number; limit?: number } = {}
+    params: { type?: QuestionType } = {}
 ): Promise<ExamQuestionsListResponse> => {
-    const { page = 1, limit = 10 } = params;
-    const queryParams = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-    });
-
+    const queryParams = new URLSearchParams();
+    if (params.type) {
+        queryParams.append('type', params.type);
+    }
+    const qs = queryParams.toString();
     const response = await apiClient.get<ExamQuestionsListResponse>(
-        `/admin/exams/${examId}/questions?${queryParams.toString()}`
+        `/admin/exams/${examId}/questions${qs ? '?' + qs : ''}`
     );
-    return response.data;
+    return response.data; // { questions, total }
 };
 
 // ============================================================================
