@@ -150,7 +150,7 @@ export const updateExam = async (
  * Delete an exam
  * DELETE /api/v1/admin/exams/:id
  *
- * @returns DeleteExamResponse = { message: string }
+ * @returns DeleteExamResponse = { success: boolean }
  */
 export const deleteExam = async (examId: number): Promise<DeleteExamResponse> => {
     const response = await apiClient.delete<DeleteExamResponse>(`/admin/exams/${examId}`);

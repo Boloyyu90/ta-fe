@@ -269,6 +269,7 @@ export interface SubmitAnswerResponse {
  * POST /exam-sessions/:id/submit
  */
 export interface SubmitExamResponse {
+    message: string;
     result: ExamResult;
 }
 

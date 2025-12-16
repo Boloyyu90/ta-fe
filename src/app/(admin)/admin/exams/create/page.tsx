@@ -1,314 +1,324 @@
-// src/app/(admin)/admin/exams/create/page.tsx
+// src/app/(admin)/admin/exams/new/page.tsx
 
 /**
  * Admin Create Exam Page
  *
- * Form for creating a new exam with fields:
- * - title (required)
- * - description (optional)
- * - durationMinutes (required)
- * - passingScore (optional, default 60)
- * - startTime (optional)
- * - endTime (optional)
+ * Features:
+ * - Create new exam with form validation
+ * - Set title, description, duration, passing score
+ * - Set optional start/end time
+ * - Redirect to exam detail after creation
+ *
+ * Backend endpoint:
+ * - POST /api/v1/admin/exams
  */
 
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { toast } from 'sonner';
 import { useCreateExam } from '@/features/exams/hooks';
+import type { CreateExamRequest } from '@/features/exams/types/exams.types';
 
 // UI Components
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
+import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { Separator } from '@/shared/components/ui/separator';
 import {
-    Form,
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '@/shared/components/ui/form';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
-
-// Form validation schema
-// ✅ FIX: Use z.number() since form already converts string to number via onChange
-const createExamSchema = z.object({
-    title: z
-        .string()
-        .min(3, 'Judul minimal 3 karakter')
-        .max(200, 'Judul maksimal 200 karakter'),
-    description: z
-        .string()
-        .max(2000, 'Deskripsi maksimal 2000 karakter')
-        .optional()
-        .or(z.literal('')),
-    durationMinutes: z
-        .number()
-        .min(1, 'Durasi minimal 1 menit')
-        .max(300, 'Durasi maksimal 300 menit (5 jam)'),
-    passingScore: z
-        .number()
-        .min(0, 'Passing score minimal 0')
-        .optional(),
-    startTime: z.string().optional().or(z.literal('')),
-    endTime: z.string().optional().or(z.literal('')),
-}).refine(
-    (data) => {
-        // Validate endTime is after startTime if both are provided
-        if (data.startTime && data.endTime) {
-            return new Date(data.endTime) > new Date(data.startTime);
-        }
-        return true;
-    },
-    {
-        message: 'Waktu selesai harus setelah waktu mulai',
-        path: ['endTime'],
-    }
-);
-
-type CreateExamFormValues = z.infer<typeof createExamSchema>;
+    ArrowLeft,
+    Save,
+    Loader2,
+    Clock,
+    Target,
+    Calendar,
+    FileText,
+} from 'lucide-react';
 
 export default function CreateExamPage() {
     const router = useRouter();
     const createMutation = useCreateExam();
 
-    const form = useForm<CreateExamFormValues>({
-        resolver: zodResolver(createExamSchema),
-        defaultValues: {
-            title: '',
-            description: '',
-            durationMinutes: 90,
-            passingScore: 60,
-            startTime: '',
-            endTime: '',
-        },
+    // Form state
+    const [formData, setFormData] = useState<CreateExamRequest>({
+        title: '',
+        description: '',
+        durationMinutes: 90,
+        passingScore: 70,
+        startTime: '',
+        endTime: '',
     });
 
-    const onSubmit = async (data: CreateExamFormValues) => {
+    // Form validation
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const validateForm = (): boolean => {
+        const newErrors: Record<string, string> = {};
+
+        if (!formData.title.trim()) {
+            newErrors.title = 'Judul ujian wajib diisi';
+        } else if (formData.title.length < 3) {
+            newErrors.title = 'Judul minimal 3 karakter';
+        } else if (formData.title.length > 200) {
+            newErrors.title = 'Judul maksimal 200 karakter';
+        }
+
+        if (formData.durationMinutes < 1) {
+            newErrors.durationMinutes = 'Durasi minimal 1 menit';
+        } else if (formData.durationMinutes > 480) {
+            newErrors.durationMinutes = 'Durasi maksimal 480 menit (8 jam)';
+        }
+
+        if (formData.passingScore !== undefined) {
+            if (formData.passingScore < 0) {
+                newErrors.passingScore = 'Passing score minimal 0';
+            } else if (formData.passingScore > 100) {
+                newErrors.passingScore = 'Passing score maksimal 100';
+            }
+        }
+
+        // Validate time range
+        if (formData.startTime && formData.endTime) {
+            const start = new Date(formData.startTime);
+            const end = new Date(formData.endTime);
+            if (end <= start) {
+                newErrors.endTime = 'Waktu selesai harus setelah waktu mulai';
+            }
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    // Handle input changes
+    const handleChange = (field: keyof CreateExamRequest, value: string | number) => {
+        setFormData((prev) => ({ ...prev, [field]: value }));
+        // Clear error when user types
+        if (errors[field]) {
+            setErrors((prev) => ({ ...prev, [field]: '' }));
+        }
+    };
+
+    // Handle form submit
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!validateForm()) {
+            toast.error('Mohon perbaiki kesalahan pada form');
+            return;
+        }
+
         try {
-            // Transform data for API
-            const requestData = {
-                title: data.title,
-                description: data.description || undefined,
-                durationMinutes: data.durationMinutes,
-                passingScore: data.passingScore,
-                // Convert datetime-local to ISO string
-                startTime: data.startTime ? new Date(data.startTime).toISOString() : undefined,
-                endTime: data.endTime ? new Date(data.endTime).toISOString() : undefined,
+            // Clean up empty optional fields
+            const payload: CreateExamRequest = {
+                title: formData.title.trim(),
+                durationMinutes: formData.durationMinutes,
+                passingScore: formData.passingScore,
             };
 
-            const result = await createMutation.mutateAsync(requestData);
+            if (formData.description?.trim()) {
+                payload.description = formData.description.trim();
+            }
+            if (formData.startTime) {
+                payload.startTime = new Date(formData.startTime).toISOString();
+            }
+            if (formData.endTime) {
+                payload.endTime = new Date(formData.endTime).toISOString();
+            }
 
+            const response = await createMutation.mutateAsync(payload);
             toast.success('Ujian berhasil dibuat');
 
-            // Navigate to exam detail page to add questions
-            router.push(`/admin/exams/${result.exam.id}`);
-        } catch (error: unknown) {
-            console.error('Failed to create exam:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Gagal membuat ujian';
-            toast.error(errorMessage);
+            // Redirect to exam detail
+            if (response?.exam?.id) {
+                router.push(`/admin/exams/${response.exam.id}`);
+            } else {
+                router.push('/admin/exams');
+            }
+        } catch (error: any) {
+            const message = error?.response?.data?.message || 'Gagal membuat ujian';
+            toast.error(message);
         }
     };
 
     return (
-        <div className="min-h-screen bg-muted/30">
+        <div className="container mx-auto py-8 max-w-3xl">
             {/* Header */}
-            <div className="bg-background border-b border-border">
-                <div className="container mx-auto px-4 py-6">
-                    <div className="flex items-center gap-4">
-                        <Link href="/admin/exams">
-                            <Button variant="ghost" size="icon">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-2xl font-bold">Buat Ujian Baru</h1>
-                            <p className="text-muted-foreground">
-                                Isi detail ujian, lalu tambahkan soal
-                            </p>
-                        </div>
-                    </div>
+            <div className="flex items-center gap-4 mb-6">
+                <Link href="/admin/exams">
+                    <Button variant="ghost" size="icon">
+                        <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                </Link>
+                <div>
+                    <h1 className="text-2xl font-bold">Buat Ujian Baru</h1>
+                    <p className="text-muted-foreground">
+                        Isi detail ujian untuk membuatnya
+                    </p>
                 </div>
             </div>
 
-            {/* Form */}
-            <div className="container mx-auto px-4 py-8">
-                <Card className="max-w-2xl mx-auto">
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Basic Info */}
+                <Card>
                     <CardHeader>
-                        <CardTitle>Detail Ujian</CardTitle>
+                        <CardTitle className="text-base flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            Informasi Dasar
+                        </CardTitle>
                         <CardDescription>
-                            Informasi dasar tentang ujian yang akan dibuat
+                            Detail utama ujian
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                                {/* Title */}
-                                <FormField
-                                    control={form.control}
-                                    name="title"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Judul Ujian *</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    placeholder="Contoh: Simulasi CPNS 2024 - Paket 1"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Nama ujian yang akan ditampilkan kepada peserta
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="title">
+                                Judul Ujian <span className="text-destructive">*</span>
+                            </Label>
+                            <Input
+                                id="title"
+                                value={formData.title}
+                                onChange={(e) => handleChange('title', e.target.value)}
+                                placeholder="Contoh: Ujian SKD CPNS 2024"
+                                className={errors.title ? 'border-destructive' : ''}
+                            />
+                            {errors.title && (
+                                <p className="text-sm text-destructive">{errors.title}</p>
+                            )}
+                        </div>
 
-                                {/* Description */}
-                                <FormField
-                                    control={form.control}
-                                    name="description"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Deskripsi</FormLabel>
-                                            <FormControl>
-                                                <Textarea
-                                                    placeholder="Deskripsi singkat tentang ujian ini..."
-                                                    rows={4}
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormDescription>
-                                                Informasi tambahan untuk peserta (opsional)
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                {/* Duration & Passing Score */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="durationMinutes"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Durasi (menit) *</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        type="number"
-                                                        min={1}
-                                                        max={300}
-                                                        {...field}
-                                                        onChange={(e) =>
-                                                            field.onChange(parseInt(e.target.value) || 0)
-                                                        }
-                                                    />
-                                                </FormControl>
-                                                <FormDescription>
-                                                    Waktu pengerjaan (1-300 menit)
-                                                </FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="passingScore"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Passing Score</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        type="number"
-                                                        min={0}
-                                                        {...field}
-                                                        onChange={(e) =>
-                                                            field.onChange(parseInt(e.target.value) || 0)
-                                                        }
-                                                    />
-                                                </FormControl>
-                                                <FormDescription>
-                                                    Nilai minimal untuk lulus
-                                                </FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-
-                                {/* Start & End Time */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="startTime"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Waktu Mulai</FormLabel>
-                                                <FormControl>
-                                                    <Input type="datetime-local" {...field} />
-                                                </FormControl>
-                                                <FormDescription>
-                                                    Kosongkan jika selalu tersedia
-                                                </FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="endTime"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Waktu Selesai</FormLabel>
-                                                <FormControl>
-                                                    <Input type="datetime-local" {...field} />
-                                                </FormControl>
-                                                <FormDescription>
-                                                    Kosongkan jika tidak ada batas waktu
-                                                </FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-
-                                {/* Submit Buttons */}
-                                <div className="flex justify-end gap-3 pt-4">
-                                    <Link href="/admin/exams">
-                                        <Button type="button" variant="outline">
-                                            Batal
-                                        </Button>
-                                    </Link>
-                                    <Button type="submit" disabled={createMutation.isPending}>
-                                        {createMutation.isPending ? (
-                                            <>
-                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                Menyimpan...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Save className="h-4 w-4 mr-2" />
-                                                Buat Ujian
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                            </form>
-                        </Form>
+                        <div className="space-y-2">
+                            <Label htmlFor="description">Deskripsi</Label>
+                            <Textarea
+                                id="description"
+                                value={formData.description || ''}
+                                onChange={(e) => handleChange('description', e.target.value)}
+                                placeholder="Deskripsi ujian (opsional)"
+                                rows={3}
+                            />
+                        </div>
                     </CardContent>
                 </Card>
-            </div>
+
+                {/* Duration & Scoring */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                            <Clock className="h-5 w-5" />
+                            Durasi & Penilaian
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="duration">
+                                    Durasi (menit) <span className="text-destructive">*</span>
+                                </Label>
+                                <Input
+                                    id="duration"
+                                    type="number"
+                                    min={1}
+                                    max={480}
+                                    value={formData.durationMinutes}
+                                    onChange={(e) => handleChange('durationMinutes', parseInt(e.target.value) || 0)}
+                                    className={errors.durationMinutes ? 'border-destructive' : ''}
+                                />
+                                {errors.durationMinutes && (
+                                    <p className="text-sm text-destructive">{errors.durationMinutes}</p>
+                                )}
+                                <p className="text-xs text-muted-foreground">
+                                    Standar SKD CPNS: 90 menit
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="passingScore">
+                                    Passing Score
+                                </Label>
+                                <div className="relative">
+                                    <Input
+                                        id="passingScore"
+                                        type="number"
+                                        min={0}
+                                        max={100}
+                                        value={formData.passingScore}
+                                        onChange={(e) => handleChange('passingScore', parseInt(e.target.value) || 0)}
+                                        className={errors.passingScore ? 'border-destructive' : ''}
+                                    />
+                                    <Target className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                </div>
+                                {errors.passingScore && (
+                                    <p className="text-sm text-destructive">{errors.passingScore}</p>
+                                )}
+                                <p className="text-xs text-muted-foreground">
+                                    Nilai minimum untuk lulus (0-100)
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Schedule */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                            <Calendar className="h-5 w-5" />
+                            Jadwal (Opsional)
+                        </CardTitle>
+                        <CardDescription>
+                            Atur waktu mulai dan selesai ujian. Kosongkan jika tidak ada batasan waktu.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="startTime">Waktu Mulai</Label>
+                                <Input
+                                    id="startTime"
+                                    type="datetime-local"
+                                    value={formData.startTime || ''}
+                                    onChange={(e) => handleChange('startTime', e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="endTime">Waktu Selesai</Label>
+                                <Input
+                                    id="endTime"
+                                    type="datetime-local"
+                                    value={formData.endTime || ''}
+                                    onChange={(e) => handleChange('endTime', e.target.value)}
+                                    className={errors.endTime ? 'border-destructive' : ''}
+                                />
+                                {errors.endTime && (
+                                    <p className="text-sm text-destructive">{errors.endTime}</p>
+                                )}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Actions */}
+                <div className="flex justify-end gap-4">
+                    <Link href="/admin/exams">
+                        <Button type="button" variant="outline">
+                            Batal
+                        </Button>
+                    </Link>
+                    <Button type="submit" disabled={createMutation.isPending}>
+                        {createMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <Save className="h-4 w-4 mr-2" />
+                        )}
+                        Buat Ujian
+                    </Button>
+                </div>
+            </form>
         </div>
     );
 }
