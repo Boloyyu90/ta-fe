@@ -1,13 +1,9 @@
 /**
  * Participant Results List Page
  *
- * Features:
- * - List all completed exam results
- * - Show score, status, duration
- * - Navigate to result detail/review
- *
- * Backend endpoint:
- * - GET /api/v1/results
+ * ✅ FIXED:
+ * - useMyResults returns { data, pagination } directly from the hook
+ * - Added proper types to avoid implicit any
  */
 
 'use client';
@@ -15,13 +11,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useMyResults } from '@/features/exam-sessions/hooks';
-import type { ExamStatus } from '@/shared/types/enum.types';
+import type { ExamResult, ExamStatus } from '@/features/exam-sessions/types/exam-sessions.types';
 
 // UI Components
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Skeleton } from '@/shared/components/ui/skeleton';
+import { Progress } from '@/shared/components/ui/progress';
 import {
     Table,
     TableBody,
@@ -32,14 +29,15 @@ import {
 } from '@/shared/components/ui/table';
 import {
     Trophy,
-    Clock,
     Eye,
     ChevronLeft,
     ChevronRight,
+    BookOpen,
+    TrendingUp,
     CheckCircle2,
     XCircle,
+    Clock,
     AlertCircle,
-    FileText,
     Target,
 } from 'lucide-react';
 
@@ -56,16 +54,23 @@ const statusConfig: Record<ExamStatus, {
 };
 
 export default function ResultsPage() {
+    // State
     const [page, setPage] = useState(1);
 
-    // Fetch results
-    const { data, isLoading, isError } = useMyResults({ page, limit: 10 });
+    // ✅ FIX: useMyResults returns { data, pagination } directly
+    const { data: results, pagination, isLoading, isError } = useMyResults({
+        page,
+        limit: 10,
+    });
 
-    // Extract data - handle various response shapes
-    const results = Array.isArray(data) ? data : (data?.data || []);
-    const pagination = Array.isArray(data) ? null : data?.pagination;
+    // Calculate stats - ✅ FIX: Add proper types
+    const totalExams = results?.length || 0;
+    const avgScore = totalExams > 0
+        ? Math.round(results!.reduce((sum: number, r: ExamResult) => sum + (r.totalScore || 0), 0) / totalExams)
+        : 0;
+    const passedCount = results?.filter((r: ExamResult) => r.totalScore && r.totalScore >= 70).length || 0;
 
-    // Format helpers
+    // Format date
     const formatDate = (dateString: string | null) => {
         if (!dateString) return '-';
         return new Date(dateString).toLocaleDateString('id-ID', {
@@ -77,19 +82,18 @@ export default function ResultsPage() {
         });
     };
 
-    const formatDuration = (seconds: number | null) => {
-        if (!seconds) return '-';
-        const minutes = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${minutes}m ${secs}s`;
+    // Format duration
+    const formatDuration = (startedAt: string | null, submittedAt: string | null): string => {
+        if (!startedAt || !submittedAt) return '-';
+        const start = new Date(startedAt);
+        const end = new Date(submittedAt);
+        const diffMs = end.getTime() - start.getTime();
+        const minutes = Math.floor(diffMs / 60000);
+        if (minutes < 60) return `${minutes} menit`;
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return `${hours}j ${mins}m`;
     };
-
-    // Calculate stats
-    const totalExams = results.length;
-    const avgScore = totalExams > 0
-        ? Math.round(results.reduce((sum, r) => sum + (r.totalScore || 0), 0) / totalExams)
-        : 0;
-    const passedCount = results.filter((r) => r.totalScore && r.totalScore >= 70).length;
 
     return (
         <div className="container mx-auto py-8 space-y-6">
@@ -100,7 +104,7 @@ export default function ResultsPage() {
                     Hasil Ujian
                 </h1>
                 <p className="text-muted-foreground">
-                    Riwayat dan hasil ujian yang telah dikerjakan
+                    Lihat riwayat dan hasil ujian Anda
                 </p>
             </div>
 
@@ -109,22 +113,22 @@ export default function ResultsPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Ujian</CardTitle>
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <BookOpen className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{pagination?.total || totalExams}</div>
+                        <div className="text-2xl font-bold">{pagination?.total || 0}</div>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Rata-rata Skor</CardTitle>
-                        <Target className="h-4 w-4 text-muted-foreground" />
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{avgScore}</div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="border-green-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-green-600">Lulus</CardTitle>
                         <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -140,7 +144,7 @@ export default function ResultsPage() {
                 <CardHeader>
                     <CardTitle>Riwayat Ujian</CardTitle>
                     <CardDescription>
-                        {pagination ? `Total ${pagination.total} hasil` : `${totalExams} hasil`}
+                        {pagination ? `Total ${pagination.total} hasil` : 'Memuat...'}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -154,7 +158,7 @@ export default function ResultsPage() {
                         <div className="text-center py-8 text-muted-foreground">
                             Gagal memuat data. Silakan coba lagi.
                         </div>
-                    ) : results.length === 0 ? (
+                    ) : !results || results.length === 0 ? (
                         <div className="text-center py-12">
                             <Trophy className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                             <h3 className="text-lg font-semibold mb-2">Belum Ada Hasil</h3>
@@ -162,7 +166,10 @@ export default function ResultsPage() {
                                 Anda belum menyelesaikan ujian apapun
                             </p>
                             <Link href="/exams">
-                                <Button>Lihat Daftar Ujian</Button>
+                                <Button>
+                                    <BookOpen className="h-4 w-4 mr-2" />
+                                    Lihat Ujian
+                                </Button>
                             </Link>
                         </div>
                     ) : (
@@ -172,28 +179,26 @@ export default function ResultsPage() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Ujian</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Skor</TableHead>
-                                            <TableHead>Progress</TableHead>
-                                            <TableHead>Durasi</TableHead>
-                                            <TableHead>Tanggal</TableHead>
+                                            <TableHead className="w-[100px]">Status</TableHead>
+                                            <TableHead className="w-[100px]">Skor</TableHead>
+                                            <TableHead className="w-[120px]">Progress</TableHead>
+                                            <TableHead className="w-[100px]">Durasi</TableHead>
+                                            <TableHead className="w-[150px]">Waktu Submit</TableHead>
                                             <TableHead className="w-[80px]">Aksi</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {results.map((result) => {
+                                        {/* ✅ FIX: Add proper type annotation */}
+                                        {results.map((result: ExamResult) => {
                                             const StatusIcon = statusConfig[result.status]?.icon || AlertCircle;
                                             const isPassed = result.totalScore !== null && result.totalScore >= 70;
 
                                             return (
                                                 <TableRow key={result.id}>
                                                     <TableCell>
-                                                        <div className="flex items-center gap-2">
-                                                            <FileText className="h-4 w-4 text-muted-foreground" />
-                                                            <span className="font-medium max-w-[200px] truncate">
-                                                                {result.exam.title}
-                                                            </span>
-                                                        </div>
+                                                        <span className="font-medium max-w-[200px] truncate block">
+                                                            {result.exam.title}
+                                                        </span>
                                                     </TableCell>
                                                     <TableCell>
                                                         <Badge
@@ -222,26 +227,19 @@ export default function ResultsPage() {
                                                     </TableCell>
                                                     <TableCell>
                                                         <div className="flex items-center gap-2">
-                                                            <div className="flex-1 bg-muted rounded-full h-2 w-16">
-                                                                <div
-                                                                    className="bg-primary h-2 rounded-full transition-all"
-                                                                    style={{
-                                                                        width: `${result.totalQuestions > 0
-                                                                            ? (result.answeredQuestions / result.totalQuestions) * 100
-                                                                            : 0}%`
-                                                                    }}
-                                                                />
-                                                            </div>
+                                                            <Progress
+                                                                value={result.totalQuestions > 0
+                                                                    ? (result.answeredQuestions / result.totalQuestions) * 100
+                                                                    : 0}
+                                                                className="w-16 h-2"
+                                                            />
                                                             <span className="text-xs text-muted-foreground">
                                                                 {result.answeredQuestions}/{result.totalQuestions}
                                                             </span>
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-1 text-muted-foreground">
-                                                            <Clock className="h-4 w-4" />
-                                                            {formatDuration(result.duration)}
-                                                        </div>
+                                                    <TableCell className="text-muted-foreground text-sm">
+                                                        {formatDuration(result.startedAt, result.submittedAt)}
                                                     </TableCell>
                                                     <TableCell className="text-muted-foreground text-sm">
                                                         {formatDate(result.submittedAt)}

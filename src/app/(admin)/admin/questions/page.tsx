@@ -1,25 +1,20 @@
 /**
  * Admin Questions Bank Page
  *
- * Features:
- * - List all questions with pagination
- * - Search by content
- * - Filter by type (TIU, TWK, TKP)
- * - View question detail
- * - Create, edit, delete questions
- *
- * Backend endpoint:
- * - GET /api/v1/admin/questions
- * - DELETE /api/v1/admin/questions/:id
+ * ✅ FIXED:
+ * - Use `questionType` instead of `type` in query params
+ * - Use `question.questionType` instead of `question.type`
+ * - Remove `imageUrl` display (not on QuestionWithUsage type)
  */
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { useQuestions, useDeleteQuestion } from '@/features/questions/hooks';
 import type { QuestionType } from '@/shared/types/enum.types';
+import type { QuestionWithUsage } from '@/features/questions/types/questions.types';
 
 // UI Components
 import { Button } from '@/shared/components/ui/button';
@@ -71,7 +66,6 @@ import {
     ChevronRight,
     Loader2,
     HelpCircle,
-    Image,
 } from 'lucide-react';
 
 // Question type badge configuration
@@ -87,20 +81,20 @@ export default function AdminQuestionsPage() {
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState<QuestionType | 'ALL'>('ALL');
     const [deletingId, setDeletingId] = useState<number | null>(null);
-
-    // Debounced search
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    useState(() => {
+
+    // Debounce search
+    useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(search), 300);
         return () => clearTimeout(timer);
-    });
+    }, [search]);
 
-    // Queries & Mutations
+    // Queries & Mutations - ✅ FIX: Use `questionType` instead of `type`
     const { data, isLoading, isError } = useQuestions({
         page,
         limit: 15,
         search: debouncedSearch || undefined,
-        type: typeFilter === 'ALL' ? undefined : typeFilter,
+        questionType: typeFilter === 'ALL' ? undefined : typeFilter,
         sortBy: 'createdAt',
         sortOrder: 'desc',
     });
@@ -114,11 +108,12 @@ export default function AdminQuestionsPage() {
             await deleteMutation.mutateAsync(deletingId);
             toast.success('Soal berhasil dihapus');
             setDeletingId(null);
-        } catch (error: any) {
-            const errorCode = error?.response?.data?.errorCode;
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { errorCode?: string }; status?: number } };
+            const errorCode = err?.response?.data?.errorCode;
             let message = 'Gagal menghapus soal';
 
-            if (errorCode === 'QUESTION_IN_USE' || error?.response?.status === 409) {
+            if (errorCode === 'QUESTION_IN_USE' || err?.response?.status === 409) {
                 message = 'Soal tidak dapat dihapus karena sedang digunakan dalam ujian';
             }
 
@@ -145,6 +140,11 @@ export default function AdminQuestionsPage() {
         });
     };
 
+    // ✅ FIX: Helper to count questions by type using `questionType`
+    const countByType = (type: QuestionType): number => {
+        return questions.filter((q: QuestionWithUsage) => q.questionType === type).length;
+    };
+
     return (
         <div className="container mx-auto py-8 space-y-6">
             {/* Header */}
@@ -158,7 +158,7 @@ export default function AdminQuestionsPage() {
                         Kelola soal untuk ujian
                     </p>
                 </div>
-                <Link href="/admin/questions/new">
+                <Link href="/admin/questions/create">
                     <Button>
                         <Plus className="h-4 w-4 mr-2" />
                         Tambah Soal
@@ -184,7 +184,7 @@ export default function AdminQuestionsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {questions.filter((q) => q.type === 'TIU').length}
+                            {countByType('TIU')}
                         </div>
                     </CardContent>
                 </Card>
@@ -195,7 +195,7 @@ export default function AdminQuestionsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {questions.filter((q) => q.type === 'TWK').length}
+                            {countByType('TWK')}
                         </div>
                     </CardContent>
                 </Card>
@@ -206,7 +206,7 @@ export default function AdminQuestionsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {questions.filter((q) => q.type === 'TKP').length}
+                            {countByType('TKP')}
                         </div>
                     </CardContent>
                 </Card>
@@ -275,7 +275,7 @@ export default function AdminQuestionsPage() {
                             <p className="text-muted-foreground mb-4">
                                 Mulai dengan membuat soal baru
                             </p>
-                            <Link href="/admin/questions/new">
+                            <Link href="/admin/questions/create">
                                 <Button>
                                     <Plus className="h-4 w-4 mr-2" />
                                     Tambah Soal
@@ -292,13 +292,13 @@ export default function AdminQuestionsPage() {
                                             <TableHead>Soal</TableHead>
                                             <TableHead className="w-[100px]">Tipe</TableHead>
                                             <TableHead className="w-[100px]">Jawaban</TableHead>
-                                            <TableHead className="w-[80px]">Gambar</TableHead>
+                                            <TableHead className="w-[80px]">Skor</TableHead>
                                             <TableHead className="w-[120px]">Dibuat</TableHead>
                                             <TableHead className="w-[80px]">Aksi</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {questions.map((question) => (
+                                        {questions.map((question: QuestionWithUsage) => (
                                             <TableRow key={question.id}>
                                                 <TableCell className="font-mono text-xs">
                                                     #{question.id}
@@ -309,8 +309,9 @@ export default function AdminQuestionsPage() {
                                                     </p>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge variant={typeConfig[question.type]?.variant || 'outline'}>
-                                                        {typeConfig[question.type]?.label || question.type}
+                                                    {/* ✅ FIX: Use questionType */}
+                                                    <Badge variant={typeConfig[question.questionType]?.variant || 'outline'}>
+                                                        {typeConfig[question.questionType]?.label || question.questionType}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
@@ -319,14 +320,9 @@ export default function AdminQuestionsPage() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                    {question.imageUrl ? (
-                                                        <Badge variant="secondary" className="flex items-center gap-1 w-fit">
-                                                            <Image className="h-3 w-3" />
-                                                            Ya
-                                                        </Badge>
-                                                    ) : (
-                                                        <span className="text-muted-foreground text-xs">-</span>
-                                                    )}
+                                                    <span className="text-sm text-muted-foreground">
+                                                        {question.defaultScore}
+                                                    </span>
                                                 </TableCell>
                                                 <TableCell className="text-muted-foreground text-xs">
                                                     {formatDate(question.createdAt)}

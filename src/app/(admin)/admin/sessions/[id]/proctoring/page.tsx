@@ -1,30 +1,23 @@
-// src/app/(admin)/admin/proctoring/page.tsx
+// src/app/(admin)/admin/sessions/[id]/proctoring/page.tsx
 
 /**
- * Admin Proctoring Events Monitoring Page
+ * Admin Session Proctoring Events Page
  *
- * Features:
- * - List all proctoring events with pagination
- * - Filter by event type, session ID
- * - View event details with metadata
- * - Link to session details
- *
- * Backend endpoint:
- * - GET /api/v1/admin/proctoring/events
- *
- * This is the THESIS DEMONSTRATION page for ML proctoring!
+ * ✅ FIXED:
+ * - Only use valid ProctoringEventType: FACE_DETECTED, NO_FACE_DETECTED, MULTIPLE_FACES, LOOKING_AWAY
+ * - Only use valid Severity: LOW, MEDIUM, HIGH
  */
 
 'use client';
 
-import { useState } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
 import { useAdminProctoringEvents } from '@/features/proctoring/hooks';
 import type { ProctoringEventType, Severity } from '@/shared/types/enum.types';
+import type { ProctoringEvent } from '@/features/proctoring/types/proctoring.types';
 
 // UI Components
 import { Button } from '@/shared/components/ui/button';
-import { Input } from '@/shared/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Skeleton } from '@/shared/components/ui/skeleton';
@@ -51,141 +44,127 @@ import {
     DialogTitle,
 } from '@/shared/components/ui/dialog';
 import {
+    ArrowLeft,
+    RefreshCw,
     Eye,
     AlertTriangle,
-    Camera,
-    Monitor,
     User,
-    FileText,
+    Users,
+    EyeOff,
+    CheckCircle,
     ChevronLeft,
     ChevronRight,
-    Shield,
-    Clock,
-    Search,
-    Loader2,
+    Camera,
 } from 'lucide-react';
 
-// Event type configuration
+interface PageProps {
+    params: Promise<{ id: string }>;
+}
+
+// ✅ FIX: Only use valid ProctoringEventType values
 const eventTypeConfig: Record<ProctoringEventType, {
     label: string;
     icon: typeof AlertTriangle;
     color: string;
 }> = {
+    FACE_DETECTED: {
+        label: 'Wajah Terdeteksi',
+        icon: CheckCircle,
+        color: 'text-green-500',
+    },
     NO_FACE_DETECTED: {
-        label: 'Wajah Tidak Terdeteksi',
-        icon: Camera,
+        label: 'Tidak Ada Wajah',
+        icon: EyeOff,
         color: 'text-red-500',
     },
     MULTIPLE_FACES: {
-        label: 'Multiple Wajah',
-        icon: User,
+        label: 'Banyak Wajah',
+        icon: Users,
         color: 'text-red-500',
     },
-    TAB_SWITCH: {
-        label: 'Tab Switch',
-        icon: Monitor,
+    LOOKING_AWAY: {
+        label: 'Melihat ke Samping',
+        icon: Eye,
         color: 'text-yellow-500',
-    },
-    BROWSER_BLUR: {
-        label: 'Browser Blur',
-        icon: Monitor,
-        color: 'text-yellow-500',
-    },
-    COPY_PASTE: {
-        label: 'Copy/Paste',
-        icon: FileText,
-        color: 'text-yellow-500',
-    },
-    RIGHT_CLICK: {
-        label: 'Right Click',
-        icon: Monitor,
-        color: 'text-yellow-500',
-    },
-    EXAM_STARTED: {
-        label: 'Ujian Dimulai',
-        icon: Shield,
-        color: 'text-green-500',
-    },
-    EXAM_SUBMITTED: {
-        label: 'Ujian Selesai',
-        icon: Shield,
-        color: 'text-green-500',
-    },
-    WARNING_ISSUED: {
-        label: 'Peringatan',
-        icon: AlertTriangle,
-        color: 'text-orange-500',
-    },
-    EXAM_CANCELLED: {
-        label: 'Ujian Dibatalkan',
-        icon: AlertTriangle,
-        color: 'text-red-500',
     },
 };
 
-// Severity configuration
+// ✅ FIX: Only use valid Severity values
 const severityConfig: Record<Severity, {
     label: string;
     variant: 'default' | 'secondary' | 'destructive' | 'outline';
 }> = {
-    INFO: { label: 'Info', variant: 'secondary' },
     LOW: { label: 'Rendah', variant: 'outline' },
-    MEDIUM: { label: 'Sedang', variant: 'default' },
+    MEDIUM: { label: 'Sedang', variant: 'secondary' },
     HIGH: { label: 'Tinggi', variant: 'destructive' },
-    CRITICAL: { label: 'Kritis', variant: 'destructive' },
 };
 
-export default function AdminProctoringPage() {
+export default function SessionProctoringPage({ params }: PageProps) {
+    const resolvedParams = use(params);
+    const sessionId = parseInt(resolvedParams.id, 10);
+
     // State
     const [page, setPage] = useState(1);
     const [eventTypeFilter, setEventTypeFilter] = useState<ProctoringEventType | 'ALL'>('ALL');
-    const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
+    const [selectedEvent, setSelectedEvent] = useState<ProctoringEvent | null>(null);
 
     // Query
-    const { data, isLoading, isError, refetch } = useAdminProctoringEvents({
+    const { data, isLoading, isError, refetch, isRefetching } = useAdminProctoringEvents({
+        userExamId: sessionId,
+        eventType: eventTypeFilter === 'ALL' ? undefined : eventTypeFilter,
         page,
         limit: 20,
-        eventType: eventTypeFilter === 'ALL' ? undefined : eventTypeFilter,
-        sortOrder: 'desc',
     });
 
     // Extract data
     const events = data?.data || [];
     const pagination = data?.pagination;
 
-    // Format helpers
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('id-ID', {
+    // Stats
+    const stats = {
+        total: pagination?.total || 0,
+        noFace: events.filter((e: ProctoringEvent) => e.eventType === 'NO_FACE_DETECTED').length,
+        multiple: events.filter((e: ProctoringEvent) => e.eventType === 'MULTIPLE_FACES').length,
+        lookingAway: events.filter((e: ProctoringEvent) => e.eventType === 'LOOKING_AWAY').length,
+    };
+
+    // Format timestamp
+    const formatTime = (timestamp: string) => {
+        return new Date(timestamp).toLocaleString('id-ID', {
             day: 'numeric',
             month: 'short',
-            year: 'numeric',
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit',
         });
     };
 
-    // Count violations by type
-    const violationCounts = events.reduce((acc, event) => {
-        acc[event.eventType] = (acc[event.eventType] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
-
     return (
         <div className="container mx-auto py-8 space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
-                        <Shield className="h-8 w-8 text-primary" />
-                        Monitor Proctoring
-                    </h1>
-                    <p className="text-muted-foreground">
-                        ⚡ Deteksi pelanggaran ujian berbasis YOLO ML (Thesis Demo)
-                    </p>
+                <div className="flex items-center gap-4">
+                    <Link href={`/admin/sessions/${sessionId}`}>
+                        <Button variant="ghost" size="icon">
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold flex items-center gap-2">
+                            <Camera className="h-6 w-6 text-primary" />
+                            Proctoring Events
+                        </h1>
+                        <p className="text-muted-foreground">
+                            Session #{sessionId}
+                        </p>
+                    </div>
                 </div>
-                <Button onClick={() => refetch()} variant="outline">
-                    <Loader2 className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                <Button
+                    variant="outline"
+                    onClick={() => refetch()}
+                    disabled={isRefetching}
+                >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
                     Refresh
                 </Button>
             </div>
@@ -194,50 +173,38 @@ export default function AdminProctoringPage() {
             <div className="grid gap-4 md:grid-cols-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Event</CardTitle>
-                        <Eye className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium">Total Events</CardTitle>
+                        <Camera className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{pagination?.total || 0}</div>
+                        <div className="text-2xl font-bold">{stats.total}</div>
                     </CardContent>
                 </Card>
                 <Card className="border-red-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-red-600">
-                            Wajah Tidak Terdeteksi
-                        </CardTitle>
-                        <Camera className="h-4 w-4 text-red-500" />
+                        <CardTitle className="text-sm font-medium text-red-600">No Face</CardTitle>
+                        <EyeOff className="h-4 w-4 text-red-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-red-600">
-                            {violationCounts['NO_FACE_DETECTED'] || 0}
-                        </div>
+                        <div className="text-2xl font-bold text-red-600">{stats.noFace}</div>
                     </CardContent>
                 </Card>
                 <Card className="border-red-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-red-600">
-                            Multiple Wajah
-                        </CardTitle>
-                        <User className="h-4 w-4 text-red-500" />
+                        <CardTitle className="text-sm font-medium text-red-600">Multiple Faces</CardTitle>
+                        <Users className="h-4 w-4 text-red-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-red-600">
-                            {violationCounts['MULTIPLE_FACES'] || 0}
-                        </div>
+                        <div className="text-2xl font-bold text-red-600">{stats.multiple}</div>
                     </CardContent>
                 </Card>
                 <Card className="border-yellow-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-yellow-600">
-                            Tab Switch
-                        </CardTitle>
-                        <Monitor className="h-4 w-4 text-yellow-500" />
+                        <CardTitle className="text-sm font-medium text-yellow-600">Looking Away</CardTitle>
+                        <Eye className="h-4 w-4 text-yellow-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-yellow-600">
-                            {violationCounts['TAB_SWITCH'] || 0}
-                        </div>
+                        <div className="text-2xl font-bold text-yellow-600">{stats.lookingAway}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -245,27 +212,23 @@ export default function AdminProctoringPage() {
             {/* Filter */}
             <Card>
                 <CardContent className="pt-6">
-                    <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex gap-4">
                         <Select
                             value={eventTypeFilter}
-                            onValueChange={(value: ProctoringEventType | 'ALL') => {
-                                setEventTypeFilter(value);
+                            onValueChange={(value) => {
+                                setEventTypeFilter(value as ProctoringEventType | 'ALL');
                                 setPage(1);
                             }}
                         >
-                            <SelectTrigger className="w-[250px]">
-                                <SelectValue placeholder="Filter tipe event" />
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Filter event type" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="ALL">Semua Tipe</SelectItem>
-                                <SelectItem value="NO_FACE_DETECTED">🔴 Wajah Tidak Terdeteksi</SelectItem>
-                                <SelectItem value="MULTIPLE_FACES">🔴 Multiple Wajah</SelectItem>
-                                <SelectItem value="TAB_SWITCH">🟡 Tab Switch</SelectItem>
-                                <SelectItem value="BROWSER_BLUR">🟡 Browser Blur</SelectItem>
-                                <SelectItem value="COPY_PASTE">🟡 Copy/Paste</SelectItem>
-                                <SelectItem value="RIGHT_CLICK">🟡 Right Click</SelectItem>
-                                <SelectItem value="WARNING_ISSUED">🟠 Peringatan</SelectItem>
-                                <SelectItem value="EXAM_CANCELLED">🔴 Dibatalkan</SelectItem>
+                                <SelectItem value="ALL">Semua Event</SelectItem>
+                                <SelectItem value="FACE_DETECTED">Wajah Terdeteksi</SelectItem>
+                                <SelectItem value="NO_FACE_DETECTED">Tidak Ada Wajah</SelectItem>
+                                <SelectItem value="MULTIPLE_FACES">Banyak Wajah</SelectItem>
+                                <SelectItem value="LOOKING_AWAY">Melihat ke Samping</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -275,19 +238,16 @@ export default function AdminProctoringPage() {
             {/* Events Table */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <AlertTriangle className="h-5 w-5" />
-                        Log Proctoring Events
-                    </CardTitle>
+                    <CardTitle>Daftar Event</CardTitle>
                     <CardDescription>
-                        {pagination ? `Menampilkan ${events.length} dari ${pagination.total} event` : 'Memuat...'}
+                        {pagination ? `Total ${pagination.total} events` : 'Memuat...'}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
                         <div className="space-y-4">
                             {[1, 2, 3, 4, 5].map((i) => (
-                                <Skeleton key={i} className="h-16 w-full" />
+                                <Skeleton key={i} className="h-12 w-full" />
                             ))}
                         </div>
                     ) : isError ? (
@@ -295,10 +255,12 @@ export default function AdminProctoringPage() {
                             Gagal memuat data. Silakan coba lagi.
                         </div>
                     ) : events.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                            <Shield className="h-12 w-12 mx-auto text-green-500 mb-4" />
-                            <p>Tidak ada event proctoring ditemukan</p>
-                            <p className="text-sm">Semua ujian berjalan dengan baik! ✨</p>
+                        <div className="text-center py-12">
+                            <Camera className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">Belum Ada Event</h3>
+                            <p className="text-muted-foreground">
+                                Belum ada proctoring event tercatat untuk sesi ini.
+                            </p>
                         </div>
                     ) : (
                         <>
@@ -306,62 +268,33 @@ export default function AdminProctoringPage() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Waktu</TableHead>
-                                            <TableHead>Tipe Event</TableHead>
-                                            <TableHead>Severity</TableHead>
-                                            <TableHead>Peserta</TableHead>
-                                            <TableHead>Ujian</TableHead>
+                                            <TableHead className="w-[180px]">Waktu</TableHead>
+                                            <TableHead>Event Type</TableHead>
+                                            <TableHead className="w-[100px]">Severity</TableHead>
                                             <TableHead className="w-[80px]">Detail</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {events.map((event) => {
+                                        {events.map((event: ProctoringEvent) => {
                                             const config = eventTypeConfig[event.eventType];
-                                            const EventIcon = config?.icon || AlertTriangle;
+                                            const Icon = config?.icon || AlertTriangle;
+                                            const sevConfig = severityConfig[event.severity];
 
                                             return (
                                                 <TableRow key={event.id}>
-                                                    <TableCell className="text-sm text-muted-foreground">
-                                                        <div className="flex items-center gap-1">
-                                                            <Clock className="h-3 w-3" />
-                                                            {formatDate(event.timestamp)}
+                                                    <TableCell className="font-mono text-xs">
+                                                        {formatTime(event.timestamp)}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-2">
+                                                            <Icon className={`h-4 w-4 ${config?.color || 'text-gray-500'}`} />
+                                                            <span>{config?.label || event.eventType}</span>
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <div className={`flex items-center gap-2 ${config?.color || ''}`}>
-                                                            <EventIcon className="h-4 w-4" />
-                                                            <span className="font-medium">
-                                                                {config?.label || event.eventType}
-                                                            </span>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={severityConfig[event.severity]?.variant || 'outline'}>
-                                                            {severityConfig[event.severity]?.label || event.severity}
+                                                        <Badge variant={sevConfig?.variant || 'outline'}>
+                                                            {sevConfig?.label || event.severity}
                                                         </Badge>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {event.userExam?.user ? (
-                                                            <div>
-                                                                <p className="font-medium text-sm">
-                                                                    {event.userExam.user.name}
-                                                                </p>
-                                                                <p className="text-xs text-muted-foreground">
-                                                                    {event.userExam.user.email}
-                                                                </p>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-muted-foreground">-</span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {event.userExam?.exam ? (
-                                                            <span className="text-sm max-w-[150px] truncate block">
-                                                                {event.userExam.exam.title}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-muted-foreground">-</span>
-                                                        )}
                                                     </TableCell>
                                                     <TableCell>
                                                         <Button
@@ -412,7 +345,7 @@ export default function AdminProctoringPage() {
 
             {/* Event Detail Dialog */}
             <Dialog open={!!selectedEvent} onOpenChange={(open) => !open && setSelectedEvent(null)}>
-                <DialogContent className="max-w-lg">
+                <DialogContent>
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             {selectedEvent && eventTypeConfig[selectedEvent.eventType] && (
@@ -426,60 +359,41 @@ export default function AdminProctoringPage() {
                             )}
                         </DialogTitle>
                         <DialogDescription>
-                            Detail event proctoring
+                            Detail proctoring event
                         </DialogDescription>
                     </DialogHeader>
+
                     {selectedEvent && (
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <p className="text-muted-foreground">Event ID</p>
-                                    <p className="font-medium">{selectedEvent.id}</p>
+                                    <p className="text-sm text-muted-foreground">Event ID</p>
+                                    <p className="font-mono">#{selectedEvent.id}</p>
                                 </div>
                                 <div>
-                                    <p className="text-muted-foreground">Severity</p>
+                                    <p className="text-sm text-muted-foreground">Severity</p>
                                     <Badge variant={severityConfig[selectedEvent.severity]?.variant || 'outline'}>
                                         {severityConfig[selectedEvent.severity]?.label || selectedEvent.severity}
                                     </Badge>
                                 </div>
                                 <div>
-                                    <p className="text-muted-foreground">Waktu</p>
-                                    <p className="font-medium">{formatDate(selectedEvent.timestamp)}</p>
+                                    <p className="text-sm text-muted-foreground">Timestamp</p>
+                                    <p className="font-mono text-sm">{formatTime(selectedEvent.timestamp)}</p>
                                 </div>
                                 <div>
-                                    <p className="text-muted-foreground">Session ID</p>
-                                    <p className="font-medium">{selectedEvent.userExamId}</p>
+                                    <p className="text-sm text-muted-foreground">Session ID</p>
+                                    <p className="font-mono">#{selectedEvent.userExamId}</p>
                                 </div>
                             </div>
 
-                            {selectedEvent.userExam && (
-                                <div className="p-3 bg-muted rounded-lg">
-                                    <p className="text-sm text-muted-foreground mb-2">Peserta & Ujian</p>
-                                    <p className="font-medium">{selectedEvent.userExam.user?.name}</p>
-                                    <p className="text-sm text-muted-foreground">{selectedEvent.userExam.user?.email}</p>
-                                    <p className="text-sm mt-2">{selectedEvent.userExam.exam?.title}</p>
-                                </div>
-                            )}
-
-                            {selectedEvent.metadata && Object.keys(selectedEvent.metadata).length > 0 && (
+                            {selectedEvent.metadata && (
                                 <div>
                                     <p className="text-sm text-muted-foreground mb-2">Metadata</p>
-                                    <pre className="p-3 bg-muted rounded-lg text-xs overflow-auto max-h-40">
+                                    <pre className="bg-muted p-3 rounded text-xs overflow-auto max-h-48">
                                         {JSON.stringify(selectedEvent.metadata, null, 2)}
                                     </pre>
                                 </div>
                             )}
-
-                            <div className="flex justify-end gap-2">
-                                <Link href={`/admin/sessions/${selectedEvent.userExamId}`}>
-                                    <Button variant="outline" size="sm">
-                                        Lihat Sesi
-                                    </Button>
-                                </Link>
-                                <Button variant="secondary" size="sm" onClick={() => setSelectedEvent(null)}>
-                                    Tutup
-                                </Button>
-                            </div>
                         </div>
                     )}
                 </DialogContent>

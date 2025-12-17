@@ -1,16 +1,9 @@
-// src/app/(admin)/admin/exams/[id]/edit/page.tsx
-
 /**
  * Admin Edit Exam Page
  *
- * Features:
- * - Edit existing exam details
- * - Pre-populate form with current values
- * - Redirect to exam detail after update
- *
- * Backend endpoints:
- * - GET /api/v1/admin/exams/:id
- * - PATCH /api/v1/admin/exams/:id
+ * ✅ FIXED:
+ * - Use `undefined` instead of `null` for optional fields
+ * - Use `id` instead of `examId` for UpdateExamVariables
  */
 
 'use client';
@@ -148,14 +141,14 @@ export default function EditExamPage({ params }: PageProps) {
         }
 
         try {
-            // Build payload with only changed fields
+            // ✅ FIX: Use undefined instead of null for optional fields
             const payload: UpdateExamRequest = {};
 
             if (formData.title?.trim()) {
                 payload.title = formData.title.trim();
             }
             if (formData.description !== undefined) {
-                payload.description = formData.description?.trim() || null;
+                payload.description = formData.description?.trim() || undefined;
             }
             if (formData.durationMinutes !== undefined) {
                 payload.durationMinutes = formData.durationMinutes;
@@ -164,17 +157,19 @@ export default function EditExamPage({ params }: PageProps) {
                 payload.passingScore = formData.passingScore;
             }
             if (formData.startTime !== undefined) {
-                payload.startTime = formData.startTime ? new Date(formData.startTime).toISOString() : null;
+                payload.startTime = formData.startTime ? new Date(formData.startTime).toISOString() : undefined;
             }
             if (formData.endTime !== undefined) {
-                payload.endTime = formData.endTime ? new Date(formData.endTime).toISOString() : null;
+                payload.endTime = formData.endTime ? new Date(formData.endTime).toISOString() : undefined;
             }
 
-            await updateMutation.mutateAsync({ examId, data: payload });
+            // ✅ FIX: Use `id` instead of `examId`
+            await updateMutation.mutateAsync({ id: examId, data: payload });
             toast.success('Ujian berhasil diupdate');
             router.push(`/admin/exams/${examId}`);
-        } catch (error: any) {
-            const message = error?.response?.data?.message || 'Gagal update ujian';
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } } };
+            const message = err?.response?.data?.message || 'Gagal update ujian';
             toast.error(message);
         }
     };

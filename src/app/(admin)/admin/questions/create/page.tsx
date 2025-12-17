@@ -1,14 +1,12 @@
+// src/app/(admin)/admin/questions/create/page.tsx
+
 /**
  * Admin Create Question Page
  *
- * Features:
- * - Create new question with form validation
- * - Set type (TIU, TWK, TKP), content, options, correct answer
- * - Optional image upload
- * - TKP scoring mode (weighted options)
- *
- * Backend endpoint:
- * - POST /api/v1/admin/questions
+ * ✅ FIXED:
+ * - Use `Exclude<AnswerOption, null>` for option keys (not raw AnswerOption)
+ * - Use correct CreateQuestionRequest shape (options, questionType, defaultScore)
+ * - Use ANSWER_OPTIONS constant for iteration
  */
 
 'use client';
@@ -19,6 +17,8 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { useCreateQuestion } from '@/features/questions/hooks';
 import type { QuestionType, AnswerOption } from '@/shared/types/enum.types';
+import { ANSWER_OPTIONS } from '@/shared/types/enum.types';
+import type { CreateQuestionRequest, QuestionOptions } from '@/features/questions/types/questions.types';
 
 // UI Components
 import { Button } from '@/shared/components/ui/button';
@@ -40,11 +40,10 @@ import {
     Loader2,
     HelpCircle,
     CheckCircle2,
-    Image,
 } from 'lucide-react';
 
-// Question options
-const optionKeys: AnswerOption[] = ['A', 'B', 'C', 'D', 'E'];
+// ✅ FIX: Use non-null answer option type
+type NonNullAnswerOption = Exclude<AnswerOption, null>;
 
 // Type descriptions
 const typeDescriptions: Record<QuestionType, string> = {
@@ -57,9 +56,9 @@ export default function CreateQuestionPage() {
     const router = useRouter();
     const createMutation = useCreateQuestion();
 
-    // Form state
+    // Form state - ✅ FIX: Use QuestionOptions type
     const [formData, setFormData] = useState({
-        type: 'TIU' as QuestionType,
+        questionType: 'TIU' as QuestionType,
         content: '',
         options: {
             A: '',
@@ -67,18 +66,9 @@ export default function CreateQuestionPage() {
             C: '',
             D: '',
             E: '',
-        } as Record<AnswerOption, string>,
-        correctAnswer: 'A' as AnswerOption,
-        explanation: '',
-    });
-
-    // TKP scoring (optional)
-    const [tkpScoring, setTkpScoring] = useState<Record<AnswerOption, number>>({
-        A: 5,
-        B: 4,
-        C: 3,
-        D: 2,
-        E: 1,
+        } as QuestionOptions,
+        correctAnswer: 'A' as NonNullAnswerOption,
+        defaultScore: 5,
     });
 
     // Form validation
@@ -93,26 +83,31 @@ export default function CreateQuestionPage() {
             newErrors.content = 'Isi soal minimal 10 karakter';
         }
 
-        // Validate all options are filled
-        optionKeys.forEach((key) => {
+        // ✅ FIX: Use ANSWER_OPTIONS constant for iteration
+        ANSWER_OPTIONS.forEach((key) => {
             if (!formData.options[key].trim()) {
                 newErrors[`option_${key}`] = `Opsi ${key} wajib diisi`;
             }
         });
+
+        if (formData.defaultScore < 1 || formData.defaultScore > 10) {
+            newErrors.defaultScore = 'Skor harus antara 1-10';
+        }
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     // Handle changes
-    const handleChange = (field: string, value: string) => {
+    const handleChange = (field: string, value: string | number) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
         if (errors[field]) {
             setErrors((prev) => ({ ...prev, [field]: '' }));
         }
     };
 
-    const handleOptionChange = (key: AnswerOption, value: string) => {
+    // ✅ FIX: Use NonNullAnswerOption for key type
+    const handleOptionChange = (key: NonNullAnswerOption, value: string) => {
         setFormData((prev) => ({
             ...prev,
             options: { ...prev.options, [key]: value },
@@ -132,24 +127,13 @@ export default function CreateQuestionPage() {
         }
 
         try {
-            const payload = {
-                type: formData.type,
+            // ✅ FIX: Use correct CreateQuestionRequest shape
+            const payload: CreateQuestionRequest = {
                 content: formData.content.trim(),
-                optionA: formData.options.A.trim(),
-                optionB: formData.options.B.trim(),
-                optionC: formData.options.C.trim(),
-                optionD: formData.options.D.trim(),
-                optionE: formData.options.E.trim(),
+                options: formData.options,
                 correctAnswer: formData.correctAnswer,
-                explanation: formData.explanation?.trim() || undefined,
-                // Include TKP scoring if applicable
-                ...(formData.type === 'TKP' && {
-                    scoreA: tkpScoring.A,
-                    scoreB: tkpScoring.B,
-                    scoreC: tkpScoring.C,
-                    scoreD: tkpScoring.D,
-                    scoreE: tkpScoring.E,
-                }),
+                questionType: formData.questionType,
+                defaultScore: formData.defaultScore,
             };
 
             const response = await createMutation.mutateAsync(payload);
@@ -161,8 +145,9 @@ export default function CreateQuestionPage() {
             } else {
                 router.push('/admin/questions');
             }
-        } catch (error: any) {
-            const message = error?.response?.data?.message || 'Gagal membuat soal';
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } } };
+            const message = err?.response?.data?.message || 'Gagal membuat soal';
             toast.error(message);
         }
     };
@@ -195,9 +180,9 @@ export default function CreateQuestionPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <Select
-                            value={formData.type}
+                            value={formData.questionType}
                             onValueChange={(value: QuestionType) =>
-                                handleChange('type', value)
+                                handleChange('questionType', value)
                             }
                         >
                             <SelectTrigger>
@@ -210,7 +195,7 @@ export default function CreateQuestionPage() {
                             </SelectContent>
                         </Select>
                         <p className="text-sm text-muted-foreground">
-                            {typeDescriptions[formData.type]}
+                            {typeDescriptions[formData.questionType]}
                         </p>
                     </CardContent>
                 </Card>
@@ -243,7 +228,7 @@ export default function CreateQuestionPage() {
                     </CardContent>
                 </Card>
 
-                {/* Answer Options */}
+                {/* Answer Options - ✅ FIX: Use ANSWER_OPTIONS constant */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base">Pilihan Jawaban</CardTitle>
@@ -252,7 +237,7 @@ export default function CreateQuestionPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {optionKeys.map((key) => (
+                        {ANSWER_OPTIONS.map((key) => (
                             <div key={key} className="space-y-2">
                                 <div className="flex items-center gap-2">
                                     <Label htmlFor={`option-${key}`} className="w-8 font-bold">
@@ -279,7 +264,7 @@ export default function CreateQuestionPage() {
                     </CardContent>
                 </Card>
 
-                {/* Correct Answer */}
+                {/* Correct Answer - ✅ FIX: Use ANSWER_OPTIONS */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
@@ -293,7 +278,7 @@ export default function CreateQuestionPage() {
                             onValueChange={(value) => handleChange('correctAnswer', value)}
                             className="flex flex-wrap gap-4"
                         >
-                            {optionKeys.map((key) => (
+                            {ANSWER_OPTIONS.map((key) => (
                                 <div key={key} className="flex items-center space-x-2">
                                     <RadioGroupItem value={key} id={`answer-${key}`} />
                                     <Label htmlFor={`answer-${key}`} className="font-medium">
@@ -305,67 +290,28 @@ export default function CreateQuestionPage() {
                     </CardContent>
                 </Card>
 
-                {/* TKP Scoring (only for TKP type) */}
-                {formData.type === 'TKP' && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">Skor TKP</CardTitle>
-                            <CardDescription>
-                                TKP menggunakan sistem skor bertingkat (1-5)
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-5 gap-4">
-                                {optionKeys.map((key) => (
-                                    <div key={key} className="space-y-2">
-                                        <Label htmlFor={`score-${key}`} className="text-center block">
-                                            {key}
-                                        </Label>
-                                        <Select
-                                            value={tkpScoring[key].toString()}
-                                            onValueChange={(value) =>
-                                                setTkpScoring((prev) => ({
-                                                    ...prev,
-                                                    [key]: parseInt(value),
-                                                }))
-                                            }
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {[5, 4, 3, 2, 1].map((score) => (
-                                                    <SelectItem key={score} value={score.toString()}>
-                                                        {score}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                ))}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-2">
-                                Skor 5 = Paling baik, Skor 1 = Paling kurang baik
-                            </p>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Explanation (Optional) */}
+                {/* Default Score */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Pembahasan (Opsional)</CardTitle>
+                        <CardTitle className="text-base">Skor Default</CardTitle>
                         <CardDescription>
-                            Penjelasan mengapa jawaban tersebut benar
+                            Nilai poin untuk soal ini (1-10)
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Textarea
-                            value={formData.explanation}
-                            onChange={(e) => handleChange('explanation', e.target.value)}
-                            placeholder="Tulis pembahasan soal..."
-                            rows={3}
-                        />
+                        <div className="space-y-2">
+                            <Input
+                                type="number"
+                                min={1}
+                                max={10}
+                                value={formData.defaultScore}
+                                onChange={(e) => handleChange('defaultScore', parseInt(e.target.value) || 5)}
+                                className={errors.defaultScore ? 'border-destructive' : ''}
+                            />
+                            {errors.defaultScore && (
+                                <p className="text-sm text-destructive">{errors.defaultScore}</p>
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
 

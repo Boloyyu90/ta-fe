@@ -1,25 +1,25 @@
+// src/app/(participant)/exams/[id]/page.tsx
+
 /**
- * Participant Exam Detail Page
+ * Exam Detail Page
  *
- * Features:
- * - Show exam details (title, description, rules)
- * - Display duration, passing score, question count
- * - Start exam button (creates session)
- * - Redirect to exam session on start
- *
- * Backend endpoints:
- * - GET /api/v1/exams/:id (exam detail)
- * - POST /api/v1/exams/:id/start (create session)
+ * ✅ FIXED:
+ * - useExam returns Exam directly (already unwrapped), not { exam: Exam }
  */
 
 'use client';
 
-import { use, useState } from 'react';
+import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { useExam, useStartExam } from '@/features/exams/hooks';
-import { formatDuration, getExamAvailabilityStatus } from '@/features/exams/types/exams.types';
+import {
+    isExamAvailable,
+    getExamAvailabilityStatus,
+    formatDuration,
+} from '@/features/exams/types/exams.types';
+import type { Exam } from '@/features/exams/types/exams.types';
 
 // UI Components
 import { Button } from '@/shared/components/ui/button';
@@ -27,7 +27,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/sha
 import { Badge } from '@/shared/components/ui/badge';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/shared/components/ui/alert';
-import { Separator } from '@/shared/components/ui/separator';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -37,100 +36,115 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
+    AlertDialogTrigger,
 } from '@/shared/components/ui/alert-dialog';
 import {
     ArrowLeft,
     Clock,
-    Target,
     FileText,
+    Target,
     Calendar,
-    PlayCircle,
-    AlertTriangle,
-    CheckCircle2,
+    Play,
     Camera,
-    Monitor,
-    Loader2,
+    CheckCircle,
+    XCircle,
+    AlertTriangle,
     Info,
+    Loader2,
 } from 'lucide-react';
 
 interface PageProps {
     params: Promise<{ id: string }>;
 }
 
+// Availability config for UI
+const availabilityConfig = {
+    available: {
+        label: 'Tersedia',
+        description: 'Ujian ini siap untuk dikerjakan',
+        icon: CheckCircle,
+        color: 'text-green-600',
+        canStart: true,
+    },
+    upcoming: {
+        label: 'Segera',
+        description: 'Ujian ini belum dimulai',
+        icon: Clock,
+        color: 'text-blue-600',
+        canStart: false,
+    },
+    ended: {
+        label: 'Berakhir',
+        description: 'Waktu pengerjaan ujian telah habis',
+        icon: XCircle,
+        color: 'text-gray-500',
+        canStart: false,
+    },
+    'no-questions': {
+        label: 'Belum Ada Soal',
+        description: 'Ujian ini belum memiliki soal',
+        icon: AlertTriangle,
+        color: 'text-yellow-600',
+        canStart: false,
+    },
+};
+
 export default function ExamDetailPage({ params }: PageProps) {
-    const router = useRouter();
     const resolvedParams = use(params);
+    const router = useRouter();
     const examId = parseInt(resolvedParams.id, 10);
 
-    // State
-    const [showStartDialog, setShowStartDialog] = useState(false);
-
-    // Queries
-    const { data: examData, isLoading, isError } = useExam(examId);
-    const startExamMutation = useStartExam();
+    // ✅ FIX: useExam returns Exam directly
+    const { data: exam, isLoading, isError } = useExam(examId);
+    const { startExam, isLoading: isStarting } = useStartExam();
 
     // Handle start exam
-    const handleStartExam = async () => {
-        try {
-            const response = await startExamMutation.mutateAsync(examId);
-            toast.success('Ujian dimulai! Selamat mengerjakan.');
+    const handleStartExam = () => {
+        startExam(examId, {
+            onError: (error: unknown) => {
+                const err = error as { response?: { data?: { errorCode?: string; message?: string } } };
+                const errorCode = err?.response?.data?.errorCode;
+                let message = err?.response?.data?.message || 'Gagal memulai ujian';
 
-            // Redirect to exam session
-            if (response?.userExam?.id) {
-                router.push(`/exam-sessions/${response.userExam.id}`);
-            }
-        } catch (error: any) {
-            const errorCode = error?.response?.data?.errorCode;
-            let message = 'Gagal memulai ujian';
+                if (errorCode === 'EXAM_NO_QUESTIONS') {
+                    message = 'Ujian belum memiliki soal';
+                } else if (errorCode === 'EXAM_NO_DURATION') {
+                    message = 'Ujian belum memiliki durasi';
+                } else if (errorCode === 'EXAM_SESSION_ALREADY_STARTED') {
+                    message = 'Anda sudah memulai ujian ini';
+                }
 
-            if (errorCode === 'EXAM_NO_QUESTIONS') {
-                message = 'Ujian belum memiliki soal';
-            } else if (errorCode === 'EXAM_NO_DURATION') {
-                message = 'Durasi ujian belum diatur';
-            } else if (errorCode === 'EXAM_SESSION_ALREADY_STARTED') {
-                message = 'Anda sudah pernah mengerjakan ujian ini';
-                // Try to redirect to existing session
-                router.push('/dashboard');
-            }
-
-            toast.error(message);
-        }
-    };
-
-    // Format date
-    const formatDate = (dateString: string | null) => {
-        if (!dateString) return null;
-        return new Date(dateString).toLocaleDateString('id-ID', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
+                toast.error(message);
+            },
         });
     };
 
     // Loading state
     if (isLoading) {
         return (
-            <div className="container mx-auto py-8 space-y-6 max-w-4xl">
+            <div className="container mx-auto py-8 max-w-4xl space-y-6">
                 <Skeleton className="h-10 w-64" />
+                <div className="grid gap-4 md:grid-cols-3">
+                    <Skeleton className="h-24" />
+                    <Skeleton className="h-24" />
+                    <Skeleton className="h-24" />
+                </div>
                 <Skeleton className="h-48" />
                 <Skeleton className="h-32" />
-                <Skeleton className="h-48" />
             </div>
         );
     }
 
-    // Error state
-    if (isError || !examData) {
+    // Error or not found
+    if (isError || !exam) {
         return (
             <div className="container mx-auto py-8">
                 <Card>
                     <CardContent className="py-8 text-center">
                         <AlertTriangle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
+                        <h2 className="text-xl font-semibold mb-2">Ujian Tidak Ditemukan</h2>
                         <p className="text-muted-foreground mb-4">
-                            Ujian tidak ditemukan atau tidak tersedia.
+                            Ujian yang Anda cari tidak tersedia atau sudah dihapus.
                         </p>
                         <Link href="/exams">
                             <Button variant="outline">
@@ -144,43 +158,51 @@ export default function ExamDetailPage({ params }: PageProps) {
         );
     }
 
-    const exam = examData.exam;
-    const status = getExamAvailabilityStatus(exam);
-    const isAvailable = status === 'available';
+    // ✅ FIX: exam is already the Exam object, not { exam: Exam }
+    const availability = getExamAvailabilityStatus(exam);
+    const availInfo = availabilityConfig[availability];
+    const AvailIcon = availInfo.icon;
     const questionCount = exam._count?.examQuestions ?? 0;
 
+    // Format datetime
+    const formatDateTime = (dateString: string | null) => {
+        if (!dateString) return '-';
+        return new Date(dateString).toLocaleString('id-ID', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
+
     return (
-        <div className="container mx-auto py-8 space-y-6 max-w-4xl">
+        <div className="container mx-auto py-8 max-w-4xl space-y-6">
             {/* Header */}
-            <div className="flex items-center gap-4">
-                <Link href="/exams">
-                    <Button variant="ghost" size="icon">
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                </Link>
-                <div className="flex-1">
-                    <h1 className="text-2xl font-bold">{exam.title}</h1>
-                    {exam.description && (
-                        <p className="text-muted-foreground">{exam.description}</p>
-                    )}
+            <div className="flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                    <Link href="/exams">
+                        <Button variant="ghost" size="icon">
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold">{exam.title}</h1>
+                        <div className="flex items-center gap-2 mt-1">
+                            <Badge
+                                variant={availability === 'available' ? 'default' : 'secondary'}
+                                className="flex items-center gap-1"
+                            >
+                                <AvailIcon className="h-3 w-3" />
+                                {availInfo.label}
+                            </Badge>
+                        </div>
+                    </div>
                 </div>
-                <Badge
-                    variant={
-                        status === 'available'
-                            ? 'default'
-                            : status === 'upcoming'
-                                ? 'secondary'
-                                : 'outline'
-                    }
-                >
-                    {status === 'available' && 'Tersedia'}
-                    {status === 'upcoming' && 'Akan Datang'}
-                    {status === 'ended' && 'Berakhir'}
-                    {status === 'no-questions' && 'Belum Tersedia'}
-                </Badge>
             </div>
 
-            {/* Exam Info Cards */}
+            {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -189,7 +211,6 @@ export default function ExamDetailPage({ params }: PageProps) {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{formatDuration(exam.durationMinutes)}</div>
-                        <p className="text-xs text-muted-foreground">Waktu pengerjaan</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -199,7 +220,6 @@ export default function ExamDetailPage({ params }: PageProps) {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{questionCount}</div>
-                        <p className="text-xs text-muted-foreground">Pertanyaan</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -209,151 +229,161 @@ export default function ExamDetailPage({ params }: PageProps) {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{exam.passingScore}</div>
-                        <p className="text-xs text-muted-foreground">Nilai minimum</p>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Schedule Info */}
+            {/* Description */}
+            {exam.description && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Deskripsi</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground whitespace-pre-wrap">
+                            {exam.description}
+                        </p>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Schedule */}
             {(exam.startTime || exam.endTime) && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
                             <Calendar className="h-5 w-5" />
-                            Jadwal Ujian
+                            Jadwal
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="grid gap-2 text-sm">
-                            {exam.startTime && (
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Mulai:</span>
-                                    <span className="font-medium">{formatDate(exam.startTime)}</span>
-                                </div>
-                            )}
-                            {exam.endTime && (
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Berakhir:</span>
-                                    <span className="font-medium">{formatDate(exam.endTime)}</span>
-                                </div>
-                            )}
-                        </div>
+                    <CardContent className="space-y-2">
+                        {exam.startTime && (
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Mulai:</span>
+                                <span className="font-medium">{formatDateTime(exam.startTime)}</span>
+                            </div>
+                        )}
+                        {exam.endTime && (
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Berakhir:</span>
+                                <span className="font-medium">{formatDateTime(exam.endTime)}</span>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             )}
 
-            {/* Exam Rules */}
+            {/* Rules */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                        <Info className="h-5 w-5" />
-                        Peraturan Ujian
-                    </CardTitle>
+                    <CardTitle className="text-base">Aturan Ujian</CardTitle>
+                    <CardDescription>
+                        Baca dengan cermat sebelum memulai ujian
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    {/* Proctoring Notice */}
                     <Alert>
                         <Camera className="h-4 w-4" />
-                        <AlertTitle>Proctoring Aktif</AlertTitle>
+                        <AlertTitle>Ujian Diawasi (Proctored)</AlertTitle>
                         <AlertDescription>
-                            Ujian ini menggunakan sistem proctoring dengan deteksi wajah.
-                            Pastikan webcam Anda aktif dan wajah terlihat jelas selama ujian.
+                            Ujian ini menggunakan sistem pengawasan AI. Pastikan kamera webcam Anda aktif
+                            dan wajah terlihat jelas selama ujian berlangsung.
                         </AlertDescription>
                     </Alert>
 
-                    <div className="space-y-3 text-sm">
-                        <div className="flex items-start gap-3">
-                            <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                            <span>Pastikan koneksi internet stabil selama mengerjakan ujian</span>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        {/* Do's */}
+                        <div className="space-y-2">
+                            <h4 className="font-medium text-green-600 flex items-center gap-2">
+                                <CheckCircle className="h-4 w-4" />
+                                Yang Harus Dilakukan
+                            </h4>
+                            <ul className="text-sm text-muted-foreground space-y-1">
+                                <li>• Pastikan koneksi internet stabil</li>
+                                <li>• Aktifkan webcam dan izinkan akses kamera</li>
+                                <li>• Posisikan wajah di tengah layar</li>
+                                <li>• Pastikan pencahayaan cukup</li>
+                                <li>• Siapkan waktu sesuai durasi ujian</li>
+                            </ul>
                         </div>
-                        <div className="flex items-start gap-3">
-                            <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                            <span>Jawaban akan tersimpan otomatis setiap kali Anda memilih jawaban</span>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                            <span>Anda dapat berpindah antar soal dengan bebas</span>
-                        </div>
-                        <Separator />
-                        <div className="flex items-start gap-3">
-                            <AlertTriangle className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-                            <span>Jangan berpindah tab atau minimize browser selama ujian</span>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <AlertTriangle className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-                            <span>Pastikan hanya Anda yang terlihat di kamera</span>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                            <span>Pelanggaran berulang dapat menyebabkan ujian dibatalkan</span>
+
+                        {/* Don'ts */}
+                        <div className="space-y-2">
+                            <h4 className="font-medium text-red-600 flex items-center gap-2">
+                                <XCircle className="h-4 w-4" />
+                                Yang Tidak Boleh Dilakukan
+                            </h4>
+                            <ul className="text-sm text-muted-foreground space-y-1">
+                                <li>• Membuka tab atau aplikasi lain</li>
+                                <li>• Melihat ke arah lain terlalu lama</li>
+                                <li>• Memperlihatkan lebih dari satu wajah</li>
+                                <li>• Copy-paste atau screenshot</li>
+                                <li>• Meninggalkan ujian sebelum selesai</li>
+                            </ul>
                         </div>
                     </div>
+
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Peringatan</AlertTitle>
+                        <AlertDescription>
+                            Pelanggaran yang terdeteksi akan dicatat. Terlalu banyak pelanggaran dapat
+                            menyebabkan ujian dibatalkan secara otomatis.
+                        </AlertDescription>
+                    </Alert>
                 </CardContent>
             </Card>
 
             {/* Start Button */}
-            <Card>
-                <CardContent className="py-6">
-                    <div className="flex flex-col items-center gap-4 text-center">
-                        {isAvailable ? (
-                            <>
-                                <p className="text-muted-foreground">
-                                    Klik tombol di bawah untuk memulai ujian
-                                </p>
-                                <Button
-                                    size="lg"
-                                    onClick={() => setShowStartDialog(true)}
-                                    disabled={startExamMutation.isPending}
-                                    className="w-full max-w-xs"
+            <div className="flex justify-center">
+                {availInfo.canStart ? (
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button size="lg" className="min-w-[200px]">
+                                <Play className="h-5 w-5 mr-2" />
+                                Mulai Ujian
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Mulai Ujian?</AlertDialogTitle>
+                                <AlertDialogDescription className="space-y-2">
+                                    <p>
+                                        Anda akan memulai ujian <strong>{exam.title}</strong>.
+                                    </p>
+                                    <p>
+                                        Durasi: <strong>{formatDuration(exam.durationMinutes)}</strong>
+                                    </p>
+                                    <p>
+                                        Pastikan Anda sudah membaca aturan ujian dan siap untuk memulai.
+                                        Timer akan berjalan segera setelah ujian dimulai.
+                                    </p>
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Batal</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={handleStartExam}
+                                    disabled={isStarting}
                                 >
-                                    {startExamMutation.isPending ? (
-                                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                    {isStarting ? (
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                     ) : (
-                                        <PlayCircle className="h-5 w-5 mr-2" />
+                                        <Play className="h-4 w-4 mr-2" />
                                     )}
-                                    Mulai Ujian
-                                </Button>
-                            </>
-                        ) : (
-                            <p className="text-muted-foreground">
-                                {status === 'upcoming' && 'Ujian belum dimulai'}
-                                {status === 'ended' && 'Ujian sudah berakhir'}
-                                {status === 'no-questions' && 'Ujian belum memiliki soal'}
-                            </p>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Start Confirmation Dialog */}
-            <AlertDialog open={showStartDialog} onOpenChange={setShowStartDialog}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Mulai Ujian?</AlertDialogTitle>
-                        <AlertDialogDescription className="space-y-2">
-                            <p>Anda akan memulai ujian: <strong>{exam.title}</strong></p>
-                            <p>
-                                Durasi: <strong>{formatDuration(exam.durationMinutes)}</strong> |
-                                Soal: <strong>{questionCount}</strong>
-                            </p>
-                            <p className="text-yellow-600">
-                                ⚠️ Pastikan webcam sudah aktif dan siap untuk proctoring.
-                            </p>
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={handleStartExam}
-                            disabled={startExamMutation.isPending}
-                        >
-                            {startExamMutation.isPending && (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            )}
-                            Ya, Mulai Ujian
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                                    Mulai Sekarang
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                ) : (
+                    <Button size="lg" disabled className="min-w-[200px]">
+                        <AvailIcon className="h-5 w-5 mr-2" />
+                        {availInfo.label}
+                    </Button>
+                )}
+            </div>
         </div>
     );
 }
