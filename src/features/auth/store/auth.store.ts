@@ -89,6 +89,17 @@ const clearStorage = (): void => {
  * Will be hydrated from localStorage if available
  */
 const getInitialState = () => {
+    // Guard against SSR - localStorage only exists in browser
+    if (typeof window === 'undefined') {
+        return {
+            user: null,
+            accessToken: null,
+            refreshToken: null,
+            isAuthenticated: false,
+            isLoading: false,
+        };
+    }
+
     const stored = loadFromStorage();
 
     return {

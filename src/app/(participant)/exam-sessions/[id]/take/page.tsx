@@ -11,6 +11,7 @@ import { Button } from '@/shared/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group'; // ✅ Now exists
 import { Label } from '@/shared/components/ui/label';
 import { toast } from 'sonner';
+import { ProctoringMonitor } from '@/features/proctoring/components/ProctoringMonitor';
 
 export default function TakeExamPage() {
     const params = useParams();
@@ -65,13 +66,25 @@ export default function TakeExamPage() {
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-6 space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        Question {currentQuestionIndex + 1} of {questionsData.questions.length}
-                    </CardTitle>
-                </CardHeader>
+        <div className="max-w-7xl mx-auto p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Proctoring Monitor - Sidebar */}
+                <div className="lg:col-span-1">
+                    <ProctoringMonitor
+                        sessionId={sessionId}
+                        enabled={true}
+                        captureInterval={5000}
+                    />
+                </div>
+
+                {/* Question Card - Main Content */}
+                <div className="lg:col-span-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>
+                                Question {currentQuestionIndex + 1} of {questionsData.questions.length}
+                            </CardTitle>
+                        </CardHeader>
                 <CardContent className="space-y-6">
                     <p className="text-lg">{currentQuestion.content}</p>
 
@@ -109,6 +122,8 @@ export default function TakeExamPage() {
                     </div>
                 </CardContent>
             </Card>
+                </div>
+            </div>
         </div>
     );
 }

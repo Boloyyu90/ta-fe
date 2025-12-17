@@ -57,13 +57,12 @@ export default function ResultsPage() {
     // State
     const [page, setPage] = useState(1);
 
-    // ✅ FIX: useMyResults returns { data, pagination } directly
     const { data: results, pagination, isLoading, isError } = useMyResults({
         page,
         limit: 10,
     });
 
-    // Calculate stats - ✅ FIX: Add proper types
+    // Calculate stats
     const totalExams = results?.length || 0;
     const avgScore = totalExams > 0
         ? Math.round(results!.reduce((sum: number, r: ExamResult) => sum + (r.totalScore || 0), 0) / totalExams)
