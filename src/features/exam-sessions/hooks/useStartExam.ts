@@ -28,8 +28,8 @@ export const useStartExam = () => {
             queryClient.invalidateQueries({ queryKey: ['user-exams'] });
             queryClient.invalidateQueries({ queryKey: ['exams'] });
 
-            // Navigate to the exam session
-            router.push(`/exam-session/${userExam.id}`);
+            // Navigate to the exam session take page
+            router.push(`/exam-sessions/${userExam.id}/take`);
         },
     });
 

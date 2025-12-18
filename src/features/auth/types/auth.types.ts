@@ -200,7 +200,7 @@ export interface AuthState {
  * Auth store actions
  */
 export interface AuthActions {
-    setAuth: (user: User, tokens: TokensData) => void;
+    setAuth: (user: User, tokens: TokensData, rememberMe?: boolean) => void;
     updateUser: (user: Partial<User>) => void;
     clearAuth: () => void;
     setLoading: (loading: boolean) => void;

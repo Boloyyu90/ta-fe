@@ -155,7 +155,7 @@ export default function DashboardPage() {
     });
 
     // Extract data from responses
-    const inProgressSessions: UserExam[] = (inProgressData?.data ?? []).filter(session => !session.submittedAt && session.status === 'IN_PROGRESS');
+    const inProgressSessions: UserExam[] = inProgressData?.data ?? [];
     const recentResults: ExamResult[] = recentResultsData ?? [];
     const availableExams: ExamPublic[] = availableExamsData ?? [];
 

@@ -13,6 +13,7 @@
 
 import { create } from 'zustand';
 import type { User, TokensData, AuthStore } from '@/features/auth/types/auth.types';
+import { storageGet, storageSet, storageRemove } from '@/shared/lib/storage';
 
 // ============================================================================
 // CONSTANTS
@@ -28,21 +29,23 @@ const STORAGE_KEYS = {
 // STORAGE HELPERS
 // ============================================================================
 
+type StorageType = 'local' | 'session';
+
 /**
- * Save auth data to localStorage
+ * Save auth data to storage
+ * @param user - User object
+ * @param tokens - Access and refresh tokens
+ * @param storageType - 'local' for remember me, 'session' for current session only
  */
-const saveToStorage = (user: User, tokens: TokensData): void => {
-    try {
-        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, tokens.accessToken);
-        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refreshToken);
-    } catch (error) {
-        console.error('Failed to save auth data to localStorage:', error);
-    }
+const saveToStorage = (user: User, tokens: TokensData, storageType: StorageType): void => {
+    storageSet(STORAGE_KEYS.USER, JSON.stringify(user), storageType);
+    storageSet(STORAGE_KEYS.ACCESS_TOKEN, tokens.accessToken, storageType);
+    storageSet(STORAGE_KEYS.REFRESH_TOKEN, tokens.refreshToken, storageType);
 };
 
 /**
- * Load auth data from localStorage
+ * Load auth data from storage
+ * Checks both localStorage and sessionStorage
  * Returns null if not found or invalid
  */
 const loadFromStorage = (): {
@@ -51,9 +54,17 @@ const loadFromStorage = (): {
     refreshToken: string;
 } | null => {
     try {
-        const userStr = localStorage.getItem(STORAGE_KEYS.USER);
-        const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-        const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+        // Try localStorage first (remember me), then sessionStorage
+        let userStr = storageGet(STORAGE_KEYS.USER, 'local');
+        let accessToken = storageGet(STORAGE_KEYS.ACCESS_TOKEN, 'local');
+        let refreshToken = storageGet(STORAGE_KEYS.REFRESH_TOKEN, 'local');
+
+        // If not in localStorage, check sessionStorage
+        if (!userStr || !accessToken || !refreshToken) {
+            userStr = storageGet(STORAGE_KEYS.USER, 'session');
+            accessToken = storageGet(STORAGE_KEYS.ACCESS_TOKEN, 'session');
+            refreshToken = storageGet(STORAGE_KEYS.REFRESH_TOKEN, 'session');
+        }
 
         if (!userStr || !accessToken || !refreshToken) {
             return null;
@@ -62,22 +73,22 @@ const loadFromStorage = (): {
         const user = JSON.parse(userStr) as User;
         return { user, accessToken, refreshToken };
     } catch (error) {
-        console.error('Failed to load auth data from localStorage:', error);
+        console.error('Failed to load auth data from storage:', error);
         return null;
     }
 };
 
 /**
- * Clear auth data from localStorage
+ * Clear auth data from both localStorage and sessionStorage
  */
 const clearStorage = (): void => {
-    try {
-        localStorage.removeItem(STORAGE_KEYS.USER);
-        localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-    } catch (error) {
-        console.error('Failed to clear auth data from localStorage:', error);
-    }
+    // Clear from both storages to ensure complete logout
+    storageRemove(STORAGE_KEYS.USER, 'local');
+    storageRemove(STORAGE_KEYS.ACCESS_TOKEN, 'local');
+    storageRemove(STORAGE_KEYS.REFRESH_TOKEN, 'local');
+    storageRemove(STORAGE_KEYS.USER, 'session');
+    storageRemove(STORAGE_KEYS.ACCESS_TOKEN, 'session');
+    storageRemove(STORAGE_KEYS.REFRESH_TOKEN, 'session');
 };
 
 // ============================================================================
@@ -86,20 +97,10 @@ const clearStorage = (): void => {
 
 /**
  * Initial auth state
- * Will be hydrated from localStorage if available
+ * Will be hydrated from storage if available
+ * SSR guard is handled by the storage wrapper
  */
 const getInitialState = () => {
-    // Guard against SSR - localStorage only exists in browser
-    if (typeof window === 'undefined') {
-        return {
-            user: null,
-            accessToken: null,
-            refreshToken: null,
-            isAuthenticated: false,
-            isLoading: false,
-        };
-    }
-
     const stored = loadFromStorage();
 
     return {
@@ -138,12 +139,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
      *
      * @param user - User object from backend
      * @param tokens - Access and refresh tokens
+     * @param rememberMe - If true, uses localStorage; if false, uses sessionStorage
      *
      * @example
-     * setAuth(user, { accessToken: '...', refreshToken: '...' });
+     * setAuth(user, { accessToken: '...', refreshToken: '...' }, true);
      */
-    setAuth: (user: User, tokens: TokensData) => {
-        saveToStorage(user, tokens);
+    setAuth: (user: User, tokens: TokensData, rememberMe = true) => {
+        const storageType: StorageType = rememberMe ? 'local' : 'session';
+        saveToStorage(user, tokens, storageType);
         set({
             user,
             accessToken: tokens.accessToken,
@@ -156,6 +159,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     /**
      * Update user data
      * Called when user updates their profile
+     * Updates user in whichever storage currently holds the session
      *
      * @param updates - Partial user object with fields to update
      *
@@ -168,11 +172,15 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
             const updatedUser = { ...state.user, ...updates };
 
-            // Update localStorage
-            try {
-                localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
-            } catch (error) {
-                console.error('Failed to update user in localStorage:', error);
+            // Update in whichever storage is currently being used
+            const inLocalStorage = storageGet(STORAGE_KEYS.USER, 'local');
+            const inSessionStorage = storageGet(STORAGE_KEYS.USER, 'session');
+
+            if (inLocalStorage) {
+                storageSet(STORAGE_KEYS.USER, JSON.stringify(updatedUser), 'local');
+            }
+            if (inSessionStorage) {
+                storageSet(STORAGE_KEYS.USER, JSON.stringify(updatedUser), 'session');
             }
 
             return { user: updatedUser };

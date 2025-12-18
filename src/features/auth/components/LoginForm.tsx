@@ -17,6 +17,7 @@ import { loginSchema, type LoginFormData } from "@/features/auth/schemas/auth.sc
 import { useLogin } from "@/features/auth/hooks";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import {
     Form,
     FormControl,
@@ -28,6 +29,7 @@ import {
 
 export const LoginForm = () => {
     const [showPassword, setShowPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(true);
     const { mutate: login, isPending } = useLogin();
 
     const form = useForm<LoginFormData>({
@@ -39,7 +41,7 @@ export const LoginForm = () => {
     });
 
     const onSubmit = (data: LoginFormData) => {
-        login(data);
+        login({ ...data, rememberMe });
     };
 
     return (
@@ -98,6 +100,21 @@ export const LoginForm = () => {
                         </FormItem>
                     )}
                 />
+
+                <div className="flex items-center space-x-2">
+                    <Checkbox
+                        id="remember-me"
+                        checked={rememberMe}
+                        onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                        disabled={isPending}
+                    />
+                    <label
+                        htmlFor="remember-me"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                        Remember me
+                    </label>
+                </div>
 
                 <Button type="submit" className="w-full" disabled={isPending}>
                     {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

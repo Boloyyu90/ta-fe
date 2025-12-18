@@ -76,11 +76,14 @@ export interface UpdateQuestionRequest {
 
 /**
  * Query params for GET /admin/questions
+ *
+ * ⚠️ NOTE: Backend expects query param 'type', but we use 'questionType' for clarity.
+ * The API layer (questions.api.ts) transforms 'questionType' → 'type' in the query string.
  */
 export interface QuestionsQueryParams {
     page?: number;
     limit?: number;
-    questionType?: QuestionType;  // ✅ Renamed from 'type' to match backend
+    questionType?: QuestionType;  // Transformed to 'type' in API layer
     search?: string;
     sortBy?: 'content' | 'questionType' | 'createdAt' | 'defaultScore';
     sortOrder?: 'asc' | 'desc';

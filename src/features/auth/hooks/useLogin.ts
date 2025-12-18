@@ -17,6 +17,8 @@ import { useAuthStore } from '@/features/auth/store/auth.store';
 import { authApi } from '@/features/auth/api/auth.api';
 import type { LoginRequest } from '@/features/auth/types/auth.types';
 
+type LoginWithRememberMe = LoginRequest & { rememberMe: boolean };
+
 /**
  * Extract error message from various error types
  */
@@ -46,21 +48,23 @@ const extractErrorMessage = (error: any): string => {
  *
  * @example
  * const { mutate: login, isPending } = useLogin();
- * login({ email: 'user@example.com', password: 'Password123' });
+ * login({ email: 'user@example.com', password: 'Password123', rememberMe: true });
  */
 export const useLogin = () => {
     const router = useRouter();
     const setAuth = useAuthStore((state) => state.setAuth);
 
     return useMutation({
-        mutationFn: (credentials: LoginRequest) => authApi.login(credentials),
+        mutationFn: ({ email, password }: LoginWithRememberMe) =>
+            authApi.login({ email, password }),
 
-        onSuccess: (payload) => {
+        onSuccess: (payload, variables) => {
             // payload is AuthPayload = { user, tokens }
             const { user, tokens } = payload;
+            const { rememberMe } = variables;
 
-            // Store auth state in Zustand + localStorage
-            setAuth(user, tokens);
+            // Store auth state in Zustand + storage (localStorage or sessionStorage based on rememberMe)
+            setAuth(user, tokens, rememberMe);
 
             // Show success toast
             toast.success('Login successful!', {

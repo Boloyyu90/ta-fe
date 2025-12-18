@@ -7,7 +7,6 @@
 // Participant hooks
 export { useExams } from './useExams';
 export { useExam } from './useExam';
-export { useStartExam } from './useStartExam';
 
 // Admin hooks
 export { useAdminExams } from './useAdminExams';

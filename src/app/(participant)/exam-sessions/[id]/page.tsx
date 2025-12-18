@@ -111,6 +111,11 @@ export default function ExamSessionPage() {
     const params = useParams();
     const sessionId = Number(params.id);
 
+    // Compatibility redirect: /exam-sessions/:id → /exam-sessions/:id/take
+    useEffect(() => {
+        router.replace(`/exam-sessions/${sessionId}/take`);
+    }, [sessionId, router]);
+
     // =========================================================================
     // DATA FETCHING
     // =========================================================================

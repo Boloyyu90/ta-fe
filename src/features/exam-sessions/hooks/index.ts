@@ -18,6 +18,7 @@
  */
 
 // Participant hooks
+export { useStartExam } from './useStartExam';
 export { useExamSession } from './useExamSession';
 export { useExamQuestions } from './useExamQuestions';
 export { useExamAnswers } from './useExamAnswers';
@@ -31,3 +32,5 @@ export { useMyStats } from './useMyStats';
 // Admin hooks
 export { useAdminSessions } from './useAdminSessions';
 export { useAdminSessionAnswers } from './useAdminSessionAnswers';
+export { useAdminActiveSessions } from './useAdminActiveSessions';
+export { useAdminRecentResults } from './useAdminRecentResults';

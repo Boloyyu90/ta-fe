@@ -13,7 +13,8 @@ import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { useExam, useStartExam } from '@/features/exams/hooks';
+import { useExam } from '@/features/exams/hooks';
+import { useStartExam } from '@/features/exam-sessions/hooks';
 import {
     isExamAvailable,
     getExamAvailabilityStatus,

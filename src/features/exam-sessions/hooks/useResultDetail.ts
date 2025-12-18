@@ -1,5 +1,9 @@
 /**
  * Hook to fetch detailed result for a specific exam session
+ *
+ * ⚠️ NOTE: Backend does NOT have GET /results/:id endpoint.
+ * We use GET /exam-sessions/:id as the backend-aligned workaround.
+ * This returns UserExam which contains result data for completed exams.
  */
 
 import { useQuery } from '@tanstack/react-query';
