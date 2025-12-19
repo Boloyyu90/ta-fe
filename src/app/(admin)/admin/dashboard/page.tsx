@@ -1,333 +1,693 @@
 "use client";
 
 /**
- * ADMIN DASHBOARD (MOCK)
+ * ADMIN DASHBOARD
  *
  * PURPOSE:
  * - Landing page after admin login
- * - Overview of system statistics, active sessions, users
- * - Demonstrates successful admin authentication
+ * - Overview of system statistics, active sessions, recent results
+ * - Real-time data from backend APIs
  *
- * This is a MOCK implementation with sample data for testing auth
+ * ENDPOINTS USED:
+ * - GET /api/v1/admin/users?page=1&limit=1 → totalUsers
+ * - GET /api/v1/admin/exams?page=1&limit=1 → totalExams
+ * - GET /api/v1/admin/exam-sessions?status=IN_PROGRESS → activeSessions
+ * - GET /api/v1/admin/questions?page=1&limit=1 → totalQuestions
+ * - GET /api/v1/admin/results → recentResults
  *
- * ROUTE: /admin/dashboard (after fixing route structure)
+ * ROUTE: /admin/dashboard
  */
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useQueries } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
+
+// Auth hooks
 import { useAuth, useLogout } from "@/features/auth/hooks";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
+
+// Admin data hooks (existing - for sessions and results)
+import { useAdminActiveSessions, useAdminRecentResults } from "@/features/exam-sessions/hooks";
+
+// API clients for stats (domain ownership)
+import { usersApi } from "@/features/users/api/users.api";
+import { examsApi } from "@/features/exams/api/exams.api";
+import { questionsApi } from "@/features/questions/api/questions.api";
+import { adminSessionsApi } from "@/features/exam-sessions/api/admin-sessions.api";
+
+// UI Components
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
-import { Loader2, Users, BookOpen, Activity, AlertCircle, LogOut, User, ShieldCheck, BarChart3 } from "lucide-react";
+import { Badge } from "@/shared/components/ui/badge";
+import { Skeleton } from "@/shared/components/ui/skeleton";
+import {
+    Loader2,
+    Users,
+    BookOpen,
+    Activity,
+    AlertCircle,
+    LogOut,
+    User,
+    ShieldCheck,
+    BarChart3,
+    FileText,
+    Trophy,
+    Clock,
+    CheckCircle2,
+    XCircle,
+    AlertTriangle,
+    RefreshCw,
+    Eye,
+} from "lucide-react";
+
+// Types
+import type { ExamStatus } from "@/shared/types/enum.types";
+
+// ============================================================================
+// STATUS CONFIGURATION
+// ============================================================================
+
+const statusConfig: Record<
+    ExamStatus,
+    {
+        label: string;
+        variant: "default" | "secondary" | "destructive" | "outline";
+        icon: typeof CheckCircle2;
+    }
+> = {
+    IN_PROGRESS: {
+        label: "Berlangsung",
+        variant: "default",
+        icon: Clock,
+    },
+    FINISHED: {
+        label: "Selesai",
+        variant: "secondary",
+        icon: CheckCircle2,
+    },
+    TIMEOUT: {
+        label: "Timeout",
+        variant: "destructive",
+        icon: AlertTriangle,
+    },
+    CANCELLED: {
+        label: "Dibatalkan",
+        variant: "outline",
+        icon: XCircle,
+    },
+};
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Format relative time using date-fns with Indonesian locale
+ */
+function formatRelativeTime(dateString: string): string {
+    try {
+        const date = new Date(dateString);
+        return formatDistanceToNow(date, { addSuffix: true, locale: idLocale });
+    } catch {
+        return "-";
+    }
+}
+
+// ============================================================================
+// SKELETON COMPONENTS
+// ============================================================================
+
+function StatCardSkeleton() {
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-4 rounded" />
+            </CardHeader>
+            <CardContent>
+                <Skeleton className="h-8 w-16 mb-1" />
+                <Skeleton className="h-3 w-32" />
+            </CardContent>
+        </Card>
+    );
+}
+
+function SessionRowSkeleton() {
+    return (
+        <div className="flex items-center justify-between py-3 border-b last:border-0">
+            <div className="flex items-center gap-3">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div>
+                    <Skeleton className="h-4 w-32 mb-1" />
+                    <Skeleton className="h-3 w-48" />
+                </div>
+            </div>
+            <Skeleton className="h-5 w-20" />
+        </div>
+    );
+}
+
+function ResultRowSkeleton() {
+    return (
+        <div className="flex items-center justify-between py-3 border-b last:border-0">
+            <div className="flex items-center gap-3">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div>
+                    <Skeleton className="h-4 w-32 mb-1" />
+                    <Skeleton className="h-3 w-48" />
+                </div>
+            </div>
+            <div className="text-right">
+                <Skeleton className="h-4 w-16 mb-1" />
+                <Skeleton className="h-3 w-12" />
+            </div>
+        </div>
+    );
+}
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
 export default function AdminDashboardPage() {
     const router = useRouter();
-    const { user, isAuthenticated, isLoading } = useAuth();
+    const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
     const { mutate: logout, isPending: isLoggingOut } = useLogout();
 
-    // Redirect unauthenticated users to login
+    // ========================================================================
+    // STEP 3: Parallel stats fetching with useQueries (direct in page)
+    // ========================================================================
+    const statsQueries = useQueries({
+        queries: [
+            {
+                queryKey: ["admin-stats", "users"],
+                queryFn: () => usersApi.getUsers({ page: 1, limit: 1 }),
+                staleTime: 60 * 1000,
+            },
+            {
+                queryKey: ["admin-stats", "exams"],
+                queryFn: () => examsApi.getAdminExams({ page: 1, limit: 1 }),
+                staleTime: 60 * 1000,
+            },
+            {
+                queryKey: ["admin-stats", "questions"],
+                queryFn: () => questionsApi.getQuestions({ page: 1, limit: 1 }),
+                staleTime: 60 * 1000,
+            },
+            {
+                queryKey: ["admin-stats", "active-sessions"],
+                queryFn: () =>
+                    adminSessionsApi.getAdminSessions({
+                        page: 1,
+                        limit: 1,
+                        status: "IN_PROGRESS",
+                    }),
+                staleTime: 30 * 1000,
+            },
+        ],
+    });
+
+    const [usersResult, examsResult, questionsResult, sessionsCountResult] = statsQueries;
+
+    const statsLoading = statsQueries.some((q) => q.isLoading);
+    const statsError = statsQueries.some((q) => q.isError);
+
+    const stats = {
+        totalUsers: usersResult.data?.pagination?.total ?? 0,
+        totalExams: examsResult.data?.pagination?.total ?? 0,
+        totalQuestions: questionsResult.data?.pagination?.total ?? 0,
+        activeSessions: sessionsCountResult.data?.pagination?.total ?? 0,
+    };
+
+    const refetchStats = () => {
+        statsQueries.forEach((q) => q.refetch());
+    };
+
+    // ========================================================================
+    // STEP 4: Fetch Active Sessions + Recent Results (using existing hooks)
+    // ========================================================================
+    const {
+        data: activeSessionsData,
+        isLoading: sessionsLoading,
+        isError: sessionsError,
+        refetch: refetchSessions,
+    } = useAdminActiveSessions({ limit: 5 });
+
+    const {
+        data: recentResultsData,
+        isLoading: resultsLoading,
+        isError: resultsError,
+        refetch: refetchResults,
+    } = useAdminRecentResults({ limit: 5 });
+
+    // Extract data
+    const activeSessions = activeSessionsData?.data ?? [];
+    const recentResults = recentResultsData?.data ?? [];
+
+    // ========================================================================
+    // AUTH REDIRECTS
+    // ========================================================================
     useEffect(() => {
-        if (!isLoading && !isAuthenticated) {
+        if (!isAuthLoading && !isAuthenticated) {
             router.push("/login");
         }
-    }, [isAuthenticated, isLoading, router]);
+    }, [isAuthenticated, isAuthLoading, router]);
 
-    // Redirect non-admin users to participant dashboard
     useEffect(() => {
-        if (!isLoading && isAuthenticated && user?.role === "PARTICIPANT") {
+        if (!isAuthLoading && isAuthenticated && user?.role === "PARTICIPANT") {
             router.push("/dashboard");
         }
-    }, [isAuthenticated, isLoading, user, router]);
+    }, [isAuthenticated, isAuthLoading, user, router]);
+
+    // Handle logout
+    const handleLogout = () => {
+        logout(undefined, {
+            onSuccess: () => {
+                router.push("/login");
+            },
+        });
+    };
+
+    // Refresh all data
+    const handleRefreshAll = () => {
+        refetchStats();
+        refetchSessions();
+        refetchResults();
+    };
 
     // Show loading state
-    if (isLoading || !user) {
+    if (isAuthLoading || !user) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-muted/30">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Loading admin dashboard...</p>
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+                    <p className="text-muted-foreground">Memuat dashboard...</p>
                 </div>
             </div>
         );
     }
 
-    // Don't render if not admin
+    // Ensure admin only
     if (user.role !== "ADMIN") {
         return null;
     }
 
-    // Mock data for testing
-    const mockStats = {
-        totalUsers: 142,
-        totalExams: 28,
-        activeSessions: 7,
-        totalQuestions: 856,
-    };
-
-    const mockActiveSessions = [
-        { id: 1, userName: "John Doe", examTitle: "CPNS TIU - Verbal", startedAt: "10 minutes ago", progress: 45 },
-        { id: 2, userName: "Jane Smith", examTitle: "CPNS TWK - Pancasila", startedAt: "23 minutes ago", progress: 78 },
-        { id: 3, userName: "Bob Johnson", examTitle: "CPNS TKP - Integritas", startedAt: "35 minutes ago", progress: 62 },
-    ];
-
-    const mockRecentResults = [
-        { id: 1, userName: "Alice Williams", examTitle: "CPNS TIU Complete", score: 88, submittedAt: "2 hours ago" },
-        { id: 2, userName: "Charlie Brown", examTitle: "CPNS TWK Complete", score: 76, submittedAt: "3 hours ago" },
-        { id: 3, userName: "Diana Prince", examTitle: "CPNS TKP Complete", score: 92, submittedAt: "5 hours ago" },
-    ];
-
-    const mockSystemAlerts = [
-        { id: 1, type: "warning", message: "3 users reported proctoring issues", time: "1 hour ago" },
-        { id: 2, type: "info", message: "New exam 'CPNS Complete Mock Test' published", time: "2 hours ago" },
-    ];
-
     return (
         <div className="min-h-screen bg-muted/30">
             {/* Header */}
-            <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="container flex h-16 items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg" />
-                        <span className="font-bold text-xl">Prestige Tryout</span>
-                        <span className="px-2 py-1 rounded-md bg-destructive/10 text-destructive text-xs font-medium ml-2">
-                            ADMIN PANEL
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 text-sm">
-                            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{user.name}</span>
-                            <span className="px-2 py-1 rounded-md bg-destructive/10 text-destructive text-xs font-medium">
-                                Admin
-                            </span>
+            <header className="bg-background border-b border-border sticky top-0 z-10">
+                <div className="container mx-auto px-4 py-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-primary/10">
+                                <ShieldCheck className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-bold">Admin Dashboard</h1>
+                                <p className="text-sm text-muted-foreground">
+                                    Sistem Ujian CPNS - Panel Administrasi
+                                </p>
+                            </div>
                         </div>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => logout()}
-                            disabled={isLoggingOut}
-                        >
-                            {isLoggingOut ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <LogOut className="h-4 w-4" />
-                            )}
-                            <span className="ml-2">Logout</span>
-                        </Button>
+                        <div className="flex items-center gap-4">
+                            {/* Refresh Button */}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleRefreshAll}
+                                disabled={statsLoading || sessionsLoading || resultsLoading}
+                            >
+                                <RefreshCw className={`h-4 w-4 mr-2 ${statsLoading ? "animate-spin" : ""}`} />
+                                Refresh
+                            </Button>
+
+                            {/* User info */}
+                            <div className="flex items-center gap-2 text-sm">
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-muted-foreground">{user.name}</span>
+                                <Badge variant="default">Admin</Badge>
+                            </div>
+
+                            {/* Logout button */}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleLogout}
+                                disabled={isLoggingOut}
+                            >
+                                {isLoggingOut ? (
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                    <LogOut className="h-4 w-4 mr-2" />
+                                )}
+                                Logout
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </header>
 
             {/* Main Content */}
-            <main className="container py-8">
-                {/* Welcome Section */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-foreground mb-2">
-                        Admin Dashboard 🛡️
-                    </h1>
-                    <p className="text-muted-foreground">
-                        Monitor and manage your exam platform
-                    </p>
-                </div>
-
-                {/* Stats Grid */}
-                <div className="grid gap-4 md:grid-cols-4 mb-8">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{mockStats.totalUsers}</div>
-                            <p className="text-xs text-muted-foreground">+12 from last week</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Exams</CardTitle>
-                            <BookOpen className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{mockStats.totalExams}</div>
-                            <p className="text-xs text-muted-foreground">3 drafts pending</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
-                            <Activity className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{mockStats.activeSessions}</div>
-                            <p className="text-xs text-muted-foreground">In progress now</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Question Bank</CardTitle>
-                            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{mockStats.totalQuestions}</div>
-                            <p className="text-xs text-muted-foreground">Ready to use</p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <div className="grid gap-8 md:grid-cols-2 mb-8">
-                    {/* Active Sessions Monitor */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Active Exam Sessions</CardTitle>
-                            <CardDescription>Monitor ongoing exams in real-time</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {mockActiveSessions.map((session) => (
-                                    <div key={session.id} className="p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors">
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <p className="text-sm font-medium">{session.userName}</p>
-                                                <span className="px-2 py-1 rounded-md bg-green-500/10 text-green-700 text-xs font-medium">
-                                                    Live
-                                                </span>
-                                            </div>
-                                            <p className="text-xs text-muted-foreground">{session.examTitle}</p>
-                                            <div className="flex items-center gap-2">
-                                                <div className="flex-1 bg-muted rounded-full h-2">
-                                                    <div
-                                                        className="bg-primary h-2 rounded-full transition-all"
-                                                        style={{ width: `${session.progress}%` }}
-                                                    />
-                                                </div>
-                                                <span className="text-xs font-medium">{session.progress}%</span>
-                                            </div>
-                                            <p className="text-xs text-muted-foreground">Started {session.startedAt}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <Button variant="outline" className="w-full mt-4">
-                                View All Sessions
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    {/* Recent Results */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Recent Exam Results</CardTitle>
-                            <CardDescription>Latest completed exams</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {mockRecentResults.map((result) => (
-                                    <div key={result.id} className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors">
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-medium">{result.userName}</p>
-                                            <p className="text-xs text-muted-foreground">{result.examTitle}</p>
-                                            <p className="text-xs text-muted-foreground">{result.submittedAt}</p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className={`text-sm font-bold ${result.score >= 80 ? 'text-green-600' : result.score >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                                {result.score}%
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <Button variant="outline" className="w-full mt-4">
-                                View All Results
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* System Alerts */}
-                <Card className="mb-8">
-                    <CardHeader>
-                        <CardTitle>System Alerts</CardTitle>
-                        <CardDescription>Recent notifications and updates</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-3">
-                            {mockSystemAlerts.map((alert) => (
-                                <div key={alert.id} className="flex items-start gap-3 p-3 rounded-lg border border-border">
-                                    <AlertCircle className={`h-5 w-5 flex-shrink-0 ${alert.type === 'warning' ? 'text-yellow-600' : 'text-blue-600'}`} />
-                                    <div className="flex-1 space-y-1">
-                                        <p className="text-sm">{alert.message}</p>
-                                        <p className="text-xs text-muted-foreground">{alert.time}</p>
-                                    </div>
+            <main className="container mx-auto px-4 py-8">
+                {/* Statistics Cards */}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+                    {statsLoading ? (
+                        <>
+                            <StatCardSkeleton />
+                            <StatCardSkeleton />
+                            <StatCardSkeleton />
+                            <StatCardSkeleton />
+                        </>
+                    ) : statsError ? (
+                        <Card className="col-span-full">
+                            <CardContent className="flex items-center justify-center py-8">
+                                <div className="text-center">
+                                    <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
+                                    <p className="text-muted-foreground">Gagal memuat statistik</p>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="mt-2"
+                                        onClick={() => refetchStats()}
+                                    >
+                                        Coba Lagi
+                                    </Button>
                                 </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <>
+                            {/* Total Users */}
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Total Pengguna</CardTitle>
+                                    <Users className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{stats.totalUsers}</div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Peserta dan admin terdaftar
+                                    </p>
+                                </CardContent>
+                            </Card>
 
-                {/* Auth Test Info */}
-                <Card className="border-primary/50 bg-primary/5">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <ShieldCheck className="h-5 w-5 text-green-600" />
-                            Admin Authentication Successful!
-                        </CardTitle>
-                        <CardDescription>You are logged in with admin privileges</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2 text-sm">
-                            <p><strong>User ID:</strong> {user.id}</p>
-                            <p><strong>Email:</strong> {user.email}</p>
-                            <p><strong>Name:</strong> {user.name}</p>
-                            <p><strong>Role:</strong> <span className="text-destructive font-bold">{user.role}</span></p>
-                            <p><strong>Email Verified:</strong> {user.isEmailVerified ? '✅ Yes' : '❌ No'}</p>
-                            <p className="text-xs text-muted-foreground pt-2">
-                                This is a mock admin dashboard with sample data. Replace with real API calls to manage users, exams, and monitor sessions.
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
+                            {/* Total Exams */}
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Total Ujian</CardTitle>
+                                    <BookOpen className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{stats.totalExams}</div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Paket ujian tersedia
+                                    </p>
+                                </CardContent>
+                            </Card>
+
+                            {/* Active Sessions */}
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Sesi Aktif</CardTitle>
+                                    <Activity className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{stats.activeSessions}</div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Ujian sedang berlangsung
+                                    </p>
+                                </CardContent>
+                            </Card>
+
+                            {/* Total Questions */}
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Bank Soal</CardTitle>
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{stats.totalQuestions}</div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Soal tersedia (TIU, TKP, TWK)
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </>
+                    )}
+                </div>
+
+                {/* Content Grid */}
+                <div className="grid gap-6 md:grid-cols-2">
+                    {/* Active Exam Sessions */}
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Activity className="h-5 w-5 text-primary" />
+                                        Sesi Ujian Aktif
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Peserta yang sedang mengerjakan ujian
+                                    </CardDescription>
+                                </div>
+                                <Link href="/admin/sessions?status=IN_PROGRESS">
+                                    <Button variant="ghost" size="sm">
+                                        <Eye className="h-4 w-4 mr-1" />
+                                        Lihat Semua
+                                    </Button>
+                                </Link>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            {sessionsLoading ? (
+                                <div className="space-y-0 divide-y">
+                                    <SessionRowSkeleton />
+                                    <SessionRowSkeleton />
+                                    <SessionRowSkeleton />
+                                </div>
+                            ) : sessionsError ? (
+                                <div className="text-center py-8">
+                                    <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
+                                    <p className="text-muted-foreground text-sm">Gagal memuat data</p>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="mt-2"
+                                        onClick={() => refetchSessions()}
+                                    >
+                                        Coba Lagi
+                                    </Button>
+                                </div>
+                            ) : activeSessions.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                                    <p className="text-muted-foreground text-sm">
+                                        Tidak ada ujian yang sedang berlangsung
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="space-y-0 divide-y">
+                                    {activeSessions.map((session) => {
+                                        const StatusIcon = statusConfig[session.status]?.icon ?? Clock;
+                                        return (
+                                            <div
+                                                key={session.id}
+                                                className="flex items-center justify-between py-3"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                                        <User className="h-4 w-4 text-primary" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium">
+                                                            {session.user?.name ?? "Unknown User"}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {session.exam?.title ?? "Unknown Exam"} •{" "}
+                                                            {session.answeredQuestions}/{session.totalQuestions} soal
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Badge variant={statusConfig[session.status]?.variant ?? "outline"}>
+                                                    <StatusIcon className="h-3 w-3 mr-1" />
+                                                    {statusConfig[session.status]?.label ?? session.status}
+                                                </Badge>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Recent Exam Results */}
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Trophy className="h-5 w-5 text-yellow-500" />
+                                        Hasil Ujian Terbaru
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Ujian yang baru saja diselesaikan
+                                    </CardDescription>
+                                </div>
+                                <Link href="/admin/results">
+                                    <Button variant="ghost" size="sm">
+                                        <Eye className="h-4 w-4 mr-1" />
+                                        Lihat Semua
+                                    </Button>
+                                </Link>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            {resultsLoading ? (
+                                <div className="space-y-0 divide-y">
+                                    <ResultRowSkeleton />
+                                    <ResultRowSkeleton />
+                                    <ResultRowSkeleton />
+                                </div>
+                            ) : resultsError ? (
+                                <div className="text-center py-8">
+                                    <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
+                                    <p className="text-muted-foreground text-sm">Gagal memuat data</p>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="mt-2"
+                                        onClick={() => refetchResults()}
+                                    >
+                                        Coba Lagi
+                                    </Button>
+                                </div>
+                            ) : recentResults.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <BarChart3 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                                    <p className="text-muted-foreground text-sm">
+                                        Belum ada hasil ujian
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="space-y-0 divide-y">
+                                    {recentResults.map((result) => {
+                                        const passingScore = result.exam?.passingScore ?? 0;
+                                        const isPassed =
+                                            result.totalScore !== null &&
+                                            passingScore > 0 &&
+                                            result.totalScore >= passingScore;
+
+                                        return (
+                                            <div
+                                                key={result.id}
+                                                className="flex items-center justify-between py-3"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div
+                                                        className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                                                            isPassed
+                                                                ? "bg-green-100 text-green-600"
+                                                                : "bg-red-100 text-red-600"
+                                                        }`}
+                                                    >
+                                                        {isPassed ? (
+                                                            <CheckCircle2 className="h-4 w-4" />
+                                                        ) : (
+                                                            <XCircle className="h-4 w-4" />
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium">
+                                                            {result.user?.name ?? "Unknown User"}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {result.exam?.title ?? "Unknown Exam"} •{" "}
+                                                            {result.submittedAt
+                                                                ? formatRelativeTime(result.submittedAt)
+                                                                : "-"}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-sm font-semibold">
+                                                        {result.totalScore ?? 0}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {isPassed ? "Lulus" : "Tidak Lulus"}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
 
                 {/* Quick Actions */}
-                <div className="grid gap-4 md:grid-cols-3 mt-8">
-                    <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
-                        <CardHeader>
-                            <CardTitle className="text-base">Manage Users</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground">Create, edit, and manage user accounts</p>
-                            <Button variant="outline" size="sm" className="w-full mt-4">
-                                Go to Users →
-                            </Button>
-                        </CardContent>
-                    </Card>
+                <Card className="mt-6">
+                    <CardHeader>
+                        <CardTitle>Aksi Cepat</CardTitle>
+                        <CardDescription>
+                            Pintasan untuk manajemen sistem
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <Link href="/admin/users">
+                                <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2">
+                                    <Users className="h-5 w-5" />
+                                    <span className="text-sm">Kelola Pengguna</span>
+                                </Button>
+                            </Link>
+                            <Link href="/admin/exams">
+                                <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2">
+                                    <BookOpen className="h-5 w-5" />
+                                    <span className="text-sm">Kelola Ujian</span>
+                                </Button>
+                            </Link>
+                            <Link href="/admin/questions">
+                                <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2">
+                                    <FileText className="h-5 w-5" />
+                                    <span className="text-sm">Bank Soal</span>
+                                </Button>
+                            </Link>
+                            <Link href="/admin/results">
+                                <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2">
+                                    <BarChart3 className="h-5 w-5" />
+                                    <span className="text-sm">Hasil Ujian</span>
+                                </Button>
+                            </Link>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                    <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
-                        <CardHeader>
-                            <CardTitle className="text-base">Question Bank</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground">Add and organize exam questions</p>
-                            <Button variant="outline" size="sm" className="w-full mt-4">
-                                Go to Questions →
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
-                        <CardHeader>
-                            <CardTitle className="text-base">Create Exam</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground">Build new exam from question bank</p>
-                            <Button variant="outline" size="sm" className="w-full mt-4">
-                                Create Exam →
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </div>
+                {/* Admin Info Card */}
+                <Card className="mt-6 bg-primary/5 border-primary/20">
+                    <CardContent className="py-4">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 rounded-full bg-primary/10">
+                                <ShieldCheck className="h-6 w-6 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="font-medium">Login sebagai Administrator</p>
+                                <p className="text-sm text-muted-foreground">
+                                    ID: {user.id} • Email: {user.email} • Role: {user.role}
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </main>
         </div>
     );
