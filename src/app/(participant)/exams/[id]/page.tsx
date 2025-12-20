@@ -3,8 +3,12 @@
 /**
  * Exam Detail Page
  *
- * ✅ FIXED:
- * - useExam returns Exam directly (already unwrapped), not { exam: Exam }
+ * ✅ FEATURES:
+ * - Exam details display (title, description, duration, etc.)
+ * - Availability status checking
+ * - Smart button state for start/resume/retake/view-result
+ * - Comprehensive error handling including retake errors
+ * - User exam session tracking
  */
 
 'use client';
@@ -14,7 +18,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { useExam } from '@/features/exams/hooks';
-import { useStartExam } from '@/features/exam-sessions/hooks';
+import { useStartExam, useUserExams } from '@/features/exam-sessions/hooks';
+import type { UserExam } from '@/features/exam-sessions/types/exam-sessions.types';
+import { EXAM_SESSION_ERRORS, EXAM_ERRORS, getErrorMessage } from '@/shared/lib/errors';
 import {
     isExamAvailable,
     getExamAvailabilityStatus,
@@ -52,6 +58,8 @@ import {
     AlertTriangle,
     Info,
     Loader2,
+    RotateCcw,
+    Eye,
 } from 'lucide-react';
 
 interface PageProps {
@@ -90,34 +98,158 @@ const availabilityConfig = {
     },
 };
 
+/**
+ * Determine the button state based on exam config and user sessions
+ */
+function getExamButtonState(
+    exam: Exam,
+    sessions: UserExam[] | undefined
+): {
+    label: string;
+    action: 'start' | 'resume' | 'retake' | 'view-result' | 'disabled';
+    disabled: boolean;
+    icon: typeof Play;
+    inProgressSession?: UserExam;
+    attemptInfo?: string;
+} {
+    // No sessions yet - first attempt
+    if (!sessions || sessions.length === 0) {
+        return {
+            label: 'Mulai Ujian',
+            action: 'start',
+            disabled: false,
+            icon: Play,
+            attemptInfo: 'Percobaan ke-1',
+        };
+    }
+
+    // Check for IN_PROGRESS session
+    const inProgress = sessions.find((s) => s.status === 'IN_PROGRESS');
+    if (inProgress) {
+        return {
+            label: 'Lanjutkan Ujian',
+            action: 'resume',
+            disabled: false,
+            icon: Play,
+            inProgressSession: inProgress,
+            attemptInfo: `Percobaan ke-${inProgress.attemptNumber}`,
+        };
+    }
+
+    // All sessions are completed
+    const completedAttempts = sessions.filter((s) =>
+        ['FINISHED', 'TIMEOUT', 'CANCELLED'].includes(s.status)
+    );
+
+    // Check retake eligibility
+    if (!exam.allowRetake) {
+        return {
+            label: 'Lihat Hasil',
+            action: 'view-result',
+            disabled: false,
+            icon: Eye,
+            attemptInfo: `Percobaan: ${completedAttempts.length}`,
+        };
+    }
+
+    // Check if max attempts reached
+    if (exam.maxAttempts && completedAttempts.length >= exam.maxAttempts) {
+        return {
+            label: `Batas Tercapai (${completedAttempts.length}/${exam.maxAttempts})`,
+            action: 'disabled',
+            disabled: true,
+            icon: XCircle,
+            attemptInfo: `Percobaan: ${completedAttempts.length}/${exam.maxAttempts}`,
+        };
+    }
+
+    // Can retake
+    const nextAttempt = completedAttempts.length + 1;
+    return {
+        label: 'Mulai Lagi',
+        action: 'retake',
+        disabled: false,
+        icon: RotateCcw,
+        attemptInfo: exam.maxAttempts
+            ? `Percobaan ke-${nextAttempt} dari ${exam.maxAttempts}`
+            : `Percobaan ke-${nextAttempt}`,
+    };
+}
+
 export default function ExamDetailPage({ params }: PageProps) {
     const resolvedParams = use(params);
     const router = useRouter();
     const examId = parseInt(resolvedParams.id, 10);
 
-    // ✅ FIX: useExam returns Exam directly
+    // Fetch exam details
     const { data: exam, isLoading, isError } = useExam(examId);
+
+    // Fetch user's sessions for this exam
+    const { data: userExamsData } = useUserExams({ examId });
+
+    // Start exam mutation
     const { startExam, isLoading: isStarting } = useStartExam();
 
-    // Handle start exam
+    // Extract sessions from paginated response
+    const userSessions = userExamsData?.data as UserExam[] | undefined;
+
+    // Handle start/resume exam
     const handleStartExam = () => {
         startExam(examId, {
             onError: (error: unknown) => {
-                const err = error as { response?: { data?: { errorCode?: string; message?: string } } };
+                const err = error as {
+                    response?: {
+                        data?: {
+                            errorCode?: string;
+                            message?: string;
+                            context?: { maxAttempts?: number };
+                        };
+                    };
+                };
                 const errorCode = err?.response?.data?.errorCode;
+                const context = err?.response?.data?.context;
                 let message = err?.response?.data?.message || 'Gagal memulai ujian';
 
+                // Map error codes to Indonesian messages
                 if (errorCode === 'EXAM_NO_QUESTIONS') {
-                    message = 'Ujian belum memiliki soal';
+                    message = getErrorMessage('EXAM_NO_QUESTIONS');
                 } else if (errorCode === 'EXAM_NO_DURATION') {
-                    message = 'Ujian belum memiliki durasi';
+                    message = getErrorMessage('EXAM_NO_DURATION');
                 } else if (errorCode === 'EXAM_SESSION_ALREADY_STARTED') {
-                    message = 'Anda sudah memulai ujian ini';
+                    message = getErrorMessage('EXAM_SESSION_ALREADY_STARTED');
+                } else if (errorCode === 'EXAM_SESSION_RETAKE_DISABLED') {
+                    message = getErrorMessage('EXAM_SESSION_RETAKE_DISABLED');
+                } else if (errorCode === 'EXAM_SESSION_MAX_ATTEMPTS') {
+                    const maxAttempts = context?.maxAttempts || 'maksimal';
+                    message = `Anda telah mencapai batas percobaan (${maxAttempts} kali)`;
                 }
 
                 toast.error(message);
             },
         });
+    };
+
+    // Handle view result navigation
+    const handleViewResult = () => {
+        // Navigate to the latest completed session result
+        const latestCompleted = userSessions
+            ?.filter((s) => ['FINISHED', 'TIMEOUT'].includes(s.status))
+            .sort((a, b) => {
+                const dateA = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+                const dateB = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+                return dateB - dateA;
+            })[0];
+
+        if (latestCompleted) {
+            router.push(`/exam-sessions/${latestCompleted.id}/result`);
+        } else {
+            toast.error('Tidak ada hasil ujian yang dapat ditampilkan');
+        }
+    };
+
+    // Handle resume session navigation
+    const handleResumeExam = (sessionId: number) => {
+        router.push(`/exam-sessions/${sessionId}/take`);
     };
 
     // Loading state
@@ -159,17 +291,20 @@ export default function ExamDetailPage({ params }: PageProps) {
         );
     }
 
-    // ✅ FIX: exam is already the Exam object, not { exam: Exam }
+    // Get availability and button state
     const availability = getExamAvailabilityStatus(exam);
     const availInfo = availabilityConfig[availability];
     const AvailIcon = availInfo.icon;
     const questionCount = exam._count?.examQuestions ?? 0;
 
-    // Format datetime
+    // Get smart button state
+    const buttonState = getExamButtonState(exam, userSessions);
+    const ButtonIcon = buttonState.icon;
+
+    // Format dates
     const formatDateTime = (dateString: string | null) => {
-        if (!dateString) return '-';
-        return new Date(dateString).toLocaleString('id-ID', {
-            weekday: 'long',
+        if (!dateString) return null;
+        return new Date(dateString).toLocaleDateString('id-ID', {
             day: 'numeric',
             month: 'long',
             year: 'numeric',
@@ -180,25 +315,29 @@ export default function ExamDetailPage({ params }: PageProps) {
 
     return (
         <div className="container mx-auto py-8 max-w-4xl space-y-6">
+            {/* Back Button */}
+            <Link href="/exams">
+                <Button variant="ghost" size="sm">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Kembali
+                </Button>
+            </Link>
+
             {/* Header */}
-            <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                    <Link href="/exams">
-                        <Button variant="ghost" size="icon">
-                            <ArrowLeft className="h-5 w-5" />
-                        </Button>
-                    </Link>
-                    <div>
-                        <h1 className="text-2xl font-bold">{exam.title}</h1>
-                        <div className="flex items-center gap-2 mt-1">
-                            <Badge
-                                variant={availability === 'available' ? 'default' : 'secondary'}
-                                className="flex items-center gap-1"
-                            >
-                                <AvailIcon className="h-3 w-3" />
-                                {availInfo.label}
-                            </Badge>
-                        </div>
+            <div className="flex items-start justify-between gap-4">
+                <div className="space-y-2">
+                    <h1 className="text-3xl font-bold">{exam.title}</h1>
+                    <div className="flex items-center gap-2">
+                        <Badge
+                            variant={availability === 'available' ? 'default' : 'secondary'}
+                            className={availInfo.color}
+                        >
+                            <AvailIcon className="h-3 w-3 mr-1" />
+                            {availInfo.label}
+                        </Badge>
+                        {buttonState.attemptInfo && (
+                            <Badge variant="outline">{buttonState.attemptInfo}</Badge>
+                        )}
                     </div>
                 </div>
             </div>
@@ -206,30 +345,36 @@ export default function ExamDetailPage({ params }: PageProps) {
             {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Durasi</CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{formatDuration(exam.durationMinutes)}</div>
+                    <CardContent className="p-4 flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                            <Clock className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">Durasi</p>
+                            <p className="font-semibold">{formatDuration(exam.durationMinutes)}</p>
+                        </div>
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Jumlah Soal</CardTitle>
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{questionCount}</div>
+                    <CardContent className="p-4 flex items-center gap-3">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                            <FileText className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">Jumlah Soal</p>
+                            <p className="font-semibold">{questionCount} Soal</p>
+                        </div>
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Passing Score</CardTitle>
-                        <Target className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{exam.passingScore}</div>
+                    <CardContent className="p-4 flex items-center gap-3">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                            <Target className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">Nilai Kelulusan</p>
+                            <p className="font-semibold">{exam.passingScore ?? 0} Poin</p>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -238,7 +383,7 @@ export default function ExamDetailPage({ params }: PageProps) {
             {exam.description && (
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Deskripsi</CardTitle>
+                        <CardTitle className="text-lg">Deskripsi Ujian</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-muted-foreground whitespace-pre-wrap">
@@ -248,142 +393,182 @@ export default function ExamDetailPage({ params }: PageProps) {
                 </Card>
             )}
 
-            {/* Schedule */}
+            {/* Schedule Info */}
             {(exam.startTime || exam.endTime) && (
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base flex items-center gap-2">
+                        <CardTitle className="text-lg flex items-center gap-2">
                             <Calendar className="h-5 w-5" />
-                            Jadwal
+                            Jadwal Ujian
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
                         {exam.startTime && (
-                            <div className="flex justify-between">
+                            <div className="flex items-center gap-2 text-sm">
                                 <span className="text-muted-foreground">Mulai:</span>
-                                <span className="font-medium">{formatDateTime(exam.startTime)}</span>
+                                <span>{formatDateTime(exam.startTime)}</span>
                             </div>
                         )}
                         {exam.endTime && (
-                            <div className="flex justify-between">
+                            <div className="flex items-center gap-2 text-sm">
                                 <span className="text-muted-foreground">Berakhir:</span>
-                                <span className="font-medium">{formatDateTime(exam.endTime)}</span>
+                                <span>{formatDateTime(exam.endTime)}</span>
                             </div>
                         )}
                     </CardContent>
                 </Card>
             )}
 
-            {/* Rules */}
+            {/* Retake Info */}
+            {exam.allowRetake && (
+                <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Pengulangan Diizinkan</AlertTitle>
+                    <AlertDescription>
+                        {exam.maxAttempts
+                            ? `Anda dapat mengulang ujian ini hingga ${exam.maxAttempts} kali percobaan.`
+                            : 'Anda dapat mengulang ujian ini tanpa batas percobaan.'}
+                    </AlertDescription>
+                </Alert>
+            )}
+
+            {/* Rules & Requirements */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-base">Aturan Ujian</CardTitle>
-                    <CardDescription>
-                        Baca dengan cermat sebelum memulai ujian
-                    </CardDescription>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <Info className="h-5 w-5" />
+                        Peraturan Ujian
+                    </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    {/* Proctoring Notice */}
-                    <Alert>
-                        <Camera className="h-4 w-4" />
-                        <AlertTitle>Ujian Diawasi (Proctored)</AlertTitle>
-                        <AlertDescription>
-                            Ujian ini menggunakan sistem pengawasan AI. Pastikan kamera webcam Anda aktif
-                            dan wajah terlihat jelas selama ujian berlangsung.
-                        </AlertDescription>
-                    </Alert>
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                        {/* Do's */}
-                        <div className="space-y-2">
-                            <h4 className="font-medium text-green-600 flex items-center gap-2">
-                                <CheckCircle className="h-4 w-4" />
-                                Yang Harus Dilakukan
-                            </h4>
-                            <ul className="text-sm text-muted-foreground space-y-1">
-                                <li>• Pastikan koneksi internet stabil</li>
-                                <li>• Aktifkan webcam dan izinkan akses kamera</li>
-                                <li>• Posisikan wajah di tengah layar</li>
-                                <li>• Pastikan pencahayaan cukup</li>
-                                <li>• Siapkan waktu sesuai durasi ujian</li>
-                            </ul>
-                        </div>
-
-                        {/* Don'ts */}
-                        <div className="space-y-2">
-                            <h4 className="font-medium text-red-600 flex items-center gap-2">
-                                <XCircle className="h-4 w-4" />
-                                Yang Tidak Boleh Dilakukan
-                            </h4>
-                            <ul className="text-sm text-muted-foreground space-y-1">
-                                <li>• Membuka tab atau aplikasi lain</li>
-                                <li>• Melihat ke arah lain terlalu lama</li>
-                                <li>• Memperlihatkan lebih dari satu wajah</li>
-                                <li>• Copy-paste atau screenshot</li>
-                                <li>• Meninggalkan ujian sebelum selesai</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Peringatan</AlertTitle>
-                        <AlertDescription>
-                            Pelanggaran yang terdeteksi akan dicatat. Terlalu banyak pelanggaran dapat
-                            menyebabkan ujian dibatalkan secara otomatis.
-                        </AlertDescription>
-                    </Alert>
+                <CardContent>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                        <li className="flex items-start gap-2">
+                            <CheckCircle className="h-4 w-4 mt-0.5 text-green-500 shrink-0" />
+                            Pastikan koneksi internet Anda stabil selama ujian berlangsung.
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <Camera className="h-4 w-4 mt-0.5 text-blue-500 shrink-0" />
+                            Webcam akan aktif untuk proctoring selama ujian.
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <Clock className="h-4 w-4 mt-0.5 text-orange-500 shrink-0" />
+                            Timer akan berjalan segera setelah ujian dimulai.
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <AlertTriangle className="h-4 w-4 mt-0.5 text-yellow-500 shrink-0" />
+                            Ujian akan otomatis dikumpulkan jika waktu habis.
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <XCircle className="h-4 w-4 mt-0.5 text-red-500 shrink-0" />
+                            Jangan meninggalkan halaman ujian atau membuka tab lain.
+                        </li>
+                    </ul>
                 </CardContent>
             </Card>
 
-            {/* Start Button */}
+            {/* Action Button */}
             <div className="flex justify-center">
-                {availInfo.canStart ? (
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button size="lg" className="min-w-[200px]">
-                                <Play className="h-5 w-5 mr-2" />
-                                Mulai Ujian
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Mulai Ujian?</AlertDialogTitle>
-                                <AlertDialogDescription className="space-y-2">
-                                    <p>
-                                        Anda akan memulai ujian <strong>{exam.title}</strong>.
-                                    </p>
-                                    <p>
-                                        Durasi: <strong>{formatDuration(exam.durationMinutes)}</strong>
-                                    </p>
-                                    <p>
-                                        Pastikan Anda sudah membaca aturan ujian dan siap untuk memulai.
-                                        Timer akan berjalan segera setelah ujian dimulai.
-                                    </p>
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Batal</AlertDialogCancel>
-                                <AlertDialogAction
-                                    onClick={handleStartExam}
-                                    disabled={isStarting}
-                                >
-                                    {isStarting ? (
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    ) : (
-                                        <Play className="h-4 w-4 mr-2" />
-                                    )}
-                                    Mulai Sekarang
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                ) : (
-                    <Button size="lg" disabled className="min-w-[200px]">
-                        <AvailIcon className="h-5 w-5 mr-2" />
-                        {availInfo.label}
+                {/* View Result Action */}
+                {buttonState.action === 'view-result' && (
+                    <Button
+                        size="lg"
+                        onClick={handleViewResult}
+                        className="min-w-[200px]"
+                    >
+                        <Eye className="h-5 w-5 mr-2" />
+                        Lihat Hasil
                     </Button>
                 )}
+
+                {/* Resume Action */}
+                {buttonState.action === 'resume' && buttonState.inProgressSession && (
+                    <Button
+                        size="lg"
+                        onClick={() => handleResumeExam(buttonState.inProgressSession!.id)}
+                        className="min-w-[200px]"
+                    >
+                        <Play className="h-5 w-5 mr-2" />
+                        Lanjutkan Ujian
+                    </Button>
+                )}
+
+                {/* Disabled Action */}
+                {buttonState.action === 'disabled' && (
+                    <Button size="lg" disabled className="min-w-[200px]">
+                        <XCircle className="h-5 w-5 mr-2" />
+                        {buttonState.label}
+                    </Button>
+                )}
+
+                {/* Start / Retake Action */}
+                {(buttonState.action === 'start' || buttonState.action === 'retake') &&
+                    availInfo.canStart && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button
+                                    size="lg"
+                                    disabled={isStarting}
+                                    className="min-w-[200px]"
+                                >
+                                    {isStarting ? (
+                                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                    ) : (
+                                        <ButtonIcon className="h-5 w-5 mr-2" />
+                                    )}
+                                    {buttonState.label}
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                        {buttonState.action === 'retake'
+                                            ? 'Mulai Ujian Ulang?'
+                                            : 'Mulai Ujian?'}
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription asChild>
+                                        <div className="space-y-2">
+                                            <p>
+                                                Anda akan memulai ujian &quot;{exam.title}&quot;.
+                                                {buttonState.attemptInfo && (
+                                                    <span className="font-medium">
+                                                        {' '}
+                                                        ({buttonState.attemptInfo})
+                                                    </span>
+                                                )}
+                                            </p>
+                                            <p>
+                                                Pastikan Anda sudah siap karena timer akan berjalan
+                                                segera setelah ujian dimulai.
+                                            </p>
+                                        </div>
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={handleStartExam}
+                                        disabled={isStarting}
+                                    >
+                                        {isStarting ? (
+                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        ) : (
+                                            <Play className="h-4 w-4 mr-2" />
+                                        )}
+                                        Mulai Sekarang
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
+
+                {/* Unavailable State */}
+                {(buttonState.action === 'start' || buttonState.action === 'retake') &&
+                    !availInfo.canStart && (
+                        <Button size="lg" disabled className="min-w-[200px]">
+                            <AvailIcon className="h-5 w-5 mr-2" />
+                            {availInfo.label}
+                        </Button>
+                    )}
             </div>
         </div>
     );
