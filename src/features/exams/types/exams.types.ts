@@ -32,6 +32,8 @@ export interface Exam {
     passingScore: number;
     startTime: string | null;
     endTime: string | null;
+    allowRetake: boolean;           // Whether users can retake this exam
+    maxAttempts: number | null;     // Maximum attempts (null = unlimited when retakes enabled)
     createdBy: number;
     createdAt: string;
     updatedAt: string;
@@ -68,6 +70,8 @@ export interface ExamPublic {
     passingScore: number;
     startTime: string | null;
     endTime: string | null;
+    allowRetake: boolean;           // Whether users can retake this exam
+    maxAttempts: number | null;     // Maximum attempts (null = unlimited when retakes enabled)
     createdAt: string;
     _count: {
         examQuestions: number;
@@ -104,6 +108,8 @@ export interface CreateExamRequest {
     title: string;
     description?: string;
     durationMinutes: number;
+    allowRetake?: boolean;          // Default: false
+    maxAttempts?: number | null;    // Default: null (unlimited if retakes enabled)
     passingScore?: number;
     startTime?: string;
     endTime?: string;
@@ -117,6 +123,8 @@ export interface UpdateExamRequest {
     title?: string;
     description?: string;
     durationMinutes?: number;
+    allowRetake?: boolean;
+    maxAttempts?: number | null;
     passingScore?: number;
     startTime?: string;
     endTime?: string;

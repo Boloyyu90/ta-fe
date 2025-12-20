@@ -62,6 +62,8 @@ export interface ExamInfo {
     description: string | null;
     passingScore?: number;
     durationMinutes?: number;   // Optional for some contexts
+    allowRetake?: boolean;
+    maxAttempts?: number | null;
 }
 
 /**
@@ -81,6 +83,7 @@ export interface ExamWithDuration extends ExamInfo {
 export interface UserExam {
     id: number;
     userId: number;
+    attemptNumber: number;
     examId: number;
     status: ExamStatus;
     startedAt: string | null;
@@ -104,6 +107,7 @@ export interface UserExam {
 export interface UserExamSession {
     id: number;
     examId: number;
+    attemptNumber: number;
     examTitle: string;
     durationMinutes: number;
     startedAt: string;
@@ -209,6 +213,7 @@ export interface SubmitAnswerRequest {
  * Query params for getUserExams
  */
 export interface GetUserExamsParams {
+    examId?: number;
     status?: ExamStatus;
     page?: number;
     limit?: number;
