@@ -18,7 +18,8 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import {
     useUsers,
@@ -91,6 +92,7 @@ import {
     Mail,
     CheckCircle,
     XCircle,
+    ArrowLeft,
 } from 'lucide-react';
 
 // Role badge configuration
@@ -222,7 +224,7 @@ function EditUserDialog({ user, open, onOpenChange, onSubmit, isLoading }: EditU
     const [formData, setFormData] = useState<UpdateUserRequest>({});
 
     // Reset form when user changes
-    useState(() => {
+    useEffect(() => {
         if (user) {
             setFormData({
                 name: user.name,
@@ -230,7 +232,7 @@ function EditUserDialog({ user, open, onOpenChange, onSubmit, isLoading }: EditU
                 role: user.role,
             });
         }
-    });
+    }, [user]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -408,9 +410,22 @@ export default function AdminUsersPage() {
     };
 
     return (
-        <div className="container mx-auto py-8 space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+        <div className="min-h-screen bg-muted/30">
+            {/* Back Navigation */}
+            <div className="bg-background border-b border-border">
+                <div className="container mx-auto px-4 py-4">
+                    <Link href="/admin/dashboard">
+                        <Button variant="ghost" size="sm">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Dashboard
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+
+            <div className="container mx-auto py-8 space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold">Manajemen User</h1>
                     <p className="text-muted-foreground">
@@ -643,6 +658,7 @@ export default function AdminUsersPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            </div>
         </div>
     );
 }

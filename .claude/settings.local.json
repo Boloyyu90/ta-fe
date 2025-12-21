@@ -3,7 +3,8 @@
     "allow": [
       "Bash(pnpm run type-check:*)",
       "Bash(ls:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(cat:*)"
     ]
   }
 }

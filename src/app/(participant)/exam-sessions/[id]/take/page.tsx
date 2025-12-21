@@ -23,6 +23,7 @@ import {
 import { toast } from 'sonner';
 import { Clock, CheckCircle, Circle, AlertTriangle } from 'lucide-react';
 import { ProctoringMonitor } from '@/features/proctoring/components/ProctoringMonitor';
+import { EXAM_SESSION_ERRORS, getErrorMessage } from '@/shared/lib/errors';
 import {
     useExamSession,
     useExamQuestions,
@@ -80,7 +81,7 @@ export default function TakeExamPage() {
         startedAt: sessionData.startedAt || new Date().toISOString(),
         durationMinutes: sessionData.durationMinutes || 0,
         onExpire: () => {
-            toast.error('Waktu Habis! Ujian diserahkan otomatis.');
+            toast.error(getErrorMessage(EXAM_SESSION_ERRORS.EXAM_SESSION_TIMEOUT));
             submitExamMutation.mutate(undefined, {
                 onSuccess: (result) => {
                     router.push(`/results/${result.result.id}`);
@@ -126,7 +127,7 @@ export default function TakeExamPage() {
                 toast.success('Jawaban tersimpan', { duration: 1000 });
             },
             onError: () => {
-                toast.error('Gagal menyimpan jawaban');
+                toast.error(getErrorMessage(EXAM_SESSION_ERRORS.EXAM_SESSION_ANSWER_SAVE_FAILED));
             },
         });
     };
@@ -144,7 +145,7 @@ export default function TakeExamPage() {
                 router.push(`/results/${result.result.id}`);
             },
             onError: () => {
-                toast.error('Gagal menyerahkan ujian');
+                toast.error(getErrorMessage(EXAM_SESSION_ERRORS.EXAM_SESSION_SUBMIT_FAILED));
             },
         });
     };

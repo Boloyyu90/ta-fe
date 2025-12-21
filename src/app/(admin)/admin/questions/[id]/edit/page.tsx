@@ -14,6 +14,7 @@
 
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { useQuestion, useUpdateQuestion } from '@/features/questions/hooks';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
@@ -31,6 +32,7 @@ import { Skeleton } from '@/shared/components/ui/skeleton';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import type { QuestionType, UpdateQuestionRequest } from '@/features/questions/types/questions.types';
+import { QUESTION_ERRORS, getErrorMessage } from '@/shared/lib/errors';
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -61,6 +63,9 @@ export default function EditQuestionPage({ params }: PageProps) {
         questionType: 'TIU' as QuestionType,
         defaultScore: 5,
     });
+
+    // Validation errors
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     // ✅ FIX: Access question from questionData.question (not questionData.data)
     const question = questionData?.question;
@@ -105,9 +110,60 @@ export default function EditQuestionPage({ params }: PageProps) {
                 id: questionId,
                 data: updateData,
             });
+            toast.success('Soal berhasil diperbarui');
             router.push(`/admin/questions/${questionId}`);
-        } catch (error) {
-            console.error('Failed to update question:', error);
+        } catch (error: unknown) {
+            const err = error as {
+                response?: {
+                    data?: {
+                        errorCode?: string;
+                        message?: string;
+                        errors?: Array<{ field: string; message: string }>;
+                    };
+                };
+            };
+
+            const errorCode = err?.response?.data?.errorCode;
+            const backendMessage = err?.response?.data?.message;
+            const fieldErrors = err?.response?.data?.errors;
+
+            // Handle specific error codes
+            if (errorCode) {
+                if (errorCode === QUESTION_ERRORS.QUESTION_NOT_FOUND) {
+                    toast.error(getErrorMessage(errorCode));
+                    router.push('/admin/questions');
+                    return;
+                }
+                if (errorCode === QUESTION_ERRORS.QUESTION_INVALID_OPTIONS) {
+                    toast.error(getErrorMessage(errorCode));
+                    return;
+                }
+                if (errorCode === QUESTION_ERRORS.QUESTION_INVALID_ANSWER) {
+                    toast.error(getErrorMessage(errorCode));
+                    return;
+                }
+                // Try to get Indonesian message for error code
+                const message = getErrorMessage(errorCode);
+                if (message !== 'Terjadi kesalahan') {
+                    toast.error(message);
+                    return;
+                }
+            }
+
+            // Handle validation errors with field-level messages
+            if (fieldErrors && fieldErrors.length > 0) {
+                const newErrors: Record<string, string> = {};
+                fieldErrors.forEach((err) => {
+                    newErrors[err.field] = err.message;
+                });
+                setErrors(newErrors);
+                toast.error('Terdapat kesalahan validasi. Mohon periksa form Anda.');
+                return;
+            }
+
+            // Fallback to generic error
+            const message = backendMessage || 'Gagal memperbarui soal';
+            toast.error(message);
         }
     };
 
@@ -208,31 +264,52 @@ export default function EditQuestionPage({ params }: PageProps) {
                                 id="content"
                                 rows={4}
                                 value={formData.content}
-                                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                                onChange={(e) => {
+                                    setFormData({ ...formData, content: e.target.value });
+                                    if (errors.content) {
+                                        setErrors({ ...errors, content: '' });
+                                    }
+                                }}
                                 placeholder="Masukkan pertanyaan..."
+                                className={errors.content ? 'border-destructive' : ''}
                                 required
                             />
+                            {errors.content && (
+                                <p className="text-sm text-destructive">{errors.content}</p>
+                            )}
                         </div>
 
                         {/* Options */}
                         <div className="space-y-4">
                             <Label>Pilihan Jawaban</Label>
-                            {(['A', 'B', 'C', 'D', 'E'] as const).map((option) => (
-                                <div key={option} className="flex items-center gap-3">
-                                    <span className="font-medium w-8">{option}.</span>
-                                    <Input
-                                        value={formData[`option${option}` as keyof typeof formData] as string}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                [`option${option}`]: e.target.value,
-                                            })
-                                        }
-                                        placeholder={`Pilihan ${option}`}
-                                        required
-                                    />
-                                </div>
-                            ))}
+                            {(['A', 'B', 'C', 'D', 'E'] as const).map((option) => {
+                                const fieldKey = `option_${option}`;
+                                return (
+                                    <div key={option} className="space-y-2">
+                                        <div className="flex items-center gap-3">
+                                            <span className="font-medium w-8">{option}.</span>
+                                            <Input
+                                                value={formData[`option${option}` as keyof typeof formData] as string}
+                                                onChange={(e) => {
+                                                    setFormData({
+                                                        ...formData,
+                                                        [`option${option}`]: e.target.value,
+                                                    });
+                                                    if (errors[fieldKey]) {
+                                                        setErrors({ ...errors, [fieldKey]: '' });
+                                                    }
+                                                }}
+                                                placeholder={`Pilihan ${option}`}
+                                                className={errors[fieldKey] ? 'border-destructive' : ''}
+                                                required
+                                            />
+                                        </div>
+                                        {errors[fieldKey] && (
+                                            <p className="text-sm text-destructive ml-11">{errors[fieldKey]}</p>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         {/* Correct Answer */}

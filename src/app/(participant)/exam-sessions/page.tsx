@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui
 import { Button } from '@/shared/components/ui/button';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
-import { ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BookOpen, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import { useUserExams } from '@/features/exam-sessions/hooks/useUserExams';
 import { UserExamCard } from '@/features/exam-sessions/components/UserExamCard';
 import type { ExamStatus, UserExam } from '@/features/exam-sessions/types/exam-sessions.types';
@@ -28,8 +29,6 @@ export default function ExamSessionsPage() {
     // Extract from wrapper response
     const pagination = data?.pagination;
     const sessions: UserExam[] = data?.data ?? [];
-
-    if (isLoading) {
 
     if (isLoading) {
         return (
@@ -59,9 +58,22 @@ export default function ExamSessionsPage() {
     }
 
     return (
-        <div className="container mx-auto py-8 space-y-6">
-            {/* Header */}
-            <div className="flex items-center gap-3">
+        <div className="min-h-screen bg-muted/30">
+            {/* Back Navigation */}
+            <div className="bg-background border-b border-border">
+                <div className="container mx-auto px-4 py-4">
+                    <Link href="/dashboard">
+                        <Button variant="ghost" size="sm">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Dashboard
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+
+            <div className="container mx-auto py-8 space-y-6">
+                {/* Header */}
+                <div className="flex items-center gap-3">
                 <BookOpen className="h-8 w-8 text-primary" />
                 <div>
                     <h1 className="text-2xl font-bold">Sesi Ujian Saya</h1>
@@ -135,6 +147,7 @@ export default function ExamSessionsPage() {
                     </Button>
                 </div>
             )}
+            </div>
         </div>
     );
 }}

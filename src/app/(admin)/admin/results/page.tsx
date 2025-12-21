@@ -53,6 +53,7 @@ import {
     Target,
     TrendingUp,
     AlertCircle,
+    ArrowLeft,
 } from 'lucide-react';
 
 // Status configuration
@@ -103,9 +104,22 @@ export default function AdminResultsPage() {
     };
 
     return (
-        <div className="container mx-auto py-8 space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+        <div className="min-h-screen bg-muted/30">
+            {/* Back Navigation */}
+            <div className="bg-background border-b border-border">
+                <div className="container mx-auto px-4 py-4">
+                    <Link href="/admin/dashboard">
+                        <Button variant="ghost" size="sm">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Dashboard
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+
+            <div className="container mx-auto py-8 space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold flex items-center gap-2">
                         <Trophy className="h-8 w-8 text-primary" />
@@ -332,6 +346,7 @@ export default function AdminResultsPage() {
                     )}
                 </CardContent>
             </Card>
+            </div>
         </div>
     );
 }

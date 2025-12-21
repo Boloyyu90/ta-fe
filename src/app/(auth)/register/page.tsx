@@ -1,16 +1,17 @@
 "use client";
 
 /**
- * REGISTRATION PAGE - CORRECTED
+ * REGISTRATION PAGE - FIXED
  *
- * ✅ Removed redundant redirect logic (handled by auth layout)
- * ✅ Cleaner, focused on displaying the form
- * ✅ Auth layout handles all authentication checks
+ * ✅ FIXED:
+ * - Redirects authenticated users to appropriate dashboard
+ * - Shows loading state while checking authentication
+ * - Prevents flash of register form for authenticated users
  *
  * PURPOSE:
  * - Public page for new user registration
  * - Displays RegisterForm component
- * - Layout handles authenticated user redirects
+ * - Redirects authenticated users to dashboard
  *
  * BACKEND INTEGRATION:
  * - Maps to: POST /api/v1/auth/register
@@ -18,12 +19,45 @@
  * - Returns tokens immediately (auto-login)
  */
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { RegisterForm } from "@/features/auth/components/RegisterForm";
+import { useAuth } from "@/features/auth/hooks";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { Shield, BookOpen, Trophy } from "lucide-react";
+import { Shield, BookOpen, Trophy, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function RegisterPage() {
+    const { isAuthenticated, isLoading, user } = useAuth();
+    const router = useRouter();
+
+    // Redirect authenticated users to their dashboard
+    useEffect(() => {
+        if (!isLoading && isAuthenticated && user) {
+            const redirectPath = user.role === 'ADMIN'
+                ? '/admin/dashboard'
+                : '/dashboard';
+            router.push(redirectPath);
+        }
+    }, [isAuthenticated, isLoading, user, router]);
+
+    // Show loading spinner while checking authentication
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-muted/30">
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                    <p className="text-sm text-muted-foreground mt-2">Memeriksa status login...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Don't render register form if already authenticated (will redirect)
+    if (isAuthenticated) {
+        return null;
+    }
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
             <div className="w-full max-w-4xl">

@@ -57,11 +57,11 @@ export const RegisterForm = () => {
                     name="name"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Full Name</FormLabel>
+                            <FormLabel>Nama Lengkap</FormLabel>
                             <FormControl>
                                 <Input
                                     type="text"
-                                    placeholder="John Doe"
+                                    placeholder="Nama lengkap Anda"
                                     autoComplete="name"
                                     disabled={isPending}
                                     {...field}
@@ -81,7 +81,7 @@ export const RegisterForm = () => {
                             <FormControl>
                                 <Input
                                     type="email"
-                                    placeholder="you@example.com"
+                                    placeholder="email@example.com"
                                     autoComplete="email"
                                     disabled={isPending}
                                     {...field}
@@ -102,7 +102,7 @@ export const RegisterForm = () => {
                                 <div className="relative">
                                     <Input
                                         type={showPassword ? "text" : "password"}
-                                        placeholder="Create a strong password"
+                                        placeholder="Buat password yang kuat"
                                         autoComplete="new-password"
                                         disabled={isPending}
                                         {...field}
@@ -123,7 +123,7 @@ export const RegisterForm = () => {
                             </FormControl>
                             <FormMessage />
                             <p className="text-xs text-muted-foreground mt-1">
-                                Must be at least 8 characters with uppercase, lowercase, and number
+                                Minimal 8 karakter dengan huruf besar, huruf kecil, dan angka
                             </p>
                         </FormItem>
                     )}
@@ -134,12 +134,12 @@ export const RegisterForm = () => {
                     name="confirmPassword"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Confirm Password</FormLabel>
+                            <FormLabel>Konfirmasi Password</FormLabel>
                             <FormControl>
                                 <div className="relative">
                                     <Input
                                         type={showConfirmPassword ? "text" : "password"}
-                                        placeholder="Confirm your password"
+                                        placeholder="Konfirmasi password Anda"
                                         autoComplete="new-password"
                                         disabled={isPending}
                                         {...field}
@@ -167,16 +167,16 @@ export const RegisterForm = () => {
 
                 <Button type="submit" className="w-full" disabled={isPending}>
                     {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Create account
+                    Buat Akun
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">
-                    Already have an account?{" "}
+                    Sudah punya akun?{" "}
                     <Link
                         href="/login"
                         className="font-medium text-primary hover:underline"
                     >
-                        Sign in
+                        Masuk
                     </Link>
                 </p>
             </form>

@@ -23,6 +23,7 @@ import {
 } from '@/features/exams/hooks';
 import { useQuestions } from '@/features/questions/hooks';
 import { formatDuration, getExamAvailabilityStatus } from '@/features/exams/types/exams.types';
+import { getErrorMessage } from '@/shared/lib/errors';
 
 // UI Components
 import { Button } from '@/shared/components/ui/button';
@@ -172,12 +173,38 @@ export default function AdminExamDetailPage({ params }: PageProps) {
             toast.success('Ujian berhasil dihapus');
             router.push('/admin/exams');
         } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : '';
-            if (errorMessage.includes('409') || errorMessage.includes('participant')) {
-                toast.error('Tidak dapat menghapus ujian yang sudah memiliki peserta');
-            } else {
-                toast.error(errorMessage || 'Gagal menghapus ujian');
+            const err = error as {
+                response?: {
+                    data?: {
+                        errorCode?: string;
+                        message?: string;
+                    };
+                    status?: number;
+                };
+            };
+
+            const errorCode = err?.response?.data?.errorCode;
+            const backendMessage = err?.response?.data?.message;
+            const statusCode = err?.response?.status;
+
+            // Handle 409 Conflict - Exam has participant attempts
+            if (statusCode === 409 || errorCode?.includes('EXAM') || errorCode?.includes('ATTEMPTS')) {
+                toast.error('Ujian tidak dapat dihapus karena sudah ada peserta yang mengikuti');
+                return;
             }
+
+            // Try to get Indonesian message for error code
+            if (errorCode) {
+                const message = getErrorMessage(errorCode);
+                if (message !== 'Terjadi kesalahan') {
+                    toast.error(message);
+                    return;
+                }
+            }
+
+            // Fallback to generic error
+            const message = backendMessage || 'Gagal menghapus ujian';
+            toast.error(message);
         } finally {
             setShowDeleteDialog(false);
         }

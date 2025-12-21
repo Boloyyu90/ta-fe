@@ -35,6 +35,7 @@ import {
     XCircle,
     AlertTriangle,
     Calendar,
+    ArrowLeft,
 } from 'lucide-react';
 
 // Availability badge config
@@ -74,7 +75,7 @@ export default function ExamsPage() {
     }, [search]);
 
     // ✅ FIX: useExams returns { data, pagination } directly
-    const { data: exams, pagination, isLoading, isError } = useExams({
+    const { data: exams, pagination, isLoading, isError, refetch } = useExams({
         page,
         limit: 12,
         search: debouncedSearch || undefined,
@@ -95,9 +96,22 @@ export default function ExamsPage() {
     };
 
     return (
-        <div className="container mx-auto py-8 space-y-6">
-            {/* Header */}
-            <div>
+        <div className="min-h-screen bg-muted/30">
+            {/* Back Navigation */}
+            <div className="bg-background border-b border-border">
+                <div className="container mx-auto px-4 py-4">
+                    <Link href="/dashboard">
+                        <Button variant="ghost" size="sm">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Dashboard
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+
+            <div className="container mx-auto py-8 space-y-6">
+                {/* Header */}
+                <div>
                 <h1 className="text-3xl font-bold flex items-center gap-2">
                     <BookOpen className="h-8 w-8 text-primary" />
                     Daftar Ujian
@@ -134,8 +148,14 @@ export default function ExamsPage() {
                 </div>
             ) : isError ? (
                 <Card>
-                    <CardContent className="py-8 text-center text-muted-foreground">
-                        Gagal memuat data. Silakan coba lagi.
+                    <CardContent className="py-8 text-center">
+                        <AlertTriangle className="h-12 w-12 mx-auto text-destructive mb-4" />
+                        <p className="text-muted-foreground mb-4">
+                            Gagal memuat data. Silakan coba lagi.
+                        </p>
+                        <Button onClick={() => refetch()} variant="outline">
+                            Coba Lagi
+                        </Button>
                     </CardContent>
                 </Card>
             ) : !exams || exams.length === 0 ? (
@@ -264,6 +284,7 @@ export default function ExamsPage() {
                     )}
                 </>
             )}
+            </div>
         </div>
     );
 }

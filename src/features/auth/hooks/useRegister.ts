@@ -6,6 +6,7 @@
  * ✅ Works with unwrapped API responses (just payload)
  * ✅ Auto-login after registration
  * ✅ Role-based navigation
+ * ✅ Indonesian error messages
  */
 
 'use client';
@@ -15,20 +16,35 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/features/auth/store/auth.store';
 import { authApi } from '@/features/auth/api/auth.api';
+import { AUTH_ERRORS, getErrorMessage } from '@/shared/lib/errors';
 import type { RegisterRequest } from '@/features/auth/types/auth.types';
 
 /**
  * Extract error message from various error types
+ * Returns Indonesian error messages
  */
 const extractErrorMessage = (error: any): string => {
-    // Axios error with backend response
-    if (error.response?.data?.message) {
-        return error.response.data.message;
+    // Check for error code first (backend sends errorCode field)
+    const errorCode = error.response?.data?.errorCode;
+    if (errorCode) {
+        return getErrorMessage(errorCode);
     }
 
-    // Axios error without backend response
+    // Try to map common backend messages to error codes
+    const backendMessage = error.response?.data?.message;
+    if (backendMessage) {
+        // Check for duplicate email
+        if (backendMessage.toLowerCase().includes('email already exists') ||
+            backendMessage.toLowerCase().includes('already registered')) {
+            return getErrorMessage(AUTH_ERRORS.AUTH_EMAIL_EXISTS);
+        }
+        // Return backend message as fallback
+        return backendMessage;
+    }
+
+    // Network error (no response from server)
     if (error.request) {
-        return 'Network error. Please check your connection.';
+        return 'Gagal terhubung ke server. Periksa koneksi internet Anda.';
     }
 
     // Generic error
@@ -36,7 +52,7 @@ const extractErrorMessage = (error: any): string => {
         return error.message;
     }
 
-    return 'An unexpected error occurred.';
+    return 'Terjadi kesalahan. Silakan coba lagi.';
 };
 
 /**
@@ -66,9 +82,9 @@ export const useRegister = () => {
             // Store auth state in Zustand + localStorage (auto-login)
             setAuth(user, tokens);
 
-            // Show success toast
-            toast.success('Account created successfully!', {
-                description: `Welcome, ${user.name}!`,
+            // Show success toast in Indonesian
+            toast.success('Akun Berhasil Dibuat!', {
+                description: `Selamat datang, ${user.name}!`,
             });
 
             // Navigate based on role
@@ -83,8 +99,8 @@ export const useRegister = () => {
             // Extract user-friendly error message
             const message = extractErrorMessage(error);
 
-            // Show error toast
-            toast.error('Registration Failed', {
+            // Show error toast in Indonesian
+            toast.error('Pendaftaran Gagal', {
                 description: message,
                 duration: 5000,
             });

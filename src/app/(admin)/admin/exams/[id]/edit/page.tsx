@@ -14,12 +14,14 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { useAdminExam, useUpdateExam } from '@/features/exams/hooks';
 import type { UpdateExamRequest } from '@/features/exams/types/exams.types';
+import { EXAM_ERRORS, getErrorMessage } from '@/shared/lib/errors';
 
 // UI Components
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
+import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import {
@@ -31,6 +33,7 @@ import {
     Calendar,
     FileText,
     AlertTriangle,
+    RefreshCw,
 } from 'lucide-react';
 
 interface PageProps {
@@ -54,6 +57,8 @@ export default function EditExamPage({ params }: PageProps) {
         passingScore: 70,
         startTime: '',
         endTime: '',
+        allowRetake: false,
+        maxAttempts: null,
     });
 
     // Initialize form with exam data
@@ -67,6 +72,8 @@ export default function EditExamPage({ params }: PageProps) {
                 passingScore: exam.passingScore,
                 startTime: exam.startTime ? formatDateForInput(exam.startTime) : '',
                 endTime: exam.endTime ? formatDateForInput(exam.endTime) : '',
+                allowRetake: exam.allowRetake,
+                maxAttempts: exam.maxAttempts,
             });
         }
     }, [examData]);
@@ -118,12 +125,21 @@ export default function EditExamPage({ params }: PageProps) {
             }
         }
 
+        // Validate retake settings
+        if (formData.allowRetake && formData.maxAttempts !== null && formData.maxAttempts !== undefined) {
+            if (formData.maxAttempts < 1) {
+                newErrors.maxAttempts = 'Maksimal percobaan minimal 1';
+            } else if (formData.maxAttempts > 10) {
+                newErrors.maxAttempts = 'Maksimal percobaan tidak boleh lebih dari 10';
+            }
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     // Handle input changes
-    const handleChange = (field: keyof UpdateExamRequest, value: string | number | undefined) => {
+    const handleChange = (field: keyof UpdateExamRequest, value: string | number | boolean | null | undefined) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
         // Clear error when user types
         if (errors[field]) {
@@ -162,14 +178,68 @@ export default function EditExamPage({ params }: PageProps) {
             if (formData.endTime !== undefined) {
                 payload.endTime = formData.endTime ? new Date(formData.endTime).toISOString() : undefined;
             }
+            if (formData.allowRetake !== undefined) {
+                payload.allowRetake = formData.allowRetake;
+            }
+            if (formData.maxAttempts !== undefined) {
+                payload.maxAttempts = formData.maxAttempts;
+            }
 
             // ✅ FIX: Use `id` instead of `examId`
             await updateMutation.mutateAsync({ id: examId, data: payload });
             toast.success('Ujian berhasil diupdate');
             router.push(`/admin/exams/${examId}`);
         } catch (error: unknown) {
-            const err = error as { response?: { data?: { message?: string } } };
-            const message = err?.response?.data?.message || 'Gagal update ujian';
+            const err = error as {
+                response?: {
+                    data?: {
+                        errorCode?: string;
+                        message?: string;
+                        errors?: Array<{ field: string; message: string }>;
+                    };
+                };
+            };
+
+            const errorCode = err?.response?.data?.errorCode;
+            const backendMessage = err?.response?.data?.message;
+            const fieldErrors = err?.response?.data?.errors;
+
+            // Handle specific error codes
+            if (errorCode) {
+                if (errorCode === EXAM_ERRORS.EXAM_NOT_FOUND) {
+                    toast.error(getErrorMessage(errorCode));
+                    router.push('/admin/exams');
+                    return;
+                }
+                if (errorCode === EXAM_ERRORS.EXAM_NO_QUESTIONS) {
+                    toast.error(getErrorMessage(errorCode));
+                    return;
+                }
+                if (errorCode === EXAM_ERRORS.EXAM_NO_DURATION) {
+                    toast.error(getErrorMessage(errorCode));
+                    return;
+                }
+                // Try to get Indonesian message for error code
+                const message = getErrorMessage(errorCode);
+                if (message !== 'Terjadi kesalahan') {
+                    toast.error(message);
+                    return;
+                }
+            }
+
+            // Handle validation errors with field-level messages
+            if (fieldErrors && fieldErrors.length > 0) {
+                const newErrors: Record<string, string> = {};
+                fieldErrors.forEach((err) => {
+                    newErrors[err.field] = err.message;
+                });
+                setErrors(newErrors);
+                toast.error('Terdapat kesalahan validasi. Mohon periksa form Anda.');
+                return;
+            }
+
+            // Fallback to generic error
+            const message = backendMessage || 'Gagal update ujian';
             toast.error(message);
         }
     };
@@ -353,6 +423,81 @@ export default function EditExamPage({ params }: PageProps) {
                                 )}
                             </div>
                         </div>
+                    </CardContent>
+                </Card>
+
+                {/* Retake Settings */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                            <RefreshCw className="h-5 w-5" />
+                            Pengaturan Pengulangan
+                        </CardTitle>
+                        <CardDescription>
+                            Atur apakah peserta dapat mengulang ujian ini
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="allowRetake"
+                                checked={formData.allowRetake || false}
+                                onCheckedChange={(checked) => {
+                                    handleChange('allowRetake', checked as boolean);
+                                    // Reset maxAttempts when disabling retake
+                                    if (!checked) {
+                                        handleChange('maxAttempts', null);
+                                    }
+                                }}
+                            />
+                            <Label
+                                htmlFor="allowRetake"
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                                Izinkan peserta mengulang ujian
+                            </Label>
+                        </div>
+
+                        {formData.allowRetake && (
+                            <div className="space-y-2 ml-6">
+                                <Label htmlFor="maxAttempts">
+                                    Maksimal Percobaan
+                                </Label>
+                                <Input
+                                    id="maxAttempts"
+                                    type="number"
+                                    min={1}
+                                    max={10}
+                                    value={formData.maxAttempts || ''}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        handleChange('maxAttempts', value ? parseInt(value) : null);
+                                    }}
+                                    placeholder="Kosongkan untuk unlimited"
+                                    className={errors.maxAttempts ? 'border-destructive' : ''}
+                                />
+                                {errors.maxAttempts && (
+                                    <p className="text-sm text-destructive">{errors.maxAttempts}</p>
+                                )}
+                                <p className="text-xs text-muted-foreground">
+                                    Jumlah maksimal peserta dapat mengulang ujian (1-10). Kosongkan untuk unlimited.
+                                </p>
+                            </div>
+                        )}
+
+                        {!formData.allowRetake && (
+                            <div className="space-y-2 ml-6">
+                                <p className="text-sm text-muted-foreground">
+                                    Peserta hanya dapat mengikuti ujian ini satu kali.
+                                </p>
+                                {formData.maxAttempts && formData.maxAttempts > 0 && (
+                                    <p className="text-xs text-amber-600 flex items-center gap-1">
+                                        <AlertTriangle className="h-3 w-3" />
+                                        Catatan: Nilai maksimal percobaan akan diabaikan karena pengulangan dinonaktifkan.
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 

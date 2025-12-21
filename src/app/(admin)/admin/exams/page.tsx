@@ -68,6 +68,7 @@ import {
     ChevronLeft,
     ChevronRight,
     Loader2,
+    ArrowLeft,
 } from 'lucide-react';
 
 // Status badge configuration
@@ -185,6 +186,18 @@ export default function AdminExamsPage() {
 
     return (
         <div className="min-h-screen bg-muted/30">
+            {/* Back Navigation */}
+            <div className="bg-background border-b border-border">
+                <div className="container mx-auto px-4 py-4">
+                    <Link href="/admin/dashboard">
+                        <Button variant="ghost" size="sm">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Dashboard
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+
             {/* Header */}
             <div className="bg-background border-b border-border">
                 <div className="container mx-auto px-4 py-6">

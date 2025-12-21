@@ -303,6 +303,26 @@ export interface MyResultsResponse {
     pagination: PaginationMeta;
 }
 
+/**
+ * User Statistics Response (computed client-side)
+ *
+ * Note: Statistics are computed from user's exam results,
+ * there is no dedicated /stats endpoint on the backend.
+ * The useMyStats hook fetches all results and computes these metrics.
+ */
+export interface UserStatsResponse {
+    /** Total number of completed exams */
+    completedExams: number;
+    /** Average score across all completed exams */
+    averageScore: number;
+    /** Total time spent on all exams (in seconds) */
+    totalTime: number;
+    /** Number of passed exams (score >= passingScore) */
+    passedExams: number;
+    /** Number of failed exams */
+    failedExams: number;
+}
+
 // ============================================================================
 // UI HELPER TYPES
 // ============================================================================

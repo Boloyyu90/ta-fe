@@ -85,7 +85,7 @@ export interface QuestionsQueryParams {
     limit?: number;
     questionType?: QuestionType;  // Transformed to 'type' in API layer
     search?: string;
-    sortBy?: 'content' | 'questionType' | 'createdAt' | 'defaultScore';
+    sortBy?: 'questionType' | 'createdAt' | 'defaultScore';  // ✅ FIXED: Removed 'content' (not supported by backend)
     sortOrder?: 'asc' | 'desc';
 }
 

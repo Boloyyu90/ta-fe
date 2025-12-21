@@ -3,6 +3,11 @@
 /**
  * LOGIN PAGE
  *
+ * ✅ FIXED:
+ * - Redirects authenticated users to appropriate dashboard
+ * - Shows loading state while checking authentication
+ * - Prevents flash of login form for authenticated users
+ *
  * PURPOSE:
  * - Public page for user authentication
  * - Displays LoginForm component
@@ -22,6 +27,36 @@ import { Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function LoginPage() {
+    const { isAuthenticated, isLoading, user } = useAuth();
+    const router = useRouter();
+
+    // Redirect authenticated users to their dashboard
+    useEffect(() => {
+        if (!isLoading && isAuthenticated && user) {
+            const redirectPath = user.role === 'ADMIN'
+                ? '/admin/dashboard'
+                : '/dashboard';
+            router.push(redirectPath);
+        }
+    }, [isAuthenticated, isLoading, user, router]);
+
+    // Show loading spinner while checking authentication
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-muted/30">
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                    <p className="text-sm text-muted-foreground mt-2">Memeriksa status login...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Don't render login form if already authenticated (will redirect)
+    if (isAuthenticated) {
+        return null;
+    }
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
             <div className="w-full max-w-md">
@@ -31,19 +66,16 @@ export default function LoginPage() {
                         <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg" />
                         <span className="text-2xl font-bold text-foreground">Prestige Tryout</span>
                     </Link>
-                    <p className="text-sm text-muted-foreground">
-                        Sign in to continue to your dashboard
-                    </p>
                 </div>
 
                 {/* Login Card */}
                 <Card className="border-border shadow-lg">
                     <CardHeader className="space-y-1">
                         <CardTitle className="text-2xl font-bold text-center">
-                            Welcome back
+                            Selamat Datang Kembali
                         </CardTitle>
                         <CardDescription className="text-center">
-                            Enter your credentials to access your account
+                            Masukkan Kredensial Akun yang Sudah Terdaftar
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -53,23 +85,15 @@ export default function LoginPage() {
 
                 {/* Footer Links */}
                 <div className="mt-6 text-center space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                        Don't have an account?{" "}
-                        <Link
-                            href="/register"
-                            className="font-medium text-primary hover:underline"
-                        >
-                            Sign up for free
-                        </Link>
-                    </p>
+
                     <p className="text-xs text-muted-foreground">
-                        By signing in, you agree to our{" "}
+                        Dengan mendaftarkan diri, anda menyetujui {" "}
                         <a href="#" className="underline hover:text-foreground">
-                            Terms of Service
+                            Ketentuan Layanan
                         </a>{" "}
-                        and{" "}
+                        dan{" "}
                         <a href="#" className="underline hover:text-foreground">
-                            Privacy Policy
+                            Kebijakan Privasi
                         </a>
                     </p>
                 </div>

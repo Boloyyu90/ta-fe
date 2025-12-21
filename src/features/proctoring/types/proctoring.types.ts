@@ -232,3 +232,21 @@ export function createViolationMessage(eventType: ProctoringEventType): string {
     };
     return messages[eventType] ?? 'Event proctoring terdeteksi';
 }
+
+/**
+ * Get severity level for event type
+ *
+ * Severity mapping:
+ * - HIGH: Critical violations (no face, multiple faces)
+ * - MEDIUM: Non-critical violations (looking away)
+ * - LOW: Normal events (face detected)
+ */
+export function getSeverityForEventType(eventType: ProctoringEventType): Severity {
+    const severityMap: Record<ProctoringEventType, Severity> = {
+        NO_FACE_DETECTED: 'HIGH',
+        MULTIPLE_FACES: 'HIGH',
+        LOOKING_AWAY: 'MEDIUM',
+        FACE_DETECTED: 'LOW',
+    };
+    return severityMap[eventType] ?? 'MEDIUM';
+}

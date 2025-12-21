@@ -4,7 +4,7 @@
  * USE LOGIN HOOK - FIXED
  *
  * ✅ Works with unwrapped API responses (just payload)
- * ✅ Proper error handling
+ * ✅ Proper error handling with Indonesian messages
  * ✅ Role-based navigation
  */
 
@@ -15,22 +15,37 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/features/auth/store/auth.store';
 import { authApi } from '@/features/auth/api/auth.api';
+import { AUTH_ERRORS, getErrorMessage } from '@/shared/lib/errors';
 import type { LoginRequest } from '@/features/auth/types/auth.types';
 
 type LoginWithRememberMe = LoginRequest & { rememberMe: boolean };
 
 /**
  * Extract error message from various error types
+ * Returns Indonesian error messages
  */
 const extractErrorMessage = (error: any): string => {
-    // Axios error with backend response
-    if (error.response?.data?.message) {
-        return error.response.data.message;
+    // Check for error code first (backend sends errorCode field)
+    const errorCode = error.response?.data?.errorCode;
+    if (errorCode) {
+        return getErrorMessage(errorCode);
     }
 
-    // Axios error without backend response
+    // Try to map common backend messages to error codes
+    const backendMessage = error.response?.data?.message;
+    if (backendMessage) {
+        // Check for invalid credentials
+        if (backendMessage.toLowerCase().includes('invalid credentials') ||
+            backendMessage.toLowerCase().includes('incorrect')) {
+            return getErrorMessage(AUTH_ERRORS.AUTH_INVALID_CREDENTIALS);
+        }
+        // Return backend message as fallback
+        return backendMessage;
+    }
+
+    // Network error (no response from server)
     if (error.request) {
-        return 'Network error. Please check your connection.';
+        return 'Gagal terhubung ke server. Periksa koneksi internet Anda.';
     }
 
     // Generic error
@@ -38,7 +53,7 @@ const extractErrorMessage = (error: any): string => {
         return error.message;
     }
 
-    return 'An unexpected error occurred.';
+    return 'Terjadi kesalahan. Silakan coba lagi.';
 };
 
 /**
@@ -66,9 +81,9 @@ export const useLogin = () => {
             // Store auth state in Zustand + storage (localStorage or sessionStorage based on rememberMe)
             setAuth(user, tokens, rememberMe);
 
-            // Show success toast
-            toast.success('Login successful!', {
-                description: `Welcome back, ${user.name}!`,
+            // Show success toast in Indonesian
+            toast.success('Login Berhasil!', {
+                description: `Selamat datang kembali, ${user.name}!`,
             });
 
             // Navigate based on role
@@ -83,8 +98,8 @@ export const useLogin = () => {
             // Extract user-friendly error message
             const message = extractErrorMessage(error);
 
-            // Show error toast
-            toast.error('Login Failed', {
+            // Show error toast in Indonesian
+            toast.error('Login Gagal', {
                 description: message,
                 duration: 5000,
             });

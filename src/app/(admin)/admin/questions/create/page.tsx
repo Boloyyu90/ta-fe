@@ -19,6 +19,7 @@ import { useCreateQuestion } from '@/features/questions/hooks';
 import type { QuestionType, AnswerOption } from '@/shared/types/enum.types';
 import { ANSWER_OPTIONS } from '@/shared/types/enum.types';
 import type { CreateQuestionRequest, QuestionOptions } from '@/features/questions/types/questions.types';
+import { QUESTION_ERRORS, getErrorMessage } from '@/shared/lib/errors';
 
 // UI Components
 import { Button } from '@/shared/components/ui/button';
@@ -146,8 +147,51 @@ export default function CreateQuestionPage() {
                 router.push('/admin/questions');
             }
         } catch (error: unknown) {
-            const err = error as { response?: { data?: { message?: string } } };
-            const message = err?.response?.data?.message || 'Gagal membuat soal';
+            const err = error as {
+                response?: {
+                    data?: {
+                        errorCode?: string;
+                        message?: string;
+                        errors?: Array<{ field: string; message: string }>;
+                    };
+                };
+            };
+
+            const errorCode = err?.response?.data?.errorCode;
+            const backendMessage = err?.response?.data?.message;
+            const fieldErrors = err?.response?.data?.errors;
+
+            // Handle specific error codes
+            if (errorCode) {
+                if (errorCode === QUESTION_ERRORS.QUESTION_INVALID_OPTIONS) {
+                    toast.error(getErrorMessage(errorCode));
+                    return;
+                }
+                if (errorCode === QUESTION_ERRORS.QUESTION_INVALID_ANSWER) {
+                    toast.error(getErrorMessage(errorCode));
+                    return;
+                }
+                // Try to get Indonesian message for error code
+                const message = getErrorMessage(errorCode);
+                if (message !== 'Terjadi kesalahan') {
+                    toast.error(message);
+                    return;
+                }
+            }
+
+            // Handle validation errors with field-level messages
+            if (fieldErrors && fieldErrors.length > 0) {
+                const newErrors: Record<string, string> = {};
+                fieldErrors.forEach((err) => {
+                    newErrors[err.field] = err.message;
+                });
+                setErrors(newErrors);
+                toast.error('Terdapat kesalahan validasi. Mohon periksa form Anda.');
+                return;
+            }
+
+            // Fallback to generic error
+            const message = backendMessage || 'Gagal membuat soal';
             toast.error(message);
         }
     };

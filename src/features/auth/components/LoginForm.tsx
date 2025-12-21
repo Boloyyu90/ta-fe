@@ -56,7 +56,7 @@ export const LoginForm = () => {
                             <FormControl>
                                 <Input
                                     type="email"
-                                    placeholder="you@example.com"
+                                    placeholder="email@example.com"
                                     autoComplete="email"
                                     disabled={isPending}
                                     {...field}
@@ -77,7 +77,7 @@ export const LoginForm = () => {
                                 <div className="relative">
                                     <Input
                                         type={showPassword ? "text" : "password"}
-                                        placeholder="Enter your password"
+                                        placeholder="Masukkan password Anda"
                                         autoComplete="current-password"
                                         disabled={isPending}
                                         {...field}
@@ -112,22 +112,22 @@ export const LoginForm = () => {
                         htmlFor="remember-me"
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                     >
-                        Remember me
+                        Ingat saya
                     </label>
                 </div>
 
                 <Button type="submit" className="w-full" disabled={isPending}>
                     {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Sign in
+                    Masuk
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">
-                    Don't have an account?{" "}
+                    Belum punya akun?{" "}
                     <Link
                         href="/register"
                         className="font-medium text-primary hover:underline"
                     >
-                        Create one now
+                        Daftar sekarang
                     </Link>
                 </p>
             </form>
