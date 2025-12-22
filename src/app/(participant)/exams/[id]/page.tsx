@@ -191,7 +191,11 @@ export default function ExamDetailPage({ params }: PageProps) {
     const { startExam, isLoading: isStarting } = useStartExam();
 
     // Extract sessions from paginated response
-    const userSessions = userExamsData?.data as UserExam[] | undefined;
+    const allSessions = userExamsData?.data as UserExam[] | undefined;
+
+    // CRITICAL FIX: Backend doesn't filter by examId, so we must filter client-side
+    // to avoid counting sessions from other exams
+    const userSessions = allSessions?.filter((session) => session.examId === examId);
 
     // Handle start/resume exam
     const handleStartExam = () => {

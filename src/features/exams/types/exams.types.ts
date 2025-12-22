@@ -298,7 +298,8 @@ export function getExamAvailabilityStatus(exam: Exam | ExamPublic): ExamAvailabi
     const now = new Date();
 
     // Check if exam has questions
-    if (exam._count && exam._count.examQuestions === 0) {
+    const questionCount = exam._count?.examQuestions ?? 0;
+    if (questionCount === 0) {
         return 'no-questions';
     }
 
