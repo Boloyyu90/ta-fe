@@ -19,6 +19,7 @@ import type {
     // Response types (Phase 1 aligned)
     ExamsListResponse,
     ExamDetailResponse,
+    ExamDetailWithAttemptsResponse,
     StartExamResponse,
     AdminExamsListResponse,
     AdminExamDetailResponse,
@@ -65,6 +66,22 @@ export const getExams = async (params: ExamsQueryParams = {}): Promise<ExamsList
  */
 export const getExam = async (examId: number): Promise<ExamDetailResponse> => {
     const response = await apiClient.get<ExamDetailResponse>(`/exams/${examId}`);
+    return response.data;
+};
+
+/**
+ * Get exam by ID with attempts info (participant view)
+ * GET /api/v1/exams/:id
+ *
+ * Returns the FULL response including attemptsCount, firstAttempt, latestAttempt
+ * which the backend provides for participants to determine button states
+ *
+ * @returns ExamDetailWithAttemptsResponse = { exam, attemptsCount?, firstAttempt?, latestAttempt? }
+ */
+export const getExamWithAttempts = async (
+    examId: number
+): Promise<ExamDetailWithAttemptsResponse> => {
+    const response = await apiClient.get<ExamDetailWithAttemptsResponse>(`/exams/${examId}`);
     return response.data;
 };
 
@@ -220,6 +237,7 @@ export const examsApi = {
     // Participant
     getExams,
     getExam,
+    getExamWithAttempts,
     startExam,
     // Admin
     getAdminExams,

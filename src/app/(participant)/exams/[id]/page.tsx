@@ -17,9 +17,9 @@ import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { useExam } from '@/features/exams/hooks';
-import { useStartExam, useUserExams } from '@/features/exam-sessions/hooks';
-import type { UserExam } from '@/features/exam-sessions/types/exam-sessions.types';
+import { useExamWithAttempts } from '@/features/exams/hooks';
+import { useStartExam } from '@/features/exam-sessions/hooks';
+import type { ExamAttemptInfo } from '@/features/exams/types/exams.types';
 import { EXAM_SESSION_ERRORS, EXAM_ERRORS, getErrorMessage } from '@/shared/lib/errors';
 import {
     isExamAvailable,
@@ -99,21 +99,25 @@ const availabilityConfig = {
 };
 
 /**
- * Determine the button state based on exam config and user sessions
+ * Determine the button state based on exam config and attempts data from backend
+ *
+ * Uses attemptsCount and latestAttempt from GET /exams/:id response
+ * which are already filtered to THIS exam only (no pollution from other exams)
  */
 function getExamButtonState(
     exam: Exam,
-    sessions: UserExam[] | undefined
+    attemptsCount: number,
+    latestAttempt?: ExamAttemptInfo | null
 ): {
     label: string;
-    action: 'start' | 'resume' | 'retake' | 'view-result' | 'disabled';
+    action: 'start' | 'retake' | 'view-result' | 'disabled';
     disabled: boolean;
     icon: typeof Play;
-    inProgressSession?: UserExam;
+    latestAttemptId?: number;
     attemptInfo?: string;
 } {
-    // No sessions yet - first attempt
-    if (!sessions || sessions.length === 0) {
+    // No attempts yet - first attempt
+    if (attemptsCount === 0 || !latestAttempt) {
         return {
             label: 'Mulai Ujian',
             action: 'start',
@@ -123,24 +127,7 @@ function getExamButtonState(
         };
     }
 
-    // Check for IN_PROGRESS session
-    const inProgress = sessions.find((s) => s.status === 'IN_PROGRESS');
-    if (inProgress) {
-        return {
-            label: 'Lanjutkan Ujian',
-            action: 'resume',
-            disabled: false,
-            icon: Play,
-            inProgressSession: inProgress,
-            attemptInfo: `Percobaan ke-${inProgress.attemptNumber}`,
-        };
-    }
-
-    // All sessions are completed
-    const completedAttempts = sessions.filter((s) =>
-        ['FINISHED', 'TIMEOUT', 'CANCELLED'].includes(s.status)
-    );
-
+    // Has completed attempts
     // Check retake eligibility
     if (!exam.allowRetake) {
         return {
@@ -148,23 +135,24 @@ function getExamButtonState(
             action: 'view-result',
             disabled: false,
             icon: Eye,
-            attemptInfo: `Percobaan: ${completedAttempts.length}`,
+            latestAttemptId: latestAttempt.id,
+            attemptInfo: `Percobaan: ${attemptsCount}`,
         };
     }
 
     // Check if max attempts reached
-    if (exam.maxAttempts && completedAttempts.length >= exam.maxAttempts) {
+    if (exam.maxAttempts && attemptsCount >= exam.maxAttempts) {
         return {
-            label: `Batas Tercapai (${completedAttempts.length}/${exam.maxAttempts})`,
+            label: `Batas Tercapai (${attemptsCount}/${exam.maxAttempts})`,
             action: 'disabled',
             disabled: true,
             icon: XCircle,
-            attemptInfo: `Percobaan: ${completedAttempts.length}/${exam.maxAttempts}`,
+            attemptInfo: `Percobaan: ${attemptsCount}/${exam.maxAttempts}`,
         };
     }
 
     // Can retake
-    const nextAttempt = completedAttempts.length + 1;
+    const nextAttempt = attemptsCount + 1;
     return {
         label: 'Mulai Lagi',
         action: 'retake',
@@ -181,21 +169,18 @@ export default function ExamDetailPage({ params }: PageProps) {
     const router = useRouter();
     const examId = parseInt(resolvedParams.id, 10);
 
-    // Fetch exam details
-    const { data: exam, isLoading, isError } = useExam(examId);
-
-    // Fetch user's sessions for this exam
-    const { data: userExamsData } = useUserExams({ examId });
+    // Fetch exam details WITH attempts info
+    // Backend returns: { exam, attemptsCount, firstAttempt, latestAttempt }
+    // This is already filtered to THIS exam only (no pollution from other exams)
+    const { data: examData, isLoading, isError } = useExamWithAttempts(examId);
 
     // Start exam mutation
     const { startExam, isLoading: isStarting } = useStartExam();
 
-    // Extract sessions from paginated response
-    const allSessions = userExamsData?.data as UserExam[] | undefined;
-
-    // CRITICAL FIX: Backend doesn't filter by examId, so we must filter client-side
-    // to avoid counting sessions from other exams
-    const userSessions = allSessions?.filter((session) => session.examId === examId);
+    // Extract data from response
+    const exam = examData?.exam;
+    const attemptsCount = examData?.attemptsCount ?? 0;
+    const latestAttempt = examData?.latestAttempt;
 
     // Handle start/resume exam
     const handleStartExam = () => {
@@ -234,26 +219,12 @@ export default function ExamDetailPage({ params }: PageProps) {
     };
 
     // Handle view result navigation
-    const handleViewResult = () => {
-        // Navigate to the latest completed session result
-        const latestCompleted = userSessions
-            ?.filter((s) => ['FINISHED', 'TIMEOUT'].includes(s.status))
-            .sort((a, b) => {
-                const dateA = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
-                const dateB = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
-                return dateB - dateA;
-            })[0];
-
-        if (latestCompleted) {
-            router.push(`/exam-sessions/${latestCompleted.id}/result`);
+    const handleViewResult = (attemptId?: number) => {
+        if (attemptId) {
+            router.push(`/exam-sessions/${attemptId}/review`);
         } else {
             toast.error('Tidak ada hasil ujian yang dapat ditampilkan');
         }
-    };
-
-    // Handle resume session navigation
-    const handleResumeExam = (sessionId: number) => {
-        router.push(`/exam-sessions/${sessionId}/take`);
     };
 
     // Loading state
@@ -301,8 +272,8 @@ export default function ExamDetailPage({ params }: PageProps) {
     const AvailIcon = availInfo.icon;
     const questionCount = exam._count?.examQuestions ?? 0;
 
-    // Get smart button state
-    const buttonState = getExamButtonState(exam, userSessions);
+    // Get smart button state using attempts data from backend
+    const buttonState = getExamButtonState(exam, attemptsCount, latestAttempt);
     const ButtonIcon = buttonState.icon;
 
     // Format dates
@@ -476,7 +447,7 @@ export default function ExamDetailPage({ params }: PageProps) {
                 {buttonState.action === 'view-result' && (
                     <Button
                         size="lg"
-                        onClick={handleViewResult}
+                        onClick={() => handleViewResult(buttonState.latestAttemptId)}
                         className="min-w-[200px]"
                     >
                         <Eye className="h-5 w-5 mr-2" />
@@ -484,19 +455,7 @@ export default function ExamDetailPage({ params }: PageProps) {
                     </Button>
                 )}
 
-                {/* Resume Action */}
-                {buttonState.action === 'resume' && buttonState.inProgressSession && (
-                    <Button
-                        size="lg"
-                        onClick={() => handleResumeExam(buttonState.inProgressSession!.id)}
-                        className="min-w-[200px]"
-                    >
-                        <Play className="h-5 w-5 mr-2" />
-                        Lanjutkan Ujian
-                    </Button>
-                )}
-
-                {/* Disabled Action */}
+                {/* Disabled Action (Max Attempts Reached) */}
                 {buttonState.action === 'disabled' && (
                     <Button size="lg" disabled className="min-w-[200px]">
                         <XCircle className="h-5 w-5 mr-2" />

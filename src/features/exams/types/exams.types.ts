@@ -178,6 +178,38 @@ export interface ExamDetailResponse {
 }
 
 /**
+ * Attempt info as returned by GET /exams/:id for participants
+ * Backend returns this for completed attempts (FINISHED, TIMEOUT, CANCELLED)
+ * Only included when userId is present (participant view)
+ */
+export interface ExamAttemptInfo {
+    id: number;
+    attemptNumber: number;
+    totalScore: number | null;
+    status: 'FINISHED' | 'TIMEOUT' | 'CANCELLED';
+    startedAt: string;
+    submittedAt: string | null;
+}
+
+/**
+ * GET /exams/:id (participant view with attempts info)
+ *
+ * Backend returns attempts info for participants:
+ * - attemptsCount: number of completed attempts for THIS exam
+ * - firstAttempt: first attempt info (if any)
+ * - latestAttempt: most recent attempt info (if any)
+ *
+ * This allows showing accurate button states without separate session queries
+ * Source: backend exams.service.ts getExamById()
+ */
+export interface ExamDetailWithAttemptsResponse {
+    exam: Exam;
+    attemptsCount?: number;
+    firstAttempt?: ExamAttemptInfo | null;
+    latestAttempt?: ExamAttemptInfo | null;
+}
+
+/**
  * GET /admin/exams/:id (admin exam detail)
  * Same structure as ExamDetailResponse but with full data
  */
