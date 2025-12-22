@@ -27,7 +27,6 @@ import { EXAM_SESSION_ERRORS, getErrorMessage } from '@/shared/lib/errors';
 import {
     useExamSession,
     useExamQuestions,
-    useExamAnswers,
     useSubmitAnswer,
     useSubmitExam,
 } from '@/features/exam-sessions/hooks';
@@ -49,23 +48,9 @@ export default function TakeExamPage() {
     // Fetch questions
     const { data: questionsData, isLoading: isLoadingQuestions } = useExamQuestions(sessionId);
 
-    // Fetch saved answers
-    const { data: savedAnswersData } = useExamAnswers(sessionId);
-
     // Mutations
     const submitAnswerMutation = useSubmitAnswer(sessionId);
     const submitExamMutation = useSubmitExam(sessionId);
-
-    // Pre-populate answers when loaded
-    useEffect(() => {
-        if (savedAnswersData?.answers) {
-            const newAnswersMap = new Map<number, AnswerOption>();
-            savedAnswersData.answers.forEach((answer) => {
-                newAnswersMap.set(answer.examQuestionId, answer.selectedOption);
-            });
-            setAnswersMap(newAnswersMap);
-        }
-    }, [savedAnswersData]);
 
     // Update selectedOption when navigating between questions
     useEffect(() => {
@@ -77,9 +62,11 @@ export default function TakeExamPage() {
     }, [currentQuestionIndex, questionsData, answersMap]);
 
     // Timer with auto-submit
-    const timer = sessionData ? useTimer({
-        startedAt: sessionData.startedAt || new Date().toISOString(),
-        durationMinutes: sessionData.durationMinutes || 0,
+    // ✅ FIX: Always call useTimer unconditionally (Rules of Hooks)
+    // Pass safe defaults when sessionData is not loaded yet
+    const timer = useTimer({
+        startedAt: sessionData?.startedAt || new Date().toISOString(),
+        durationMinutes: sessionData?.durationMinutes || 0,
         onExpire: () => {
             toast.error(getErrorMessage(EXAM_SESSION_ERRORS.EXAM_SESSION_TIMEOUT));
             submitExamMutation.mutate(undefined, {
@@ -91,7 +78,7 @@ export default function TakeExamPage() {
         onCritical: () => {
             toast.warning('Waktu tersisa kurang dari 5 menit!', { duration: 5000 });
         },
-    }) : null;
+    });
 
     // Loading state
     if (isLoadingSession || isLoadingQuestions) {
@@ -164,7 +151,7 @@ export default function TakeExamPage() {
                                 </p>
                             )}
                         </div>
-                        {timer && (
+                        {sessionData && (
                             <div className={`flex items-center gap-2 text-2xl font-mono font-bold ${timer.timeColor} ${timer.isCritical ? 'animate-pulse' : ''}`}>
                                 <Clock className="h-6 w-6" />
                                 {timer.formattedTime}
