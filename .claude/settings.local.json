@@ -4,7 +4,8 @@
       "Bash(pnpm run type-check:*)",
       "Bash(ls:*)",
       "Bash(wc:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(grep:*)"
     ]
   }
 }

@@ -75,7 +75,7 @@ export default function LoginPage() {
                             Selamat Datang Kembali
                         </CardTitle>
                         <CardDescription className="text-center">
-                            Masukkan Kredensial Akun yang Sudah Terdaftar
+                            Masukkan kredensial yang sudah terdaftar
                         </CardDescription>
                     </CardHeader>
                     <CardContent>

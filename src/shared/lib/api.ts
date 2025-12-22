@@ -149,6 +149,14 @@ class TypedApiClient {
      * Transform Axios error to ApiError type
      */
     private transformError(error: AxiosError<ApiResponse<unknown>>): ApiError {
+        console.log('🔍 Transforming error:', {
+            hasResponse: !!error.response,
+            status: error.response?.status,
+            data: error.response?.data,
+            hasRequest: !!error.request,
+            message: error.message,
+        });
+
         // Backend error response
         if (error.response?.data) {
             const errorData = error.response.data as ApiResponse<unknown> & {
@@ -156,23 +164,30 @@ class TypedApiClient {
                 errors?: Array<{ field: string; message: string }>;
             };
 
-            return {
+            const apiError: ApiError = {
                 message: errorData.message || 'An error occurred',
                 errorCode: errorData.errorCode,
                 errors: errorData.errors,
                 status: error.response.status,
+                // Preserve original error for debugging
+                response: error.response,
             };
+
+            console.log('📤 Transformed API error:', apiError);
+            return apiError;
         }
 
-        // Network error
+        // Network error (request sent but no response)
         if (error.request) {
+            console.log('🌐 Network error detected');
             return {
                 message: 'Network error. Please check your connection.',
                 status: 0,
             };
         }
 
-        // Generic error
+        // Generic error (request setup failed)
+        console.log('⚠️ Generic error:', error.message);
         return {
             message: error.message || 'An unexpected error occurred',
         };

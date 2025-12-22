@@ -104,7 +104,14 @@ export const useLogin = () => {
                 duration: 5000,
             });
 
-            console.error('Login error:', error);
+            // Better error logging for debugging
+            console.error('Login error:', {
+                message: error.message || 'Unknown error',
+                status: error.status || error.response?.status,
+                errorCode: error.errorCode || error.response?.data?.errorCode,
+                data: error.response?.data,
+                url: error.config?.url,
+            });
         },
     });
 };

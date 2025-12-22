@@ -205,6 +205,7 @@ export interface ApiError {
         message: string;
     }>;
     status?: number;
+    response?: any; // Preserve original response for debugging
 }
 
 /**
