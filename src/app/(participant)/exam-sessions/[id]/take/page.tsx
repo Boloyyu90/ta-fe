@@ -26,6 +26,7 @@ import { ProctoringMonitor } from '@/features/proctoring/components/ProctoringMo
 import { EXAM_SESSION_ERRORS, getErrorMessage } from '@/shared/lib/errors';
 import {
     useExamSession,
+    useExamSessionData,
     useExamQuestions,
     useSubmitAnswer,
     useSubmitExam,
@@ -45,12 +46,28 @@ export default function TakeExamPage() {
     // Fetch session data
     const { data: sessionData, isLoading: isLoadingSession } = useExamSession(sessionId);
 
+    // ✅ P1 FIX: Get cached session data with existing answers
+    const { data: cachedSessionData } = useExamSessionData(sessionId);
+
     // Fetch questions
     const { data: questionsData, isLoading: isLoadingQuestions } = useExamQuestions(sessionId);
 
     // Mutations
     const submitAnswerMutation = useSubmitAnswer(sessionId);
     const submitExamMutation = useSubmitExam(sessionId);
+
+    // ✅ P1 FIX: Load existing answers when cached data is available
+    useEffect(() => {
+        if (cachedSessionData?.answers && cachedSessionData.answers.length > 0) {
+            const newAnswersMap = new Map<number, AnswerOption>();
+            cachedSessionData.answers.forEach((answer) => {
+                if (answer.selectedOption !== null) {
+                    newAnswersMap.set(answer.examQuestionId, answer.selectedOption);
+                }
+            });
+            setAnswersMap(newAnswersMap);
+        }
+    }, [cachedSessionData]);
 
     // Update selectedOption when navigating between questions
     useEffect(() => {

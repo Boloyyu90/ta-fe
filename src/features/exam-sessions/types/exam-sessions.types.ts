@@ -38,10 +38,16 @@ export interface Question {
 
 /**
  * Question as seen by participant during exam
+ *
+ * IMPORTANT: Backend returns BOTH fields:
+ * - id: Question bank ID (original question)
+ * - examQuestionId: ExamQuestion junction table ID
+ *
+ * ALWAYS use examQuestionId for answer submission!
  */
 export interface ExamQuestion {
-    id: number;              // ExamQuestion.id (junction table)
-    examQuestionId: number;  // Same as id, for compatibility
+    id: number;              // Question bank ID (for reference only)
+    examQuestionId: number;  // ExamQuestion ID - USE THIS for answer submission!
     content: string;
     options: QuestionOptions;
     questionType: QuestionType;
@@ -79,6 +85,9 @@ export interface ExamWithDuration extends ExamInfo {
 
 /**
  * User exam session (participant's attempt at an exam)
+ *
+ * NOTE: Backend always provides startedAt when session exists.
+ * This matches GET /exam-sessions response structure.
  */
 export interface UserExam {
     id: number;
@@ -86,7 +95,7 @@ export interface UserExam {
     attemptNumber: number;
     examId: number;
     status: ExamStatus;
-    startedAt: string | null;
+    startedAt: string;              // ✅ FIX: Backend always provides this (non-null)
     submittedAt: string | null;
     totalScore: number | null;
     remainingTimeMs: number | null;

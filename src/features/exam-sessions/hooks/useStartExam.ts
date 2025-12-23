@@ -4,6 +4,7 @@
  * Hook to start an exam session
  *
  * ✅ AUDIT FIX v3: Fixed mutation.data access (no nested .data)
+ * ✅ P1 FIX: Cache answers for restoration on resume
  *
  * Backend: POST /api/v1/exams/:id/start
  */
@@ -20,9 +21,16 @@ export const useStartExam = () => {
     const mutation = useMutation<StartExamResponse, Error, number>({
         mutationFn: (examId: number) => examsApi.startExam(examId),
         onSuccess: (data) => {
-            // data is StartExamResponse = { userExam: UserExam }
+            // data is StartExamResponse = { userExam, questions, answers }
             // ✅ FIX: Access userExam directly, not data.data
-            const { userExam } = data;
+            const { userExam, questions, answers } = data;
+
+            // ✅ P1 FIX: Cache the full response including answers
+            // This allows the take page to restore answers when resuming
+            queryClient.setQueryData(
+                ['exam-session-data', userExam.id],
+                data
+            );
 
             // Invalidate relevant queries
             queryClient.invalidateQueries({ queryKey: ['user-exams'] });

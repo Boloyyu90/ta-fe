@@ -20,6 +20,7 @@
 // Participant hooks
 export { useStartExam } from './useStartExam';
 export { useExamSession } from './useExamSession';
+export { useExamSessionData } from './useExamSessionData';  // ✅ P1 FIX: For answer restoration
 export { useExamQuestions } from './useExamQuestions';
 export { useExamAnswers } from './useExamAnswers';
 export { useSubmitAnswer } from './useSubmitAnswer';

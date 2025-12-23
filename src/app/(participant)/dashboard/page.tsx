@@ -155,7 +155,8 @@ export default function DashboardPage() {
     });
 
     // Extract data from responses
-    const inProgressSessions: UserExam[] = (inProgressData?.data ?? []).filter(session => !session.submittedAt && session.status === 'IN_PROGRESS');
+    // ✅ P2 FIX: Removed redundant filter - backend already filters by status='IN_PROGRESS'
+    const inProgressSessions: UserExam[] = inProgressData?.data ?? [];
     const recentResults: ExamResult[] = recentResultsData ?? [];
     const availableExams: ExamPublic[] = availableExamsData ?? [];
 
@@ -308,10 +309,16 @@ export default function DashboardPage() {
                                                     <h3 className="font-semibold line-clamp-1">
                                                         {session.exam.title}
                                                     </h3>
-                                                    <Badge variant={statusInfo?.variant ?? 'default'}>
-                                                        <StatusIcon className="h-3 w-3 mr-1" />
-                                                        {statusInfo?.label ?? session.status}
-                                                    </Badge>
+                                                    <div className="flex flex-col gap-1 items-end">
+                                                        <Badge variant={statusInfo?.variant ?? 'default'}>
+                                                            <StatusIcon className="h-3 w-3 mr-1" />
+                                                            {statusInfo?.label ?? session.status}
+                                                        </Badge>
+                                                        {/* ✅ P2 FIX: Show attempt number */}
+                                                        <Badge variant="outline" className="text-xs">
+                                                            Percobaan ke-{session.attemptNumber}
+                                                        </Badge>
+                                                    </div>
                                                 </div>
 
                                                 <div className="space-y-2 text-sm text-muted-foreground mb-4">
