@@ -10,14 +10,24 @@ interface UseTimerOptions {
 }
 
 export function useTimer({ startedAt, durationMinutes, onExpire, onCritical }: UseTimerOptions) {
-    const [remainingMs, setRemainingMs] = useState(() =>
-        timerUtils.calculateRemainingTime(startedAt, durationMinutes)
-    );
+    // Check if we have valid duration data (treat ≤ 0 as "loading")
+    const isLoading = !durationMinutes || durationMinutes <= 0;
+
+    const [remainingMs, setRemainingMs] = useState(() => {
+        if (isLoading) return Infinity; // Return infinity while loading
+        return timerUtils.calculateRemainingTime(startedAt, durationMinutes);
+    });
 
     const criticalWarningShown = useRef(false);
     const expiredCallbackFired = useRef(false);
 
     useEffect(() => {
+        // Don't start the timer if we're still loading session data
+        if (isLoading) {
+            setRemainingMs(Infinity);
+            return;
+        }
+
         const interval = setInterval(() => {
             const remaining = timerUtils.calculateRemainingTime(startedAt, durationMinutes);
             setRemainingMs(remaining);
@@ -36,7 +46,19 @@ export function useTimer({ startedAt, durationMinutes, onExpire, onCritical }: U
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [startedAt, durationMinutes, onExpire, onCritical]);
+    }, [startedAt, durationMinutes, onExpire, onCritical, isLoading]);
+
+    // If loading, return safe loading state
+    if (isLoading) {
+        return {
+            remainingMs: Infinity,
+            formattedTime: '--:--',
+            isCritical: false,
+            isExpired: false,
+            timeColor: 'text-muted-foreground',
+            isLoading: true,
+        };
+    }
 
     return {
         remainingMs,
@@ -44,5 +66,6 @@ export function useTimer({ startedAt, durationMinutes, onExpire, onCritical }: U
         isCritical: timerUtils.isCriticalTime(remainingMs),
         isExpired: timerUtils.isExpired(remainingMs),
         timeColor: timerUtils.getTimeColor(remainingMs),
+        isLoading: false,
     };
 }

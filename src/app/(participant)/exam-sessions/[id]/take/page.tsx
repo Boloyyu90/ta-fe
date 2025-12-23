@@ -64,9 +64,10 @@ export default function TakeExamPage() {
     // Timer with auto-submit
     // ✅ FIX: Always call useTimer unconditionally (Rules of Hooks)
     // Pass safe defaults when sessionData is not loaded yet
+    // The hook now treats durationMinutes ≤ 0 as "loading" state
     const timer = useTimer({
         startedAt: sessionData?.startedAt || new Date().toISOString(),
-        durationMinutes: sessionData?.durationMinutes || 0,
+        durationMinutes: sessionData?.durationMinutes || 0, // Will be treated as loading
         onExpire: () => {
             toast.error(getErrorMessage(EXAM_SESSION_ERRORS.EXAM_SESSION_TIMEOUT));
             submitExamMutation.mutate(undefined, {
@@ -151,12 +152,10 @@ export default function TakeExamPage() {
                                 </p>
                             )}
                         </div>
-                        {sessionData && (
-                            <div className={`flex items-center gap-2 text-2xl font-mono font-bold ${timer.timeColor} ${timer.isCritical ? 'animate-pulse' : ''}`}>
-                                <Clock className="h-6 w-6" />
-                                {timer.formattedTime}
-                            </div>
-                        )}
+                        <div className={`flex items-center gap-2 text-2xl font-mono font-bold ${timer.timeColor} ${timer.isCritical ? 'animate-pulse' : ''}`}>
+                            <Clock className="h-6 w-6" />
+                            {timer.formattedTime}
+                        </div>
                     </div>
                     {/* Progress Bar */}
                     <div className="mt-4">
