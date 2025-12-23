@@ -174,8 +174,18 @@ export function ProctoringMonitor({
                     // Increment counters
                     incrementViolationCount();
 
-                    // Determine severity using helper function
-                    const violationType = result.analysis.violations[0];
+                    // Determine severity using helper function with type guard
+                    const violationString = result.analysis.violations[0];
+                    
+                    // Validate that violation is a valid ProctoringEventType
+                    if (!isProctoringEventType(violationString)) {
+                        console.warn(
+                            `[Proctoring] Unknown violation type: ${violationString}. Using fallback.`
+                        );
+                        return; // Skip this violation
+                    }
+                    
+                    const violationType = violationString; // Now properly typed as ProctoringEventType
                     const severity = getSeverityForEventType(violationType);
                     const isHighSeverity = severity === 'HIGH';
 
