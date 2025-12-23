@@ -250,3 +250,17 @@ export function getSeverityForEventType(eventType: ProctoringEventType): Severit
     };
     return severityMap[eventType] ?? 'MEDIUM';
 }
+/**
+ * Type guard to check if a string is a valid ProctoringEventType
+ *
+ * Used for runtime validation of violation strings from analyze-face API
+ * to ensure type safety when calling functions that expect ProctoringEventType
+ */
+export function isProctoringEventType(value: string): value is ProctoringEventType {
+    return (
+        value === 'FACE_DETECTED' ||
+        value === 'NO_FACE_DETECTED' ||
+        value === 'MULTIPLE_FACES' ||
+        value === 'LOOKING_AWAY'
+    );
+}

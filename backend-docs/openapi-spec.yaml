@@ -1621,13 +1621,19 @@ paths:
     get:
       tags: [Exam Sessions]
       summary: Get my exam results
-      description: Get results for all exam attempts
+      description: Get results for all exam attempts. By default, only FINISHED sessions are returned. Other statuses can be requested explicitly.
       operationId: getMyResults
       security:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/pageParam'
         - $ref: '#/components/parameters/limitParam'
+        - name: status
+          in: query
+          description: Filter by exam session status
+          schema:
+            $ref: '#/components/schemas/ExamStatus'
+            default: FINISHED
       responses:
         '200':
           description: Results list (includes attemptNumber for each result)

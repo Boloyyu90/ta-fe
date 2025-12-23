@@ -38,7 +38,7 @@ import { toast } from 'sonner';
 import { useProctoringStore } from '../store/proctoring.store';
 import { useAnalyzeFace } from '../hooks/useAnalyzeFace';
 import { PROCTORING_ERRORS, getErrorMessage } from '@/shared/lib/errors';
-import { getSeverityForEventType } from '../types/proctoring.types';
+import { getSeverityForEventType, isProctoringEventType } from '../types/proctoring.types';
 import type { ProctoringEvent, FaceAnalysisResult, Violation } from '../types/proctoring.types';
 
 // ============================================================================

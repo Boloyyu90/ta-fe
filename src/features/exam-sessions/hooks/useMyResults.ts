@@ -36,9 +36,20 @@ export function useMyResults(params: UseMyResultsOptions = {}): UseMyResultsResu
         staleTime: 60 * 1000, // 1 minute
     });
 
+    // Only show FINISHED exams (exclude TIMEOUT and CANCELLED)
+    const filteredData = query.data?.data.filter((result) => result.status === 'FINISHED');
+
+    // Adjust pagination to reflect filtered count
+    const filteredPagination = query.data?.pagination
+        ? {
+            ...query.data.pagination,
+            total: filteredData?.length ?? 0,
+        }
+        : undefined;
+
     return {
-        data: query.data?.data,
-        pagination: query.data?.pagination,
+        data: filteredData,
+        pagination: filteredPagination,
         isLoading: query.isLoading,
         isError: query.isError,
         error: query.error,
