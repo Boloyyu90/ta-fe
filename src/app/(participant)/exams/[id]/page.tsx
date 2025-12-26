@@ -129,7 +129,11 @@ function getExamButtonState(
 
     // Has completed attempts
     // Check retake eligibility
-    if (!exam.allowRetake) {
+    // Defensive defaults for backend bug (allowRetake/maxAttempts not in SELECT)
+    const allowRetake = exam.allowRetake ?? false;
+    const maxAttempts = exam.maxAttempts ?? null;
+
+    if (!allowRetake) {
         return {
             label: 'Lihat Hasil',
             action: 'view-result',
@@ -141,13 +145,13 @@ function getExamButtonState(
     }
 
     // Check if max attempts reached
-    if (exam.maxAttempts && attemptsCount >= exam.maxAttempts) {
+    if (maxAttempts !== null && attemptsCount >= maxAttempts) {
         return {
-            label: `Batas Tercapai (${attemptsCount}/${exam.maxAttempts})`,
+            label: `Batas Tercapai (${attemptsCount}/${maxAttempts})`,
             action: 'disabled',
             disabled: true,
             icon: XCircle,
-            attemptInfo: `Percobaan: ${attemptsCount}/${exam.maxAttempts}`,
+            attemptInfo: `Percobaan: ${attemptsCount}/${maxAttempts}`,
         };
     }
 
@@ -158,8 +162,8 @@ function getExamButtonState(
         action: 'retake',
         disabled: false,
         icon: RotateCcw,
-        attemptInfo: exam.maxAttempts
-            ? `Percobaan ke-${nextAttempt} dari ${exam.maxAttempts}`
+        attemptInfo: maxAttempts
+            ? `Percobaan ke-${nextAttempt} dari ${maxAttempts}`
             : `Percobaan ke-${nextAttempt}`,
     };
 }
