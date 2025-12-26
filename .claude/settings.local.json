@@ -5,7 +5,9 @@
       "Bash(ls:*)",
       "Bash(wc:*)",
       "Bash(cat:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(pnpm run lint:*)",
+      "Bash(pnpm run build:*)"
     ]
   }
 }
