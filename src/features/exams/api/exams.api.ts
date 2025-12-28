@@ -178,7 +178,7 @@ export const deleteExam = async (examId: number): Promise<DeleteExamResponse> =>
  * Attach questions to an exam
  * POST /api/v1/admin/exams/:id/questions
  *
- * @returns AttachQuestionsResponse = { message, attached, alreadyAttached? }
+ * @returns AttachQuestionsResponse = { attached: number, alreadyAttached: number }
  */
 export const attachQuestions = async (
     examId: number,
@@ -195,7 +195,7 @@ export const attachQuestions = async (
  * Detach questions from an exam
  * DELETE /api/v1/admin/exams/:id/questions
  *
- * @returns DetachQuestionsResponse = { message, detached }
+ * @returns DetachQuestionsResponse = { detached: number }
  */
 export const detachQuestions = async (
     examId: number,

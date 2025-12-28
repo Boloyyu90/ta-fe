@@ -11,14 +11,15 @@
 1. [Global Conventions](#1-global-conventions)
 2. [Authentication](#2-authentication)
 3. [API Endpoints](#3-api-endpoints)
-   - [Auth Module](#31-auth-module)
-   - [Users Module](#32-users-module)
-   - [Questions Module](#33-questions-module)
-   - [Exams Module](#34-exams-module)
-   - [Exam Sessions Module](#35-exam-sessions-module)
-   - [Proctoring Module](#36-proctoring-module)
+    - [Auth Module](#31-auth-module)
+    - [Users Module](#32-users-module)
+    - [Questions Module](#33-questions-module)
+    - [Exams Module](#34-exams-module)
+    - [Exam Sessions Module](#35-exam-sessions-module)
+    - [Proctoring Module](#36-proctoring-module)
 4. [Shared Schemas & DTOs](#4-shared-schemas--dtos)
 5. [Frontend Integration Notes](#5-frontend-integration-notes)
+6. [Exam Retake Business Rules](#6-exam-retake-business-rules)
 
 ---
 
@@ -146,6 +147,26 @@ type Severity = "LOW" | "MEDIUM" | "HIGH";
 | Auth (login/register) | 5 requests   | 15 minutes |
 | Token Refresh         | 10 requests  | 15 minutes |
 | Proctoring            | 30 requests  | 1 minute   |
+
+### 1.9 MVP Scope Definition
+
+This API contract documents the **implemented and tested** backend functionality.
+The following features are explicitly **OUT OF SCOPE** for MVP:
+
+#### Not Implemented (Backend)
+- Email verification flow (field exists but not enforced)
+- Password reset functionality
+- Exam time window enforcement at API level
+
+#### Frontend Responsibility
+- Time window display/blocking (startTime/endTime validation)
+- Offline answer queuing (graceful degradation)
+- Progressive violation warnings UI
+
+#### Planned Post-MVP
+- WebSocket for real-time proctoring updates
+- Batch answer submission endpoint
+- Exam analytics/reporting endpoints
 
 ---
 
@@ -343,8 +364,8 @@ type Severity = "LOW" | "MEDIUM" | "HIGH";
 
 ```typescript
 {
-  name?: string,      // 2-100 characters
-  password?: string   // Min 8 chars, 1 uppercase, 1 lowercase, 1 number
+  name?: string,
+  password?: string  // Must meet password requirements
 }
 ```
 
@@ -363,148 +384,6 @@ type Severity = "LOW" | "MEDIUM" | "HIGH";
 
 ---
 
-#### POST `/admin/users`
-
-**Access:** ADMIN only
-
-**Request Body:**
-
-```typescript
-{
-  email: string,
-  password: string,
-  name: string,
-  role?: 'ADMIN' | 'PARTICIPANT'  // Default: PARTICIPANT
-}
-```
-
-**Response (201):**
-
-```typescript
-{
-  success: true,
-  data: {
-    user: User
-  },
-  message: "User created successfully",
-  timestamp: string
-}
-```
-
----
-
-#### GET `/admin/users`
-
-**Access:** ADMIN only
-
-**Query Parameters:**
-| Param | Type | Default | Description |
-|-------|------|---------|-------------|
-| page | number | 1 | Page number |
-| limit | number | 10 | Items per page (max: 100) |
-| role | UserRole | - | Filter by role |
-| search | string | - | Search in name/email |
-| sortBy | string | 'createdAt' | Sort field |
-| sortOrder | 'asc'/'desc' | 'desc' | Sort direction |
-
-**Response (200):**
-
-```typescript
-{
-  success: true,
-  data: {
-    data: User[],
-    pagination: PaginationMeta
-  },
-  message: "Users retrieved successfully",
-  timestamp: string
-}
-```
-
----
-
-#### GET `/admin/users/:id`
-
-**Access:** ADMIN only
-
-**Response (200):**
-
-```typescript
-{
-  success: true,
-  data: {
-    user: {
-      ...User,
-      _count: {
-        createdExams: number,
-        userExams: number
-      }
-    }
-  },
-  message: "User retrieved successfully",
-  timestamp: string
-}
-```
-
----
-
-#### PATCH `/admin/users/:id`
-
-**Access:** ADMIN only
-
-**Request Body:**
-
-```typescript
-{
-  email?: string,
-  password?: string,
-  name?: string,
-  role?: UserRole,
-  isEmailVerified?: boolean
-}
-```
-
-**Response (200):**
-
-```typescript
-{
-  success: true,
-  data: {
-    user: User
-  },
-  message: "User updated successfully",
-  timestamp: string
-}
-```
-
----
-
-#### DELETE `/admin/users/:id`
-
-**Access:** ADMIN only
-
-**Response (200):**
-
-```typescript
-{
-  success: true,
-  data: {
-    success: true,
-    message: string
-  },
-  message: "User deleted successfully",
-  timestamp: string
-}
-
-```
-
----
-
-> **NOTE:** User statistics are computed client-side from `/results` data.
-> There is no dedicated `/admin/users/:id/stats` endpoint in the backend.
-
----
-
 ### 3.3 Questions Module
 
 #### POST `/admin/questions`
@@ -515,17 +394,17 @@ type Severity = "LOW" | "MEDIUM" | "HIGH";
 
 ```typescript
 {
-  content: string,           // 10-5000 characters (can include HTML/images)
+  content: string,           // 10-5000 characters
   options: {
-    A: string,
+    A: string,               // 1-1000 characters each
     B: string,
     C: string,
     D: string,
     E: string
   },
   correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E',
-  questionType: 'TIU' | 'TKP' | 'TWK',
-  defaultScore?: number      // 1-100, default: 1
+  questionType: QuestionType,
+  defaultScore?: number      // Min 0, default 1
 }
 ```
 
@@ -553,7 +432,7 @@ type Severity = "LOW" | "MEDIUM" | "HIGH";
 |-------|------|---------|-------------|
 | page | number | 1 | Page number |
 | limit | number | 10 | Items per page |
-| type | QuestionType | - | Filter by question type |
+| type | QuestionType | - | Filter by type |
 | search | string | - | Search in content |
 | sortBy | string | 'createdAt' | Sort field |
 | sortOrder | 'asc'/'desc' | 'desc' | Sort direction |
@@ -658,7 +537,7 @@ type Severity = "LOW" | "MEDIUM" | "HIGH";
   description?: string | null,      // Max 2000 characters
   startTime?: string | null,        // ISO datetime
   endTime?: string | null,          // ISO datetime (must be after startTime)
-  durationMinutes?: number,         // 1-300 minutes
+  durationMinutes: number,          // REQUIRED: 1-300 minutes
   passingScore?: number,            // Min 0
   allowRetake?: boolean,            // Default: false - Whether users can retake this exam
   maxAttempts?: number | null       // Max number of attempts allowed (null = unlimited if retakes enabled)
@@ -723,7 +602,9 @@ type Severity = "LOW" | "MEDIUM" | "HIGH";
 Same query parameters and response format as admin, but filtered to show only exams that:
 
 - Have at least 1 question attached
-- Are within valid time window (if startTime/endTime set)
+
+> **Note:** Time window filtering (startTime/endTime) is NOT enforced at the API level.
+> Frontend should handle display logic for exams outside their time window.
 
 ---
 
@@ -858,8 +739,8 @@ Attach questions to exam.
 {
   success: true,
   data: {
-    attached: number,     // Number of questions attached
-    total: number         // Total questions now on exam
+    attached: number,        // Number of NEW questions attached
+    alreadyAttached: number  // Number of questions that were already attached (skipped)
   },
   message: "Questions attached successfully",
   timestamp: string
@@ -888,8 +769,7 @@ Detach questions from exam.
 {
   success: true,
   data: {
-    detached: number,
-    total: number
+    detached: number  // Number of questions removed
   },
   message: "Questions detached successfully",
   timestamp: string
@@ -1322,7 +1202,7 @@ Analyze webcam frame via YOLO face detection.
 
 ```typescript
 {
-  imageBase64: string; // Base64 encoded image (min 100 chars)
+  imageBase64: string    // Base64 encoded image (min 100 chars)
 }
 ```
 
@@ -1384,6 +1264,8 @@ Get proctoring events for a session.
 ```
 
 ---
+
+#### GET `/admin/proctoring/events`
 
 **Access:** ADMIN only
 
@@ -1469,8 +1351,8 @@ interface Exam {
   endTime: string | null;
   durationMinutes: number;
   passingScore: number;
-  allowRetake: boolean; // Whether users can retake this exam
-  maxAttempts: number | null; // Maximum attempts (null = unlimited when retakes enabled)
+  allowRetake: boolean;           // Whether users can retake this exam
+  maxAttempts: number | null;     // Maximum attempts (null = unlimited when retakes enabled)
   createdBy: number;
   createdAt: string;
   updatedAt: string;
@@ -1488,7 +1370,7 @@ interface UserExam {
   id: number;
   userId: number;
   examId: number;
-  attemptNumber: number; // Which attempt this is (1, 2, 3, ...)
+  attemptNumber: number;          // Which attempt this is (1, 2, 3, ...)
   startedAt: string;
   submittedAt: string | null;
   totalScore: number | null;

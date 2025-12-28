@@ -30,6 +30,7 @@ export interface ResultDetail {
     duration: number | null;
     answeredQuestions: number;
     totalQuestions: number;
+    attemptNumber: number;  // HIGH-006 FIX: Include attempt number
     passed: boolean | null;
     scoresByType: Array<{
         type: string;
@@ -50,7 +51,8 @@ export interface ResultDetail {
  */
 function transformToResultDetail(userExam: UserExam): ResultDetail {
     // ✅ FIX: Extract passingScore from exam object
-    const passingScore = userExam.exam?.passingScore ?? 0;
+    // Note: passingScore is not in ExamInfoInList contract, but backend may include it
+    const passingScore = (userExam.exam as any)?.passingScore ?? 0;
     const totalScore = userExam.totalScore ?? null;
 
     // ✅ FIX: Extract totalQuestions from examQuestions array length
@@ -84,7 +86,7 @@ function transformToResultDetail(userExam: UserExam): ResultDetail {
             title: userExam.exam?.title ?? 'Unknown Exam',
             description: userExam.exam?.description ?? null,
             passingScore: passingScore,
-            durationMinutes: userExam.durationMinutes ?? userExam.exam?.durationMinutes ?? undefined,
+            durationMinutes: userExam.durationMinutes ?? (userExam.exam as any)?.durationMinutes ?? undefined,
         },
         user: {
             id: userExam.userId ?? (userExam.user as any)?.id ?? 0,
@@ -98,6 +100,7 @@ function transformToResultDetail(userExam: UserExam): ResultDetail {
         duration: duration,
         answeredQuestions: answeredQuestions,
         totalQuestions: totalQuestions,
+        attemptNumber: userExam.attemptNumber ?? 1,  // HIGH-006 FIX: Include attempt number
         passed: passed,
         // scoresByType would need separate computation or backend enhancement
         scoresByType: [],

@@ -61,6 +61,7 @@ export interface ExamQuestion {
 
 /**
  * Exam info as returned in UserExam and ExamResult responses
+ * Note: For list responses (GET /exam-sessions), use ExamInfoInList instead
  */
 export interface ExamInfo {
     id: number;
@@ -70,6 +71,19 @@ export interface ExamInfo {
     durationMinutes?: number;   // Optional for some contexts
     allowRetake?: boolean;
     maxAttempts?: number | null;
+}
+
+/**
+ * Exam info for list responses (GET /exam-sessions)
+ * Contract requires allowRetake and maxAttempts to be present
+ * Source: openapi-spec.yaml UserExamListItem.exam (lines 484-495)
+ */
+export interface ExamInfoInList {
+    id: number;
+    title: string;
+    description: string | null;
+    allowRetake: boolean;        // Required per contract
+    maxAttempts: number | null;  // Required (nullable) per contract
 }
 
 /**
@@ -102,7 +116,7 @@ export interface UserExam {
     durationMinutes: number | null;
     answeredQuestions: number;
     totalQuestions: number;
-    exam: ExamInfo;
+    exam: ExamInfoInList;           // ✅ FIX: Use ExamInfoInList with required retake fields
     user?: {
         id: number;
         name: string;
@@ -112,6 +126,7 @@ export interface UserExam {
 
 /**
  * Detailed session info (returned by getUserExam and startExam)
+ * Source: openapi-spec.yaml UserExamSession schema (lines 424-466)
  */
 export interface UserExamSession {
     id: number;
@@ -122,7 +137,7 @@ export interface UserExamSession {
     startedAt: string;
     submittedAt: string | null;
     status: ExamStatus;
-    remainingTimeMs: number | null;
+    remainingTimeMs: number;        // ✅ FIX: Required per OpenAPI spec (server-calculated)
     totalQuestions: number;
     answeredQuestions: number;
 }
@@ -145,6 +160,7 @@ export interface ScoreByType {
 /**
  * Exam result with score breakdown
  * Returned by submitExam and getMyResults
+ * Source: backend-api-contract.md lines 1018-1047, openapi-spec.yaml ExamResult schema
  */
 export interface ExamResult {
     id: number;
@@ -161,6 +177,7 @@ export interface ExamResult {
     duration: number | null;
     answeredQuestions: number;
     totalQuestions: number;
+    attemptNumber: number;          // ✅ FIX: Required per contract (which attempt this result is for)
     scoresByType: ScoreByType[];
 }
 

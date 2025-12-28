@@ -21,8 +21,10 @@ import {
     AlertDialogTrigger,
 } from '@/shared/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Clock, CheckCircle, Circle, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import { Clock, CheckCircle, Circle, AlertTriangle, AlertCircle, Loader2 } from 'lucide-react';
 import { ProctoringMonitor } from '@/features/proctoring/components/ProctoringMonitor';
+import { ExamTakingSkeleton } from '@/features/exam-sessions/components/ExamTakingSkeleton';
 import { EXAM_SESSION_ERRORS, getErrorMessage } from '@/shared/lib/errors';
 import {
     useExamSession,
@@ -44,13 +46,25 @@ export default function TakeExamPage() {
     const [answersMap, setAnswersMap] = useState<Map<number, AnswerOption>>(new Map());
 
     // Fetch session data
-    const { data: sessionData, isLoading: isLoadingSession } = useExamSession(sessionId);
+    const {
+        data: sessionData,
+        isLoading: isLoadingSession,
+        isError: isSessionError,
+        error: sessionError,
+        refetch: refetchSession,
+    } = useExamSession(sessionId);
 
-    // ✅ P1 FIX: Get cached session data with existing answers
+    // Get cached session data with existing answers
     const { data: cachedSessionData } = useExamSessionData(sessionId);
 
     // Fetch questions
-    const { data: questionsData, isLoading: isLoadingQuestions } = useExamQuestions(sessionId);
+    const {
+        data: questionsData,
+        isLoading: isLoadingQuestions,
+        isError: isQuestionsError,
+        error: questionsError,
+        refetch: refetchQuestions,
+    } = useExamQuestions(sessionId);
 
     // Mutations
     const submitAnswerMutation = useSubmitAnswer(sessionId);
@@ -78,13 +92,28 @@ export default function TakeExamPage() {
         }
     }, [currentQuestionIndex, questionsData, answersMap]);
 
+    // MED-006 FIX: Browser close/refresh warning during exam
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            // Only warn if exam is in progress
+            if (sessionData?.status === 'IN_PROGRESS') {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [sessionData?.status]);
+
     // Timer with auto-submit
-    // ✅ FIX: Always call useTimer unconditionally (Rules of Hooks)
+    // Always call useTimer unconditionally (Rules of Hooks)
     // Pass safe defaults when sessionData is not loaded yet
-    // The hook now treats durationMinutes ≤ 0 as "loading" state
+    // The hook treats durationMinutes ≤ 0 as "loading" state
     const timer = useTimer({
         startedAt: sessionData?.startedAt || new Date().toISOString(),
         durationMinutes: sessionData?.durationMinutes || 0, // Will be treated as loading
+        initialRemainingMs: sessionData?.remainingTimeMs ?? undefined, // ✅ HIGH-005 FIX: Use server-provided time
         onExpire: () => {
             toast.error(getErrorMessage(EXAM_SESSION_ERRORS.EXAM_SESSION_TIMEOUT));
             submitExamMutation.mutate(undefined, {
@@ -98,14 +127,57 @@ export default function TakeExamPage() {
         },
     });
 
-    // Loading state
+    // Loading state - use skeleton for better UX
     if (isLoadingSession || isLoadingQuestions) {
-        return <div className="flex justify-center p-8">Memuat ujian...</div>;
+        return <ExamTakingSkeleton />;
+    }
+
+    // Error state - show error message with retry
+    if (isSessionError || isQuestionsError) {
+        const errorMessage = (sessionError as Error)?.message
+            || (questionsError as Error)?.message
+            || 'Terjadi kesalahan saat memuat ujian.';
+
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="max-w-md mx-auto text-center space-y-4 px-4">
+                    <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+                    <h2 className="text-xl font-semibold">Gagal Memuat Ujian</h2>
+                    <p className="text-muted-foreground">{errorMessage}</p>
+                    <div className="flex gap-2 justify-center">
+                        <Button
+                            onClick={() => {
+                                refetchSession();
+                                refetchQuestions();
+                            }}
+                        >
+                            Coba Lagi
+                        </Button>
+                        <Button variant="outline" asChild>
+                            <Link href="/exams">Kembali ke Daftar Ujian</Link>
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     // No questions available
     if (!questionsData || !questionsData.questions || questionsData.questions.length === 0) {
-        return <div className="flex justify-center p-8">Tidak ada soal tersedia</div>;
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="max-w-md mx-auto text-center space-y-4 px-4">
+                    <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto" />
+                    <h2 className="text-xl font-semibold">Tidak Ada Soal</h2>
+                    <p className="text-muted-foreground">
+                        Ujian ini belum memiliki soal. Silakan hubungi admin.
+                    </p>
+                    <Button asChild>
+                        <Link href="/exams">Kembali ke Daftar Ujian</Link>
+                    </Button>
+                </div>
+            </div>
+        );
     }
 
     const currentQuestion = questionsData.questions[currentQuestionIndex];
@@ -186,9 +258,10 @@ export default function TakeExamPage() {
             </div>
 
             <div className="max-w-7xl mx-auto p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* MED-007 FIX: Add md:grid-cols-2 for tablet responsiveness */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {/* Sidebar */}
-                    <div className="lg:col-span-1 space-y-6">
+                    <div className="md:col-span-1 lg:col-span-1 space-y-6">
                         {/* Proctoring Monitor */}
                         <ProctoringMonitor
                             sessionId={sessionId}
@@ -242,12 +315,21 @@ export default function TakeExamPage() {
                     </div>
 
                     {/* Main Content - Question */}
-                    <div className="lg:col-span-2">
+                    <div className="md:col-span-1 lg:col-span-2">
                         <Card>
                             <CardHeader>
-                                <CardTitle>
-                                    Soal {currentQuestionIndex + 1} dari {totalQuestions}
-                                </CardTitle>
+                                <div className="flex items-center justify-between">
+                                    <CardTitle>
+                                        Soal {currentQuestionIndex + 1} dari {totalQuestions}
+                                    </CardTitle>
+                                    {/* MED-002 FIX: Show saving indicator */}
+                                    {submitAnswerMutation.isPending && (
+                                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                            Menyimpan...
+                                        </span>
+                                    )}
+                                </div>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <p className="text-lg whitespace-pre-wrap">{currentQuestion.content}</p>

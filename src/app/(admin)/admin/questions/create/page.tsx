@@ -201,7 +201,7 @@ export default function CreateQuestionPage() {
             {/* Header */}
             <div className="flex items-center gap-4 mb-6">
                 <Link href="/admin/questions">
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" aria-label="Kembali">
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
                 </Link>

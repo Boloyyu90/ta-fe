@@ -209,9 +209,15 @@ export default function ResultsPage() {
                                             return (
                                                 <TableRow key={result.id}>
                                                     <TableCell>
-                                                        <span className="font-medium max-w-[200px] truncate block">
-                                                            {result.exam.title}
-                                                        </span>
+                                                        <div className="space-y-1">
+                                                            <span className="font-medium max-w-[200px] truncate block">
+                                                                {result.exam.title}
+                                                            </span>
+                                                            {/* HIGH-006 FIX: Show attempt number */}
+                                                            <Badge variant="outline" className="text-xs">
+                                                                Percobaan #{result.attemptNumber ?? 1}
+                                                            </Badge>
+                                                        </div>
                                                     </TableCell>
                                                     <TableCell>
                                                         <Badge
@@ -259,7 +265,7 @@ export default function ResultsPage() {
                                                     </TableCell>
                                                     <TableCell>
                                                         <Link href={`/results/${result.id}`}>
-                                                            <Button variant="ghost" size="icon">
+                                                            <Button variant="ghost" size="icon" aria-label="Lihat detail">
                                                                 <Eye className="h-4 w-4" />
                                                             </Button>
                                                         </Link>

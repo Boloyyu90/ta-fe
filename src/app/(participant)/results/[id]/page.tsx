@@ -127,6 +127,7 @@ export default function ResultDetailPage() {
         submittedAt,
         passed,
         scoresByType,
+        attemptNumber,  // HIGH-006 FIX: Include attemptNumber
     } = result;
 
     const passingScore = exam.passingScore ?? 0;
@@ -146,7 +147,13 @@ export default function ResultDetailPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold">{exam.title}</h1>
-                    <p className="text-muted-foreground">Hasil Ujian</p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <p className="text-muted-foreground">Hasil Ujian</p>
+                        {/* HIGH-006 FIX: Show attempt number */}
+                        <Badge variant="outline" className="text-xs">
+                            Percobaan #{attemptNumber ?? 1}
+                        </Badge>
+                    </div>
                 </div>
                 <Button asChild variant="outline">
                     <Link href="/results">

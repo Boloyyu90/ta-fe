@@ -206,7 +206,7 @@ export default function EditQuestionPage({ params }: PageProps) {
             {/* Header */}
             <div className="flex items-center gap-4">
                 <Link href={`/admin/questions/${questionId}`}>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" aria-label="Kembali">
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
                 </Link>

@@ -5,16 +5,27 @@ import { timerUtils } from '../utils/timer.utils';
 interface UseTimerOptions {
     startedAt: string;
     durationMinutes: number;
+    /**
+     * Initial remaining time from server (milliseconds).
+     * If provided, uses this for first render to avoid clock drift.
+     * Falls back to client calculation if not provided.
+     * Source: openapi-spec.yaml notes timer should use server-provided remainingTimeMs
+     */
+    initialRemainingMs?: number;
     onExpire?: () => void;
     onCritical?: () => void; // Called when < 5 minutes
 }
 
-export function useTimer({ startedAt, durationMinutes, onExpire, onCritical }: UseTimerOptions) {
+export function useTimer({ startedAt, durationMinutes, initialRemainingMs, onExpire, onCritical }: UseTimerOptions) {
     // Check if we have valid duration data (treat ≤ 0 as "loading")
     const isLoading = !durationMinutes || durationMinutes <= 0;
 
     const [remainingMs, setRemainingMs] = useState(() => {
         if (isLoading) return Infinity; // Return infinity while loading
+        // ✅ FIX: Use server-provided value if available, else calculate locally
+        if (initialRemainingMs !== undefined && initialRemainingMs > 0) {
+            return initialRemainingMs;
+        }
         return timerUtils.calculateRemainingTime(startedAt, durationMinutes);
     });
 

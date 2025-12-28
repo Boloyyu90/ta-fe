@@ -129,9 +129,22 @@ function getExamButtonState(
 
     // Has completed attempts
     // Check retake eligibility
-    // Defensive defaults for backend bug (allowRetake/maxAttempts not in SELECT)
+    // Safety defaults (backend now returns these fields, but keeping for robustness)
     const allowRetake = exam.allowRetake ?? false;
     const maxAttempts = exam.maxAttempts ?? null;
+
+    // Edge case guard: invalid maxAttempts value
+    if (maxAttempts !== null && maxAttempts <= 0) {
+        console.warn(`[ExamDetail] Invalid maxAttempts=${maxAttempts} for exam ${exam.id}`);
+        return {
+            label: 'Lihat Hasil',
+            action: 'view-result',
+            disabled: false,
+            icon: Eye,
+            latestAttemptId: latestAttempt?.id,
+            attemptInfo: `Percobaan: ${attemptsCount}`,
+        };
+    }
 
     if (!allowRetake) {
         return {

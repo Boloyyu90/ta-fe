@@ -304,7 +304,7 @@ export default function AdminResultsPage() {
                                                     </TableCell>
                                                     <TableCell>
                                                         <Link href={`/admin/sessions/${result.id}`}>
-                                                            <Button variant="ghost" size="icon">
+                                                            <Button variant="ghost" size="icon" aria-label="Lihat detail">
                                                                 <Eye className="h-4 w-4" />
                                                             </Button>
                                                         </Link>

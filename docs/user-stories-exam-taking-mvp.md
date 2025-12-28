@@ -1,7 +1,7 @@
 # User Stories: Exam Taking Flow MVP
 
 > **Project:** Prestige Academy CPNS Exam System  
-> **Version:** 1.0.0  
+> **Version:** 1.1.0  
 > **Last Updated:** December 2025  
 > **Author:** I Gede Bala Putra (Undergraduate Thesis)
 
@@ -42,6 +42,37 @@ Submit/Timeout → View Result Summary
 - **YOLO-based face detection** proctoring (thesis demonstration focus)
 - **Violation tracking** with progressive warnings
 - **Result summary** with score breakdown by question type
+- **Exam retake support** with configurable attempt limits
+
+### MVP Scope Boundaries
+
+This document defines the **target specification**. For thesis MVP, the following
+scope decisions apply:
+
+#### ✅ IN SCOPE (Must Implement)
+- Complete exam flow: browse → start → take → submit → results
+- YOLO face detection proctoring with violation logging
+- Timer with auto-submit on timeout
+- Answer auto-save on selection
+- Question navigation (prev/next/jump)
+- Retake functionality with attempt tracking
+- Basic error handling with user-friendly messages
+
+#### ⚠️ PARTIAL SCOPE (Best Effort)
+- Tab switch detection (implemented in proctoring)
+- Browser refresh warning (beforeunload)
+- Accessibility basics (keyboard navigation)
+
+#### ❌ OUT OF SCOPE (Post-MVP / Future Work)
+- Offline answer queue with sync-on-reconnect (GUARD-09)
+- Dedicated instructions/consent page (US-P06 simplified)
+- Full WCAG AA accessibility compliance
+- Progressive violation warnings with escalation
+- Network quality indicators
+
+> **Rationale:** These features are documented for completeness but deferred
+> due to thesis timeline constraints. The core exam proctoring functionality
+> demonstrates all thesis requirements without these enhancements.
 
 ---
 
@@ -192,11 +223,15 @@ Then I see "Resume Exam" instead of "Start Exam"
 
 Given I have completed this exam and retakes are disabled
 When I view the exam details
-Then I see "Already Completed" and "View Results" link
+Then I see "View Results" button and "Already Completed" message
+
+Given I have completed this exam and retakes are enabled
+When I view the exam details
+Then I see "Retake Exam" button with attempt count
 ```
 
 **API Touchpoints:**
-- `GET /api/v1/exams/:id` - Get exam details
+- `GET /api/v1/exams/:id` - Get exam details (includes `allowRetake`, `maxAttempts`)
 - `GET /api/v1/exam-sessions?examId=:id` - Check for existing session
 
 **UI States:**
@@ -225,7 +260,7 @@ Given I am on an exam detail page
 And I have not started this exam before
 When I click "Start Exam"
 Then the system creates a new exam session (userExam)
-And I am navigated to the exam instructions page
+And I am navigated to the exam-taking interface
 
 Given the exam has no questions configured
 When I try to start
@@ -242,7 +277,7 @@ Then I see an error: "Exam duration not set"
 **Response Structure:**
 ```typescript
 {
-  userExam: UserExamSession,  // Session metadata
+  userExam: UserExamSession,  // Session metadata with attemptNumber
   questions: ParticipantQuestion[],  // Questions without answers
   answers: ParticipantAnswer[]  // Existing answers (empty for new)
 }
@@ -254,7 +289,9 @@ Then I see an error: "Exam duration not set"
 | `EXAM_NOT_FOUND` | Exam doesn't exist | Redirect to exam list |
 | `EXAM_NO_QUESTIONS` | No questions in exam | Show error, disable start |
 | `EXAM_NO_DURATION` | Duration not configured | Show error, disable start |
-| `EXAM_SESSION_ALREADY_STARTED` | Already completed | Show results link |
+| `EXAM_SESSION_ALREADY_STARTED` | Already completed (legacy) | Show results link |
+| `EXAM_SESSION_RETAKE_DISABLED` | Retakes not allowed | Show "Lihat Hasil" |
+| `EXAM_SESSION_MAX_ATTEMPTS` | Maximum attempts reached | Show "Batas Tercapai" disabled |
 
 ---
 
@@ -290,52 +327,92 @@ And I see the result summary
 
 ---
 
-#### US-P06: View Exam Instructions & Grant Consent
+#### US-P05b: Retake Completed Exam
 
 **As a** participant,  
-**I want to** read exam instructions and grant proctoring consent  
-**So that I** understand the rules before starting.
+**I want to** retake an exam I've already completed  
+**So that I** can improve my score.
 
 **Acceptance Criteria:**
 
 ```gherkin
-Given I have started/resumed an exam session
-When I am on the instructions page
-Then I see:
-  - Exam rules and guidelines
-  - Proctoring notice (camera will be active)
-  - Duration and question count
-  - Auto-save notice
-  - Consent checkbox
+Given I have completed an exam
+And the exam has allowRetake = true
+And I have not reached maxAttempts
+When I view the exam detail page
+Then I see "Mulai Lagi" button
+And I see my attempt count (e.g., "Percobaan ke-2 dari 3")
 
-Given I have not checked the consent checkbox
-When I click "Begin Exam"
-Then the button is disabled with message
+Given I click "Mulai Lagi"
+When the system creates a new session
+Then my attemptNumber is incremented
+And I start with fresh answers (previous attempt preserved separately)
 
-Given I have checked consent and clicked "Begin Exam"
-When webcam permission is requested
-Then browser's permission dialog appears
+Given I have completed an exam
+And the exam has allowRetake = false
+When I view the exam detail page
+Then I see "Lihat Hasil" button (not "Mulai Lagi")
 
-Given I grant webcam permission
-When permission is granted
-Then I am navigated to the exam-taking interface
-And proctoring starts automatically
-
-Given I deny webcam permission
-When permission is denied
-Then I see an error explaining webcam is required
-And I cannot proceed until permission is granted
+Given I have completed an exam
+And I have reached maxAttempts
+When I view the exam detail page
+Then I see "Batas Tercapai (X/X)" disabled button
+And I can still view my previous results
 ```
+
+**API Touchpoints:**
+- `GET /api/v1/exams/:id` - Returns `allowRetake`, `maxAttempts`
+- `POST /api/v1/exams/:id/start` - Creates new attempt or returns error
+
+**Error Handling:**
+
+| Error Code | User Message | Button State |
+|------------|--------------|--------------|
+| `EXAM_SESSION_RETAKE_DISABLED` | "Ujian ini tidak mengizinkan pengulangan" | Show "Lihat Hasil" |
+| `EXAM_SESSION_MAX_ATTEMPTS` | "Batas maksimum percobaan tercapai" | Show "Batas Tercapai" disabled |
 
 **UI States:**
 
-| State | Display |
-|-------|---------|
-| Initial | Instructions with disabled "Begin" button |
-| Consented | Instructions with enabled "Begin" button |
-| Requesting Camera | Loading indicator "Requesting camera access..." |
-| Camera Denied | Error with instructions to enable camera |
-| Camera Granted | Redirect to exam interface |
+| State | Button Label | Button Variant | Enabled |
+|-------|--------------|----------------|---------|
+| Never started | "Mulai Ujian" | primary | ✅ |
+| In progress | "Lanjutkan" | primary | ✅ |
+| Completed, no retake | "Lihat Hasil" | secondary | ✅ |
+| Completed, can retake | "Mulai Lagi" | primary | ✅ |
+| Completed, max reached | "Batas Tercapai (X/X)" | outline | ❌ |
+
+---
+
+#### US-P06: View Exam Instructions & Grant Consent
+
+> **⚠️ MVP STATUS: SIMPLIFIED**
+>
+> Full instructions page deferred. MVP shows instructions inline on exam detail page.
+
+**As a** participant,  
+**I want to** understand exam rules before starting  
+**So that I** know what to expect during the exam.
+
+**MVP Acceptance Criteria:**
+
+```gherkin
+Given I am on the exam detail page
+When I view the exam information
+Then I see:
+  - Exam duration and question count
+  - Passing score requirement
+  - "Mulai Ujian" button
+
+Given I click "Mulai Ujian"  
+When the browser prompts for camera permission
+Then I must grant permission to proceed
+And the exam begins immediately after permission granted
+
+# Note: Full instructions/consent page is post-MVP
+```
+
+**API Touchpoints:**
+- `POST /api/v1/exams/:id/start` - Starts exam directly (no separate instructions endpoint)
 
 ---
 
@@ -571,6 +648,7 @@ And my answers remain saved
     duration: number,  // seconds taken
     answeredQuestions: number,
     totalQuestions: number,
+    attemptNumber: number,  // Which attempt this was
     scoresByType: ScoreByType[]
   }
 }
@@ -628,6 +706,7 @@ Then I see:
   - Score breakdown by question type (TIU, TKP, TWK)
   - Questions answered vs total
   - Submission timestamp
+  - Attempt number (e.g., "Attempt #2")
 
 Given I click "Review Answers"
 When the review page loads
@@ -687,6 +766,7 @@ Then I see a list of completed exams showing:
   - Status (FINISHED, TIMEOUT, CANCELLED)
   - Date completed
   - Duration taken
+  - Attempt number
 
 Given I click on a result
 When the detail page loads
@@ -720,6 +800,7 @@ Then I see a list of all exam sessions showing:
   - Status (IN_PROGRESS, FINISHED, etc.)
   - Start time
   - Violation count
+  - Attempt number
 
 Given I filter by status "IN_PROGRESS"
 When the filter is applied
@@ -1048,8 +1129,8 @@ Then I see "Maximum attempts reached"
 
 **Error Codes:**
 - `EXAM_SESSION_ALREADY_STARTED` → Show results
-- `EXAM_RETAKE_DISABLED` → Show results, no retry option
-- `EXAM_MAX_ATTEMPTS_REACHED` → Show all attempt results
+- `EXAM_SESSION_RETAKE_DISABLED` → Show results, no retry option
+- `EXAM_SESSION_MAX_ATTEMPTS` → Show all attempt results
 
 ---
 
@@ -1152,7 +1233,16 @@ useEffect(() => {
 
 #### GUARD-09: Offline/Slow Network
 
+> **⚠️ MVP STATUS: OUT OF SCOPE**
+>
+> This feature requires IndexedDB/localStorage queue implementation with
+> background sync. Deferred to post-MVP due to complexity.
+>
+> **MVP Behavior:** If network fails during answer submission, show error toast.
+> User can retry manually. Exam continues but answer may be lost.
+
 ```gherkin
+# TARGET SPECIFICATION (Post-MVP)
 Given the network goes offline during exam
 When I select an answer
 Then the answer is saved locally
@@ -1164,34 +1254,13 @@ When connectivity is restored
 Then queued answers are synced in order
 And "Back online" indicator appears
 And sync status is confirmed
-```
 
-**Offline Queue Implementation:**
-```typescript
-const answerQueue: SubmitAnswerRequest[] = [];
-
-const submitWithQueue = async (answer: SubmitAnswerRequest) => {
-  try {
-    await submitAnswer(answer);
-  } catch (error) {
-    if (isNetworkError(error)) {
-      answerQueue.push(answer);
-      setOfflineMode(true);
-    }
-  }
-};
-
-const syncQueue = async () => {
-  while (answerQueue.length > 0) {
-    const answer = answerQueue[0];
-    try {
-      await submitAnswer(answer);
-      answerQueue.shift();
-    } catch {
-      break;  // Stop on error, retry later
-    }
-  }
-};
+# MVP BEHAVIOR (Current Implementation)
+Given the network goes offline during exam
+When I select an answer
+Then the API call fails
+And I see an error toast "Gagal menyimpan jawaban"
+And I can retry by selecting the answer again
 ```
 
 ---
@@ -1249,7 +1318,7 @@ Then I see specific error messages per field
 |-------------|----------------|
 | Data persistence | All answers saved to backend immediately |
 | Session recovery | Resume from any point via API |
-| Offline tolerance | Local queue with sync on reconnect |
+| Offline tolerance | Local queue with sync on reconnect (post-MVP) |
 | Error resilience | Retry logic with exponential backoff |
 
 **Critical Data Protection:**
@@ -1264,7 +1333,7 @@ Then I see specific error messages per field
 
 | Event | Logged Data | Purpose |
 |-------|-------------|---------|
-| Session Start | userId, examId, timestamp | Audit trail |
+| Session Start | userId, examId, timestamp, attemptNumber | Audit trail |
 | Answer Submit | examQuestionId, selectedOption, timestamp | Answer history |
 | Exam Submit | sessionId, totalScore, timestamp | Completion record |
 | Proctoring Event | eventType, severity, metadata, timestamp | Cheating detection |
@@ -1311,22 +1380,23 @@ Then I see specific error messages per field
 
 ### 9.1 Participant Endpoints
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| `GET` | `/api/v1/me` | Get current user profile |
-| `GET` | `/api/v1/exams` | List available exams |
-| `GET` | `/api/v1/exams/:id` | Get exam details |
-| `POST` | `/api/v1/exams/:id/start` | Start or resume exam |
-| `GET` | `/api/v1/exam-sessions` | List my exam sessions |
-| `GET` | `/api/v1/exam-sessions/:id` | Get session details |
-| `GET` | `/api/v1/exam-sessions/:id/questions` | Get questions (during exam) |
-| `POST` | `/api/v1/exam-sessions/:id/answers` | Submit/update answer |
-| `POST` | `/api/v1/exam-sessions/:id/submit` | Finalize and submit exam |
-| `GET` | `/api/v1/exam-sessions/:id/answers` | Get answers (after submit) |
-| `GET` | `/api/v1/results` | Get my exam results |
-| `POST` | `/api/v1/proctoring/exam-sessions/:id/analyze-face` | Analyze webcam frame |
-| `GET` | `/api/v1/proctoring/exam-sessions/:id/events` | Get my proctoring events |
-| `POST` | `/api/v1/proctoring/events` | Log proctoring event manually |
+| Method | Endpoint | Purpose | Key Fields |
+|--------|----------|---------|------------|
+| `GET` | `/api/v1/me` | Get current user profile | - |
+| `GET` | `/api/v1/exams` | List available exams | `allowRetake`, `maxAttempts` |
+| `GET` | `/api/v1/exams/:id` | Get exam details + attempts | `allowRetake`, `maxAttempts` |
+| `POST` | `/api/v1/exams/:id/start` | Start/resume/retake exam | `attemptNumber` in response |
+| `GET` | `/api/v1/exam-sessions` | List my exam sessions | `attemptNumber` per session |
+| `GET` | `/api/v1/exam-sessions/:id` | Get session details | `attemptNumber` |
+| `GET` | `/api/v1/exam-sessions/:id/questions` | Get questions (during exam) | `examQuestionId` ⚠️ |
+| `POST` | `/api/v1/exam-sessions/:id/answers` | Submit/update answer | Use `examQuestionId`! |
+| `POST` | `/api/v1/exam-sessions/:id/submit` | Finalize and submit exam | Returns `result` |
+| `GET` | `/api/v1/exam-sessions/:id/answers` | Get answers (after submit) | Includes `correctAnswer` |
+| `GET` | `/api/v1/results` | Get my exam results | All attempts shown |
+| `POST` | `/api/v1/proctoring/exam-sessions/:id/analyze-face` | Analyze webcam frame | Rate limit: 30/min |
+| `GET` | `/api/v1/proctoring/exam-sessions/:id/events` | Get my proctoring events | - |
+
+> **⚠️ Critical:** Always use `examQuestionId` for answer submissions, never `questionId`!
 
 ### 9.2 Admin Endpoints (Monitoring)
 
@@ -1366,6 +1436,7 @@ Then I see specific error messages per field
 | **ExamQuestion** | Junction table linking questions to exams with order |
 | **examQuestionId** | ID of ExamQuestion (use for answers) |
 | **questionId** | ID in Question bank (don't use for answers) |
+| **attemptNumber** | Which attempt this session is (1, 2, 3...) |
 | **Proctoring Event** | Logged violation or status from face detection |
 | **YOLO** | ML model used for face detection |
 | **TIU/TKP/TWK** | CPNS exam question categories |
@@ -1374,20 +1445,59 @@ Then I see specific error messages per field
 
 ## Appendix B: Error Codes Reference
 
-| Code | HTTP | Message |
-|------|------|---------|
-| `AUTH_INVALID_CREDENTIALS` | 401 | Wrong email/password |
-| `AUTH_INVALID_TOKEN` | 401 | Token expired/invalid |
-| `EXAM_NOT_FOUND` | 404 | Exam ID doesn't exist |
-| `EXAM_NO_QUESTIONS` | 400 | Exam has 0 questions |
-| `EXAM_NO_DURATION` | 400 | Duration not set |
-| `EXAM_SESSION_NOT_FOUND` | 404 | Session doesn't exist |
-| `EXAM_SESSION_ALREADY_STARTED` | 400 | Can't restart submitted exam |
-| `EXAM_SESSION_TIMEOUT` | 400 | Time limit exceeded |
-| `EXAM_SESSION_ALREADY_SUBMITTED` | 400 | Already finalized |
-| `EXAM_SESSION_INVALID_QUESTION` | 400 | examQuestionId not in exam |
-| `EXAM_RETAKE_DISABLED` | 400 | Retake not allowed |
-| `EXAM_MAX_ATTEMPTS_REACHED` | 400 | Maximum attempts exceeded |
+| Code | HTTP | Message | Frontend Action |
+|------|------|---------|-----------------|
+| `AUTH_INVALID_CREDENTIALS` | 401 | Wrong email/password | Show login error |
+| `AUTH_INVALID_TOKEN` | 401 | Token expired/invalid | Redirect to login |
+| `AUTH_EMAIL_EXISTS` | 409 | Email already registered | Show field error |
+| `EXAM_NOT_FOUND` | 404 | Exam ID doesn't exist | Redirect to exam list |
+| `EXAM_NO_QUESTIONS` | 400 | Exam has 0 questions | Disable start button |
+| `EXAM_NO_DURATION` | 400 | Duration not set | Disable start button |
+| `EXAM_SESSION_NOT_FOUND` | 404 | Session doesn't exist | Redirect to dashboard |
+| `EXAM_SESSION_ALREADY_STARTED` | 409 | Already has completed session | Show results link |
+| `EXAM_SESSION_RETAKE_DISABLED` | 400 | Retakes not allowed | Show "Lihat Hasil" |
+| `EXAM_SESSION_MAX_ATTEMPTS` | 400 | Maximum attempts reached | Show "Batas Tercapai" |
+| `EXAM_SESSION_TIMEOUT` | 400 | Time limit exceeded | Auto-submit, show results |
+| `EXAM_SESSION_ALREADY_SUBMITTED` | 400 | Already finalized | Redirect to results |
+| `EXAM_SESSION_INVALID_QUESTION` | 400 | examQuestionId not in exam | Log error, skip |
+
+---
+
+## Appendix C: MVP Implementation Priority
+
+### Priority 1: Critical Path (Must Work for Demo)
+1. **US-P02** - Browse Available Exams
+2. **US-P03** - View Exam Details (with retake state)
+3. **US-P04** - Start New Exam Session
+4. **US-P05** - Resume Existing Session
+5. **US-P05b** - Retake Completed Exam
+6. **US-P07** - Timer with Auto-submit
+7. **US-P08** - Question Navigation
+8. **US-P09** - Answer Auto-save
+9. **US-P10** - Submit Exam
+10. **US-P11** - View Results
+
+### Priority 2: Thesis Differentiator (YOLO Demo)
+1. **US-PROC-01** - Camera Permission
+2. **US-PROC-02** - Face Detection Integration
+3. **US-PROC-03** - Violation Alerts
+
+### Priority 3: Polish (If Time Permits)
+1. **GUARD-06** - Tab Switch Detection
+2. **GUARD-08** - Browser Refresh Warning
+3. **US-P01** - Dashboard Statistics
+
+### Deferred to Post-MVP
+- **GUARD-09** - Offline Queue
+- **US-P06** - Full Instructions Page
+- **Section 8.5** - Full Accessibility
+
+### Success Criteria for Defense
+- [ ] Can complete full exam flow without errors
+- [ ] YOLO proctoring visibly detects face/no-face
+- [ ] Retake button appears correctly based on exam config
+- [ ] Timer auto-submits at expiry
+- [ ] Results show score breakdown by question type
 
 ---
 

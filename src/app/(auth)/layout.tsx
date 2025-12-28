@@ -13,11 +13,10 @@ export default function AuthLayout({
     const router = useRouter();
     const { isAuthenticated, isLoading, user } = useAuth();
 
-    // ✅ Redirect authenticated users to appropriate dashboard
+    // Redirect authenticated users to appropriate dashboard
     useEffect(() => {
         if (!isLoading && isAuthenticated && user) {
             const redirectPath = user.role === "ADMIN" ? "/admin/dashboard" : "/dashboard";
-            console.log("🔄 Auth Layout: Redirecting authenticated user to", redirectPath);
             router.push(redirectPath);
         }
     }, [isAuthenticated, isLoading, user, router]);

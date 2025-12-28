@@ -250,9 +250,15 @@ export default function AdminSessionsPage() {
                                                     <TableCell>
                                                         <div className="flex items-center gap-2">
                                                             <FileText className="h-4 w-4 text-muted-foreground" />
-                                                            <span className="max-w-[200px] truncate">
-                                                                {session.exam.title}
-                                                            </span>
+                                                            <div>
+                                                                <span className="max-w-[200px] truncate block">
+                                                                    {session.exam.title}
+                                                                </span>
+                                                                {/* HIGH-006 FIX: Show attempt number */}
+                                                                <Badge variant="outline" className="text-xs mt-1">
+                                                                    Percobaan #{session.attemptNumber ?? 1}
+                                                                </Badge>
+                                                            </div>
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
@@ -303,7 +309,7 @@ export default function AdminSessionsPage() {
                                                     </TableCell>
                                                     <TableCell>
                                                         <Link href={`/admin/sessions/${session.id}`}>
-                                                            <Button variant="ghost" size="icon">
+                                                            <Button variant="ghost" size="icon" aria-label="Lihat detail">
                                                                 <Eye className="h-4 w-4" />
                                                             </Button>
                                                         </Link>
