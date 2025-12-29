@@ -36,9 +36,12 @@ import type {
     ExamQuestionsResponse,
     SubmitAnswerResponse,
     SubmitExamResponse,
+    SubmitExamResponseNormalized,
     ExamAnswersResponse,
     MyResultsResponse,
+    MyResultsResponseNormalized,
 } from '../types/exam-sessions.types';
+import { normalizeExamResult } from '../types/exam-sessions.types';
 
 /**
  * Get user's exam sessions with optional status filter
@@ -104,13 +107,17 @@ export const submitAnswer = async (
  * Submit/finish exam
  * POST /api/v1/exam-sessions/:id/submit
  *
- * @returns SubmitExamResponse = { result: ExamResult }
+ * @returns SubmitExamResponseNormalized = { result: ExamResult } (normalized)
  */
-export const submitExam = async (sessionId: number): Promise<SubmitExamResponse> => {
+export const submitExam = async (sessionId: number): Promise<SubmitExamResponseNormalized> => {
     const response = await apiClient.post<SubmitExamResponse>(
         `/exam-sessions/${sessionId}/submit`
     );
-    return response.data;
+    // Normalize result to handle flat/nested API response
+    return {
+        message: response.data.message,
+        result: normalizeExamResult(response.data.result),
+    };
 };
 
 /**
@@ -130,13 +137,17 @@ export const getExamAnswers = async (sessionId: number): Promise<ExamAnswersResp
  * Get user's exam results
  * GET /api/v1/results
  *
- * @returns MyResultsResponse = { data: ExamResult[], pagination: PaginationMeta }
+ * @returns MyResultsResponseNormalized = { data: ExamResult[], pagination } (normalized)
  */
 export const getMyResults = async (
     params: GetMyResultsParams = {}
-): Promise<MyResultsResponse> => {
+): Promise<MyResultsResponseNormalized> => {
     const response = await apiClient.get<MyResultsResponse>('/results', { params });
-    return response.data;
+    // Normalize results to handle flat/nested API response
+    return {
+        data: response.data.data.map(normalizeExamResult),
+        pagination: response.data.pagination,
+    };
 };
 
 /**

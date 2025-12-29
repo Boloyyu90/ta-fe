@@ -158,9 +158,12 @@ export interface ScoreByType {
 }
 
 /**
- * Exam result with score breakdown
+ * Exam result with score breakdown (UI-facing type)
  * Returned by submitExam and getMyResults
  * Source: backend-api-contract.md lines 1018-1047, openapi-spec.yaml ExamResult schema
+ *
+ * NOTE: OpenAPI spec shows flat fields (examId, examTitle, userId), but UI expects
+ * nested objects. Use `normalizeExamResult()` to convert API response if needed.
  */
 export interface ExamResult {
     id: number;
@@ -179,6 +182,73 @@ export interface ExamResult {
     totalQuestions: number;
     attemptNumber: number;          // ✅ FIX: Required per contract (which attempt this result is for)
     scoresByType: ScoreByType[];
+}
+
+/**
+ * API response shape for ExamResult (matches OpenAPI spec)
+ * OpenAPI shows flat fields: examId, examTitle, userId
+ * Some backends may return nested objects instead.
+ */
+export interface ExamResultApiResponse {
+    id: number;
+    // Flat fields (per OpenAPI spec)
+    examId?: number;
+    examTitle?: string;
+    userId?: number;
+    // Nested fields (if backend returns nested)
+    exam?: ExamInfo;
+    user?: {
+        id: number;
+        name: string;
+        email: string;
+    };
+    startedAt: string;
+    submittedAt: string | null;
+    totalScore: number | null;
+    status: ExamStatus;
+    duration: number | null;
+    answeredQuestions: number;
+    totalQuestions: number;
+    attemptNumber: number;
+    scoresByType: ScoreByType[];
+}
+
+/**
+ * Normalize ExamResult API response to UI-expected shape
+ * Handles both flat (OpenAPI) and nested (current) response formats.
+ *
+ * @param apiResult - Raw API response (flat or nested)
+ * @returns Normalized ExamResult with nested objects
+ */
+export function normalizeExamResult(apiResult: ExamResultApiResponse): ExamResult {
+    // If already nested, return as-is
+    if (apiResult.exam && apiResult.user) {
+        return apiResult as ExamResult;
+    }
+
+    // Convert flat to nested
+    return {
+        id: apiResult.id,
+        exam: apiResult.exam ?? {
+            id: apiResult.examId ?? 0,
+            title: apiResult.examTitle ?? 'Unknown Exam',
+            description: null,
+        },
+        user: apiResult.user ?? {
+            id: apiResult.userId ?? 0,
+            name: 'Unknown User',
+            email: '',
+        },
+        startedAt: apiResult.startedAt,
+        submittedAt: apiResult.submittedAt,
+        totalScore: apiResult.totalScore,
+        status: apiResult.status,
+        duration: apiResult.duration,
+        answeredQuestions: apiResult.answeredQuestions,
+        totalQuestions: apiResult.totalQuestions,
+        attemptNumber: apiResult.attemptNumber,
+        scoresByType: apiResult.scoresByType,
+    };
 }
 
 // ============================================================================
@@ -298,8 +368,17 @@ export interface SubmitAnswerResponse {
 
 /**
  * POST /exam-sessions/:id/submit
+ * Note: API may return flat or nested result format
  */
 export interface SubmitExamResponse {
+    message: string;
+    result: ExamResultApiResponse;
+}
+
+/**
+ * Normalized submit exam response (after normalizing result)
+ */
+export interface SubmitExamResponseNormalized {
     message: string;
     result: ExamResult;
 }
@@ -323,8 +402,17 @@ export interface ExamSessionsListResponse {
 
 /**
  * GET /results
+ * Note: API may return flat or nested result format
  */
 export interface MyResultsResponse {
+    data: ExamResultApiResponse[];
+    pagination: PaginationMeta;
+}
+
+/**
+ * Normalized my results response (after normalizing results)
+ */
+export interface MyResultsResponseNormalized {
     data: ExamResult[];
     pagination: PaginationMeta;
 }

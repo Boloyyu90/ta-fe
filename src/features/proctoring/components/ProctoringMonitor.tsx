@@ -63,7 +63,7 @@ export interface ProctoringMonitorProps {
 export function ProctoringMonitor({
                                       sessionId,
                                       onViolation,
-                                      captureInterval = 10000,
+                                      captureInterval = 5000,  // 5s = 12 requests/min (within 30/min contract limit)
                                       enabled = true,
                                   }: ProctoringMonitorProps) {
     const videoRef = useRef<HTMLVideoElement>(null);

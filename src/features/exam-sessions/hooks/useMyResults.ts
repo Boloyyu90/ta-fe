@@ -9,7 +9,7 @@ import { examSessionsApi } from '../api/exam-sessions.api';
 import type {
     ExamResult,
     GetMyResultsParams,
-    MyResultsResponse,
+    MyResultsResponseNormalized,
 } from '../types/exam-sessions.types';
 import type { PaginationMeta } from '@/shared/types/api.types';
 
@@ -29,7 +29,7 @@ export interface UseMyResultsResult {
 export function useMyResults(params: UseMyResultsOptions = {}): UseMyResultsResult {
     const { page = 1, limit = 10, enabled = true } = params;
 
-    const query = useQuery<MyResultsResponse, Error>({
+    const query = useQuery<MyResultsResponseNormalized, Error>({
         queryKey: ['my-results', { page, limit }],
         queryFn: () => examSessionsApi.getMyResults({ page, limit }),
         enabled,
