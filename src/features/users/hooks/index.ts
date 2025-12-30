@@ -3,6 +3,7 @@
  *
  * Participant hooks:
  * - useProfile: Get current user profile (GET /me)
+ * - useMyStats: Get dashboard statistics (GET /me/stats)
  *
  * Admin hooks:
  * - useUsers: Get paginated users list (GET /admin/users)
@@ -14,6 +15,7 @@
 
 // Participant
 export { useProfile } from './useProfile';
+export { useMyStats } from './useMyStats';
 
 // Admin
 export { useUsers } from './useUsers';

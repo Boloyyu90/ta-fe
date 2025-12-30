@@ -381,7 +381,69 @@ The following features are explicitly **OUT OF SCOPE** for MVP:
   timestamp: string
 }
 ```
+---
 
+#### GET `/me/stats`
+
+**Access:** Authenticated
+
+**Description:** Get current user's dashboard statistics including completed exams count, average score, total time spent, and active exams count.
+
+**Response (200):**
+```typescript
+{
+  success: true,
+  data: {
+    stats: {
+      completedExams: number,      // Count of exams with status=FINISHED
+      averageScore: number | null, // AVG(totalScore) of FINISHED exams, null if none
+      totalTimeMinutes: number,    // SUM of (submittedAt - startedAt) in minutes
+      activeExams: number          // Count of exams with status=IN_PROGRESS
+    }
+  },
+  message: "Statistics retrieved successfully",
+  timestamp: string
+}
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "stats": {
+      "completedExams": 5,
+      "averageScore": 78.5,
+      "totalTimeMinutes": 240,
+      "activeExams": 1
+    }
+  },
+  "message": "Statistics retrieved successfully",
+  "timestamp": "2025-12-30T12:34:56.789Z"
+}
+```
+
+**Business Rules:**
+- `averageScore` is `null` if user has no completed exams
+- `totalTimeMinutes` computed from `(submittedAt - startedAt)` for all FINISHED exams
+- Stats automatically update when user completes an exam
+- Only counts exams for the authenticated user
+
+**UI Mapping:**
+- `completedExams` → "Ujian Selesai" card
+- `averageScore` → "Rata-rata Skor" card
+- `totalTimeMinutes` → "Total Waktu" card
+- `activeExams` → "Ujian Aktif" card
+
+**Frontend Integration:**
+```typescript
+// Hook: useMyStats()
+// API: GET /api/v1/me/stats
+// Cache key: ['my-stats']
+// Invalidate on: exam submission, exam start
+```
+
+---
 ---
 
 ### 3.3 Questions Module
@@ -1322,6 +1384,14 @@ interface User {
   isEmailVerified: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// User Statistics (Dashboard)
+interface UserStats {
+  completedExams: number;      // Count of FINISHED exams for this user
+  averageScore: number | null; // Average totalScore, null if no finished exams
+  totalTimeMinutes: number;    // Total time spent on all finished exams (in minutes)
+  activeExams: number;         // Count of IN_PROGRESS exams for this user
 }
 
 // Question

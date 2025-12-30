@@ -140,3 +140,31 @@ export interface ProfileResponse {
 export interface UpdateProfileResponse {
     user: User;
 }
+
+// ============================================================================
+// USER STATS TYPES
+// ============================================================================
+
+/**
+ * User dashboard statistics
+ * Backend: GET /api/v1/me/stats
+ *
+ * Business Rules:
+ * - completedExams: Count of exams with status=FINISHED
+ * - averageScore: AVG(totalScore) of FINISHED exams, null if none completed
+ * - totalTimeMinutes: SUM of (submittedAt - startedAt) in minutes
+ * - activeExams: Count of exams with status=IN_PROGRESS
+ */
+export interface UserStats {
+    completedExams: number;
+    averageScore: number | null;
+    totalTimeMinutes: number;
+    activeExams: number;
+}
+
+/**
+ * GET /me/stats
+ */
+export interface UserStatsResponse {
+    stats: UserStats;
+}

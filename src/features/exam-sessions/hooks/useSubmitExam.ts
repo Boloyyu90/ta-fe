@@ -12,7 +12,6 @@ export function useSubmitExam(sessionId: number) {
     return useMutation<SubmitExamResponse, Error, void>({
         mutationFn: () => examSessionsApi.submitExam(sessionId),
         onSuccess: (data) => {
-
             // 1. Session-specific queries
             queryClient.invalidateQueries({ queryKey: ['exam-session', sessionId] });
             queryClient.invalidateQueries({ queryKey: ['exam-answers', sessionId] });

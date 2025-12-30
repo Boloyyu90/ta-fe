@@ -10,7 +10,8 @@
  * - useExamAnswers: Get answers for review (GET /exam-sessions/:id/answers)
  * - useMyResults: Get user's results (GET /results)
  * - useResultDetail: Get result detail (GET /exam-sessions/:id)
- * - useMyStats: Get dashboard stats (aggregated)
+ *
+ * NOTE: useMyStats moved to @/features/users/hooks (uses GET /me/stats backend endpoint)
  *
  * Admin hooks:
  * - useAdminSessions: Get all sessions (GET /admin/exam-sessions)
@@ -28,7 +29,6 @@ export { useSubmitExam } from './useSubmitExam';
 export { useMyResults } from './useMyResults';
 export { useResultDetail } from './useResultDetail';
 export { useUserExams } from './useUserExams';
-export { useMyStats } from './useMyStats';
 
 // Admin hooks
 export { useAdminSessions } from './useAdminSessions';

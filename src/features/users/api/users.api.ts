@@ -34,6 +34,7 @@ import type {
     DeleteUserResponse,
     ProfileResponse,
     UpdateProfileResponse,
+    UserStatsResponse,
 } from '../types/users.types';
 
 // ============================================================================
@@ -61,6 +62,23 @@ export const updateProfile = async (
     data: UpdateProfileRequest
 ): Promise<UpdateProfileResponse> => {
     const response = await apiClient.patch<UpdateProfileResponse>('/me', data);
+    return response.data;
+};
+
+/**
+ * Get current user's dashboard statistics
+ * GET /api/v1/me/stats
+ *
+ * Returns aggregated statistics:
+ * - completedExams: Count of FINISHED exams
+ * - averageScore: Average score (null if no completed exams)
+ * - totalTimeMinutes: Total time spent on finished exams
+ * - activeExams: Count of IN_PROGRESS exams
+ *
+ * @returns UserStatsResponse = { stats: UserStats }
+ */
+export const getMyStats = async (): Promise<UserStatsResponse> => {
+    const response = await apiClient.get<UserStatsResponse>('/me/stats');
     return response.data;
 };
 
@@ -148,6 +166,7 @@ export const usersApi = {
     // Participant
     getProfile,
     updateProfile,
+    getMyStats,
     // Admin
     createUser,
     getUsers,

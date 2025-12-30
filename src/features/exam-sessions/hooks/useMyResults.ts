@@ -34,6 +34,7 @@ export function useMyResults(params: UseMyResultsOptions = {}): UseMyResultsResu
         queryFn: () => examSessionsApi.getMyResults({ page, limit }),
         enabled,
         staleTime: 60 * 1000, // 1 minute
+        refetchOnMount: 'always', // Always refetch when page is visited to ensure fresh data
     });
 
     // Only show FINISHED exams (exclude TIMEOUT and CANCELLED)

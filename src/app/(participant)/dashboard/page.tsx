@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/features/auth/hooks';
 import { useLogout } from '@/features/auth/hooks';
-import { useMyStats } from '@/features/exam-sessions/hooks/useMyStats';
+import { useMyStats } from '@/features/users/hooks';
 import { useUserExams } from '@/features/exam-sessions/hooks';
 import { useMyResults } from '@/features/exam-sessions/hooks';
 import { useExams } from '@/features/exams/hooks';
@@ -140,7 +140,7 @@ export default function DashboardPage() {
     }, []);
 
     // Fetch dashboard data
-    const { data: stats, isLoading: statsLoading } = useMyStats();
+    const { data: statsData, isLoading: statsLoading } = useMyStats();
     const { data: inProgressData, isLoading: inProgressLoading } = useUserExams({
         status: 'IN_PROGRESS',
         limit: 10
@@ -153,6 +153,14 @@ export default function DashboardPage() {
         page: 1,
         limit: 6
     });
+
+    // Extract stats with fallback for loading state
+    const stats = statsData?.stats ?? {
+        completedExams: 0,
+        averageScore: null,
+        totalTimeMinutes: 0,
+        activeExams: 0,
+    };
 
     // Extract data from responses
     // ✅ P2 FIX: Removed redundant filter - backend already filters by status='IN_PROGRESS'
@@ -239,7 +247,9 @@ export default function DashboardPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-2xl font-bold">
-                                        {stats?.averageScore ?? 0}
+                                        {stats.averageScore !== null
+                                            ? stats.averageScore.toFixed(1)
+                                            : '-'}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
                                         Dari semua ujian yang diselesaikan
@@ -256,7 +266,7 @@ export default function DashboardPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-2xl font-bold">
-                                        {formatTimeSpent(stats?.totalTime ?? 0)}
+                                        {formatDuration(stats.totalTimeMinutes)}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
                                         Total waktu mengerjakan ujian
@@ -273,7 +283,7 @@ export default function DashboardPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-2xl font-bold">
-                                        {inProgressSessions.length}
+                                        {stats.activeExams}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
                                         Ujian yang sedang berlangsung

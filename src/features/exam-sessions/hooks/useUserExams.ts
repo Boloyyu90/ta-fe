@@ -11,5 +11,6 @@ export function useUserExams(params?: GetUserExamsParams) {
     return useQuery({
         queryKey: ['user-exams', params],
         queryFn: () => examSessionsApi.getUserExams(params),
+        refetchOnMount: 'always', // Always refetch when page is visited to ensure fresh data
     });
 }
