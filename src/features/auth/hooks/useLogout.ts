@@ -6,12 +6,14 @@
  * ✅ Removed useEffect anti-pattern
  * ✅ Uses onSuccess/onError callbacks
  * ✅ Proper Indonesian message
+ * ✅ Clears React Query cache to prevent cross-user data leakage
  */
 
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/features/auth/store/auth.store";
 import { authApi } from "@/features/auth/api/auth.api";
+import { queryClient } from "@/shared/lib/queryClient";
 import { toast } from "sonner";
 
 /**
@@ -35,6 +37,10 @@ export const useLogout = () => {
             }
         },
         onSuccess: () => {
+            // SECURITY FIX: Clear React Query cache to prevent cross-user data leakage
+            // This must happen BEFORE clearAuth to ensure no stale data remains
+            queryClient.clear();
+
             // Clear auth state from store and storage
             clearAuth();
 
@@ -45,6 +51,9 @@ export const useLogout = () => {
             router.push("/login");
         },
         onError: (error) => {
+            // SECURITY FIX: Clear React Query cache even on error
+            queryClient.clear();
+
             // Clear auth even if API call fails (offline/network error)
             clearAuth();
 
