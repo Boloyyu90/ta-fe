@@ -56,10 +56,6 @@ export interface ProctoringMonitorProps {
     captureInterval?: number;
     /** Enable/disable proctoring */
     enabled?: boolean;
-    /** Callback to expose video ref for external use */
-    onVideoRefReady?: (videoRef: React.RefObject<HTMLVideoElement | null>) => void;
-    /** Whether to show compact mode (hide webcam preview, just show status) */
-    compact?: boolean;
 }
 
 // ============================================================================
@@ -72,8 +68,6 @@ export function ProctoringMonitor({
                                       onNewViolation,
                                       captureInterval = 5000,  // 5s = 12 requests/min (within 30/min contract limit)
                                       enabled = true,
-                                      onVideoRefReady,
-                                      compact = false,
                                   }: ProctoringMonitorProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
@@ -121,25 +115,56 @@ export function ProctoringMonitor({
 
     /**
      * Capture frame from video and convert to base64
+     * CRITICAL: Ensure proper dimensions for YOLO face detection
      */
     const captureFrame = useCallback((): string | null => {
-        if (!videoRef.current || !canvasRef.current) return null;
+        if (!videoRef.current || !canvasRef.current) {
+            console.warn('[PROCTORING] captureFrame: video or canvas ref is null');
+            return null;
+        }
 
         const video = videoRef.current;
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
 
-        if (!context) return null;
+        if (!context) {
+            console.warn('[PROCTORING] captureFrame: canvas context is null');
+            return null;
+        }
 
-        // Set canvas size to match video
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        // ✅ Get actual video stream dimensions with fallback
+        const videoWidth = video.videoWidth || 640;
+        const videoHeight = video.videoHeight || 480;
+
+        // ✅ Validate dimensions are usable (not collapsed)
+        if (videoWidth < 100 || videoHeight < 100) {
+            console.warn('[PROCTORING] captureFrame: Video dimensions too small:', {
+                videoWidth,
+                videoHeight,
+                hint: 'Check if video element has proper width/height attributes'
+            });
+            // Still proceed but log warning
+        }
+
+        // ✅ CRITICAL: Ensure canvas matches video dimensions
+        canvas.width = videoWidth;
+        canvas.height = videoHeight;
 
         // Draw current video frame to canvas
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        context.drawImage(video, 0, 0, videoWidth, videoHeight);
 
         // Convert to base64
-        return canvas.toDataURL('image/jpeg', 0.8);
+        const base64Frame = canvas.toDataURL('image/jpeg', 0.8);
+
+        // ✅ DEBUG: Log frame capture stats (remove after verification)
+        if (process.env.NODE_ENV === 'development') {
+            console.log('[PROCTORING] Frame captured:', {
+                frameSize: Math.round(base64Frame.length / 1024) + 'KB',
+                dimensions: `${videoWidth}x${videoHeight}`,
+            });
+        }
+
+        return base64Frame;
     }, []);
 
     /**
@@ -325,16 +350,6 @@ export function ProctoringMonitor({
     }, [enabled, setWebcamEnabled, setWebcamStreaming, setWebcamPermission, setWebcamError]);
 
     // =========================================================================
-    // EXPOSE VIDEO REF TO PARENT (for FloatingProctoringStatus)
-    // =========================================================================
-
-    useEffect(() => {
-        if (webcam.isStreaming && videoRef.current && onVideoRefReady) {
-            onVideoRefReady(videoRef as React.RefObject<HTMLVideoElement | null>);
-        }
-    }, [webcam.isStreaming, onVideoRefReady]);
-
-    // =========================================================================
     // ML INTEGRATION: PERIODIC FRAME CAPTURE
     // =========================================================================
 
@@ -474,25 +489,6 @@ export function ProctoringMonitor({
     // =========================================================================
     // RENDER
     // =========================================================================
-
-    // Compact mode: only render hidden elements needed for proctoring to work
-    if (compact) {
-        return (
-            <>
-                {/* Hidden video and canvas for proctoring - MUST be in DOM for capture to work */}
-                <div className="sr-only" aria-hidden="true">
-                    <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="w-1 h-1"
-                    />
-                    <canvas ref={canvasRef} className="w-1 h-1" />
-                </div>
-            </>
-        );
-    }
 
     return (
         <Card>

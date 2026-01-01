@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
@@ -24,7 +24,6 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { Clock, CheckCircle, Circle, AlertTriangle, AlertCircle, Loader2 } from 'lucide-react';
 import { ProctoringMonitor } from '@/features/proctoring/components/ProctoringMonitor';
-import { FloatingProctoringStatus } from '@/features/proctoring/components/FloatingProctoringStatus';
 import { FullScreenViolationAlert } from '@/features/proctoring/components/FullScreenViolationAlert';
 import { ViolationHistorySidebar } from '@/features/proctoring/components/ViolationHistorySidebar';
 import { useProctoringStore } from '@/features/proctoring/store/proctoring.store';
@@ -50,16 +49,10 @@ export default function TakeExamPage() {
     const [selectedOption, setSelectedOption] = useState<AnswerOption>(null);
     const [answersMap, setAnswersMap] = useState<Map<number, AnswerOption>>(new Map());
 
-    // Proctoring state for enhanced UI
-    const [videoRef, setVideoRef] = useState<React.RefObject<HTMLVideoElement | null> | null>(null);
+    // Proctoring state for full-screen violation alerts
     const [showViolationAlert, setShowViolationAlert] = useState(false);
     const [latestViolation, setLatestViolation] = useState<Violation | null>(null);
     const { violationCount } = useProctoringStore();
-
-    // Handle video ref from ProctoringMonitor
-    const handleVideoRefReady = useCallback((ref: React.RefObject<HTMLVideoElement | null>) => {
-        setVideoRef(ref);
-    }, []);
 
     // Handle new violation from ProctoringMonitor
     const handleNewViolation = useCallback((violation: Violation) => {
@@ -256,15 +249,6 @@ export default function TakeExamPage() {
 
     return (
         <div className="min-h-screen bg-background">
-            {/* ✅ THESIS SHOWCASE: Floating AI Monitoring Status Indicator */}
-            {videoRef && (
-                <FloatingProctoringStatus
-                    videoRef={videoRef}
-                    sessionId={sessionId}
-                    visible={true}
-                />
-            )}
-
             {/* ✅ THESIS SHOWCASE: Full-Screen Violation Alert Overlay */}
             <FullScreenViolationAlert
                 violation={latestViolation}
@@ -274,40 +258,48 @@ export default function TakeExamPage() {
                 autoDismissDelay={3000}
             />
 
-            {/* ✅ Proctoring Monitor (compact mode - hidden but functional) */}
-            <ProctoringMonitor
-                sessionId={sessionId}
-                enabled={true}
-                captureInterval={5000}
-                compact={true}
-                onVideoRefReady={handleVideoRefReady}
-                onNewViolation={handleNewViolation}
-            />
+            {/* Sticky Header with Timer and Inline Proctoring */}
+            <div className="sticky top-0 z-40 bg-background border-b shadow-sm">
+                <div className="max-w-7xl mx-auto px-4 py-3">
+                    {/* Top Row: Title + Timer + Proctoring Monitor */}
+                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-start">
+                        {/* Left: Title, Timer, and Progress */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h1 className="text-lg font-bold">{sessionData?.exam.title}</h1>
+                                    {sessionData && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Percobaan ke-{sessionData.attemptNumber}
+                                        </p>
+                                    )}
+                                </div>
+                                {/* Timer */}
+                                <div className={`flex items-center gap-2 text-xl font-mono font-bold ${timer.timeColor} ${timer.isCritical ? 'animate-pulse' : ''}`}>
+                                    <Clock className="h-5 w-5" />
+                                    {timer.formattedTime}
+                                </div>
+                            </div>
 
-            {/* Sticky Header with Timer */}
-            <div className="sticky top-0 z-40 bg-background border-b">
-                <div className="max-w-7xl mx-auto px-6 py-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-xl font-bold">{sessionData?.exam.title}</h1>
-                            {sessionData && (
-                                <p className="text-sm text-muted-foreground">
-                                    Percobaan ke-{sessionData.attemptNumber}
-                                </p>
-                            )}
+                            {/* Progress Bar */}
+                            <div>
+                                <div className="flex items-center justify-between text-xs mb-1">
+                                    <span>Progress: {answeredCount} / {totalQuestions} soal</span>
+                                    <span>{Math.round(progressPercentage)}%</span>
+                                </div>
+                                <Progress value={progressPercentage} className="h-1.5" />
+                            </div>
                         </div>
-                        <div className={`flex items-center gap-2 text-2xl font-mono font-bold ${timer.timeColor} ${timer.isCritical ? 'animate-pulse' : ''}`}>
-                            <Clock className="h-6 w-6" />
-                            {timer.formattedTime}
+
+                        {/* Right: Inline Proctoring Monitor - Always Visible */}
+                        <div className="w-full lg:w-72">
+                            <ProctoringMonitor
+                                sessionId={sessionId}
+                                enabled={true}
+                                captureInterval={5000}
+                                onNewViolation={handleNewViolation}
+                            />
                         </div>
-                    </div>
-                    {/* Progress Bar */}
-                    <div className="mt-4">
-                        <div className="flex items-center justify-between text-sm mb-2">
-                            <span>Progress: {answeredCount} / {totalQuestions} soal</span>
-                            <span>{Math.round(progressPercentage)}%</span>
-                        </div>
-                        <Progress value={progressPercentage} className="h-2" />
                     </div>
                 </div>
             </div>
