@@ -26,13 +26,11 @@ module.exports = {
                 primary: {
                     DEFAULT: "hsl(var(--primary))",
                     foreground: "hsl(var(--primary-foreground))",
-                    // ✅ Only keep the shade that's actually used
-                    700: "hsl(213, 50%, 30%)", // Used in hover states
+                    700: "hsl(213, 50%, 30%)",
                 },
                 secondary: {
                     DEFAULT: "hsl(var(--secondary))",
                     foreground: "hsl(var(--secondary-foreground))",
-                    // No extended shades needed - not being used
                 },
                 accent: {
                     DEFAULT: "hsl(var(--accent))",
@@ -54,6 +52,31 @@ module.exports = {
                     DEFAULT: "hsl(var(--card))",
                     foreground: "hsl(var(--card-foreground))",
                 },
+
+                // Success colors
+                success: {
+                    DEFAULT: "hsl(var(--success))",
+                    foreground: "hsl(var(--success-foreground))",
+                },
+
+                // Warning colors
+                warning: {
+                    DEFAULT: "hsl(var(--warning))",
+                    foreground: "hsl(var(--warning-foreground))",
+                },
+
+                // NEW: Info colors
+                info: {
+                    DEFAULT: "hsl(var(--info))",
+                    foreground: "hsl(var(--info-foreground))",
+                },
+
+                // Severity colors for proctoring
+                severity: {
+                    high: "hsl(var(--severity-high))",
+                    medium: "hsl(var(--severity-medium))",
+                    low: "hsl(var(--severity-low))",
+                },
             },
             borderRadius: {
                 lg: "var(--radius)",
@@ -61,7 +84,7 @@ module.exports = {
                 sm: "calc(var(--radius) - 4px)",
             },
             keyframes: {
-                // ✅ Shadcn/ui required animations
+                // Shadcn/ui required
                 "accordion-down": {
                     from: { height: "0" },
                     to: { height: "var(--radix-accordion-content-height)" },
@@ -71,7 +94,7 @@ module.exports = {
                     to: { height: "0" },
                 },
 
-                // ✅ ONLY the animations actually used in the landing page
+                // Landing page animations
                 "slide-in-bottom": {
                     "0%": {
                         transform: "translateY(100%)",
@@ -106,16 +129,55 @@ module.exports = {
                         transform: "translateY(-10px)"
                     },
                 },
+
+                // Real-time monitoring animations
+                "pulse": {
+                    "0%, 100%": {
+                        opacity: "1"
+                    },
+                    "50%": {
+                        opacity: "0.5"
+                    }
+                },
+                "ping": {
+                    "75%, 100%": {
+                        transform: "scale(2)",
+                        opacity: "0"
+                    }
+                },
+                "blink": {
+                    "0%, 100%": {
+                        opacity: "1"
+                    },
+                    "50%": {
+                        opacity: "0"
+                    }
+                },
+                "shake": {
+                    "0%, 100%": {
+                        transform: "translateX(0)"
+                    },
+                    "10%, 30%, 50%, 70%, 90%": {
+                        transform: "translateX(-4px)"
+                    },
+                    "20%, 40%, 60%, 80%": {
+                        transform: "translateX(4px)"
+                    }
+                },
             },
             animation: {
                 "accordion-down": "accordion-down 0.2s ease-out",
                 "accordion-up": "accordion-up 0.2s ease-out",
-
-                // ✅ Actually used in landing page
                 "slide-in-bottom": "slide-in-bottom 0.6s ease-out",
                 "pulse-subtle": "pulse-subtle 3s ease-in-out infinite",
                 "gradient-x": "gradient-x 3s ease infinite",
                 "float": "float 3s ease-in-out infinite",
+
+                // Real-time animations
+                "pulse": "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                "ping": "ping 1s cubic-bezier(0, 0, 0.2, 1) infinite",
+                "blink": "blink 1s ease-in-out infinite",
+                "shake": "shake 0.5s ease-in-out",
             },
         },
     },

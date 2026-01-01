@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
@@ -24,6 +24,11 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { Clock, CheckCircle, Circle, AlertTriangle, AlertCircle, Loader2 } from 'lucide-react';
 import { ProctoringMonitor } from '@/features/proctoring/components/ProctoringMonitor';
+import { FloatingProctoringStatus } from '@/features/proctoring/components/FloatingProctoringStatus';
+import { FullScreenViolationAlert } from '@/features/proctoring/components/FullScreenViolationAlert';
+import { ViolationHistorySidebar } from '@/features/proctoring/components/ViolationHistorySidebar';
+import { useProctoringStore } from '@/features/proctoring/store/proctoring.store';
+import type { Violation } from '@/features/proctoring/types/proctoring.types';
 import { ExamTakingSkeleton } from '@/features/exam-sessions/components/ExamTakingSkeleton';
 import { EXAM_SESSION_ERRORS, getErrorMessage } from '@/shared/lib/errors';
 import {
@@ -44,6 +49,28 @@ export default function TakeExamPage() {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedOption, setSelectedOption] = useState<AnswerOption>(null);
     const [answersMap, setAnswersMap] = useState<Map<number, AnswerOption>>(new Map());
+
+    // Proctoring state for enhanced UI
+    const [videoRef, setVideoRef] = useState<React.RefObject<HTMLVideoElement | null> | null>(null);
+    const [showViolationAlert, setShowViolationAlert] = useState(false);
+    const [latestViolation, setLatestViolation] = useState<Violation | null>(null);
+    const { violationCount } = useProctoringStore();
+
+    // Handle video ref from ProctoringMonitor
+    const handleVideoRefReady = useCallback((ref: React.RefObject<HTMLVideoElement | null>) => {
+        setVideoRef(ref);
+    }, []);
+
+    // Handle new violation from ProctoringMonitor
+    const handleNewViolation = useCallback((violation: Violation) => {
+        setLatestViolation(violation);
+        setShowViolationAlert(true);
+    }, []);
+
+    // Dismiss violation alert
+    const handleDismissViolationAlert = useCallback(() => {
+        setShowViolationAlert(false);
+    }, []);
 
     // Fetch session data
     const {
@@ -229,8 +256,36 @@ export default function TakeExamPage() {
 
     return (
         <div className="min-h-screen bg-background">
+            {/* ✅ THESIS SHOWCASE: Floating AI Monitoring Status Indicator */}
+            {videoRef && (
+                <FloatingProctoringStatus
+                    videoRef={videoRef}
+                    sessionId={sessionId}
+                    visible={true}
+                />
+            )}
+
+            {/* ✅ THESIS SHOWCASE: Full-Screen Violation Alert Overlay */}
+            <FullScreenViolationAlert
+                violation={latestViolation}
+                show={showViolationAlert}
+                onDismiss={handleDismissViolationAlert}
+                violationCount={violationCount}
+                autoDismissDelay={3000}
+            />
+
+            {/* ✅ Proctoring Monitor (compact mode - hidden but functional) */}
+            <ProctoringMonitor
+                sessionId={sessionId}
+                enabled={true}
+                captureInterval={5000}
+                compact={true}
+                onVideoRefReady={handleVideoRefReady}
+                onNewViolation={handleNewViolation}
+            />
+
             {/* Sticky Header with Timer */}
-            <div className="sticky top-0 z-50 bg-background border-b">
+            <div className="sticky top-0 z-40 bg-background border-b">
                 <div className="max-w-7xl mx-auto px-6 py-4">
                     <div className="flex items-center justify-between">
                         <div>
@@ -258,64 +313,10 @@ export default function TakeExamPage() {
             </div>
 
             <div className="max-w-7xl mx-auto p-6">
-                {/* MED-007 FIX: Add md:grid-cols-2 for tablet responsiveness */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Sidebar */}
-                    <div className="md:col-span-1 lg:col-span-1 space-y-6">
-                        {/* Proctoring Monitor */}
-                        <ProctoringMonitor
-                            sessionId={sessionId}
-                            enabled={true}
-                            captureInterval={5000}
-                        />
-
-                        {/* Question Navigation Grid */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base">Navigasi Soal</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid grid-cols-5 gap-2">
-                                    {questionsData.questions.map((q, index) => {
-                                        const isAnswered = answersMap.has(q.examQuestionId);
-                                        const isCurrent = index === currentQuestionIndex;
-                                        return (
-                                            <button
-                                                key={q.examQuestionId}
-                                                onClick={() => goToQuestion(index)}
-                                                className={`
-                                                    aspect-square rounded-lg border-2 flex items-center justify-center text-sm font-medium
-                                                    transition-all
-                                                    ${isCurrent ? 'border-primary bg-primary text-primary-foreground' : ''}
-                                                    ${isAnswered && !isCurrent ? 'border-green-500 bg-green-50 text-green-700' : ''}
-                                                    ${!isAnswered && !isCurrent ? 'border-gray-300 hover:border-gray-400' : ''}
-                                                `}
-                                            >
-                                                {index + 1}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                                <div className="mt-4 space-y-2 text-xs">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-4 h-4 rounded border-2 border-primary bg-primary"></div>
-                                        <span>Soal saat ini</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-4 h-4 rounded border-2 border-green-500 bg-green-50"></div>
-                                        <span>Sudah dijawab</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-4 h-4 rounded border-2 border-gray-300"></div>
-                                        <span>Belum dijawab</span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Main Content - Question */}
-                    <div className="md:col-span-1 lg:col-span-2">
+                {/* Enhanced layout: Questions (main) + Navigation & Violations (sidebar) */}
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+                    {/* Main Content - Question Card */}
+                    <div className="order-2 lg:order-1">
                         <Card>
                             <CardHeader>
                                 <div className="flex items-center justify-between">
@@ -426,6 +427,59 @@ export default function TakeExamPage() {
                                 </div>
                             </CardContent>
                         </Card>
+                    </div>
+
+                    {/* Sidebar - Navigation + Violations */}
+                    <div className="order-1 lg:order-2 space-y-4 lg:sticky lg:top-24 lg:h-fit">
+                        {/* Question Navigation Grid */}
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base">Navigasi Soal</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-5 gap-2">
+                                    {questionsData.questions.map((q, index) => {
+                                        const isAnswered = answersMap.has(q.examQuestionId);
+                                        const isCurrent = index === currentQuestionIndex;
+                                        return (
+                                            <button
+                                                key={q.examQuestionId}
+                                                onClick={() => goToQuestion(index)}
+                                                className={`
+                                                    aspect-square rounded-lg border-2 flex items-center justify-center text-sm font-medium
+                                                    transition-all
+                                                    ${isCurrent ? 'border-primary bg-primary text-primary-foreground' : ''}
+                                                    ${isAnswered && !isCurrent ? 'border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' : ''}
+                                                    ${!isAnswered && !isCurrent ? 'border-gray-300 hover:border-gray-400 dark:border-gray-600' : ''}
+                                                `}
+                                            >
+                                                {index + 1}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <div className="mt-4 space-y-2 text-xs">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded border-2 border-primary bg-primary"></div>
+                                        <span>Soal saat ini</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded border-2 border-green-500 bg-green-50 dark:bg-green-900/20"></div>
+                                        <span>Sudah dijawab</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded border-2 border-gray-300 dark:border-gray-600"></div>
+                                        <span>Belum dijawab</span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* ✅ THESIS SHOWCASE: Violation History Sidebar */}
+                        <ViolationHistorySidebar
+                            maxHeight="300px"
+                            collapsible={true}
+                        />
                     </div>
                 </div>
             </div>

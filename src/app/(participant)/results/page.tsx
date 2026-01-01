@@ -4,6 +4,9 @@
  * ✅ FIXED:
  * - useMyResults returns { data, pagination } directly from the hook
  * - Added proper types to avoid implicit any
+ * - Stats cards now use backend GET /me/stats endpoint (single source of truth)
+ * - Pass/fail uses exam.passingScore (not hardcoded 70)
+ * - Added prominent LULUS/TIDAK LULUS badges like detail page
  */
 
 'use client';
@@ -11,6 +14,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useMyResults } from '@/features/exam-sessions/hooks';
+import { useMyStats } from '@/features/users/hooks';
 import type { ExamResult, ExamStatus } from '@/features/exam-sessions/types/exam-sessions.types';
 
 // UI Components
@@ -58,17 +62,28 @@ export default function ResultsPage() {
     // State
     const [page, setPage] = useState(1);
 
+    // ✅ FIX: Use backend stats endpoint for accurate stats
+    const { data: statsData, isLoading: statsLoading } = useMyStats();
+    const stats = statsData?.stats ?? {
+        completedExams: 0,
+        averageScore: null,
+        totalTimeMinutes: 0,
+        activeExams: 0,
+    };
+
     const { data: results, pagination, isLoading, isError } = useMyResults({
         page,
         limit: 10,
     });
 
-    // Calculate stats
-    const totalExams = results?.length || 0;
-    const avgScore = totalExams > 0
-        ? Math.round(results!.reduce((sum: number, r: ExamResult) => sum + (r.totalScore || 0), 0) / totalExams)
-        : 0;
-    const passedCount = results?.filter((r: ExamResult) => r.totalScore && r.totalScore >= 70).length || 0;
+    // ✅ FIX: Compute passed count using actual passingScore from each exam
+    const passedCount = results?.filter((r: ExamResult) => {
+        const passingScore = r.exam.passingScore ?? 0;
+        return r.status === 'FINISHED' &&
+               r.totalScore !== null &&
+               passingScore > 0 &&
+               r.totalScore >= passingScore;
+    }).length || 0;
 
     // Format date
     const formatDate = (dateString: string | null) => {
@@ -121,15 +136,22 @@ export default function ResultsPage() {
                 </p>
             </div>
 
-            {/* Stats Cards */}
+            {/* Stats Cards - Using backend /me/stats endpoint */}
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Ujian</CardTitle>
+                        <CardTitle className="text-sm font-medium">Ujian Selesai</CardTitle>
                         <BookOpen className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{pagination?.total || 0}</div>
+                        {statsLoading ? (
+                            <Skeleton className="h-8 w-16" />
+                        ) : (
+                            <div className="text-2xl font-bold">{stats.completedExams}</div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Total ujian yang telah diselesaikan
+                        </p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -138,7 +160,16 @@ export default function ResultsPage() {
                         <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{avgScore}</div>
+                        {statsLoading ? (
+                            <Skeleton className="h-8 w-16" />
+                        ) : (
+                            <div className="text-2xl font-bold">
+                                {stats.averageScore !== null ? stats.averageScore.toFixed(1) : '-'}
+                            </div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Dari semua ujian selesai
+                        </p>
                     </CardContent>
                 </Card>
                 <Card className="border-green-200">
@@ -147,7 +178,14 @@ export default function ResultsPage() {
                         <CheckCircle2 className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{passedCount}</div>
+                        {isLoading ? (
+                            <Skeleton className="h-8 w-16" />
+                        ) : (
+                            <div className="text-2xl font-bold text-green-600">{passedCount}</div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Dari {results?.length || 0} hasil di halaman ini
+                        </p>
                     </CardContent>
                 </Card>
             </div>
@@ -201,19 +239,25 @@ export default function ResultsPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {/* ✅ FIX: Add proper type annotation */}
                                         {results.map((result: ExamResult) => {
                                             const StatusIcon = statusConfig[result.status]?.icon || AlertCircle;
-                                            const isPassed = result.totalScore !== null && result.totalScore >= 70;
+                                            // ✅ FIX: Use actual passingScore from exam, not hardcoded 70
+                                            const passingScore = result.exam.passingScore ?? 0;
+                                            const isPassed = result.status === 'FINISHED' &&
+                                                result.totalScore !== null &&
+                                                passingScore > 0 &&
+                                                result.totalScore >= passingScore;
 
                                             return (
                                                 <TableRow key={result.id}>
                                                     <TableCell>
                                                         <div className="space-y-1">
-                                                            <span className="font-medium max-w-[200px] truncate block">
+                                                            <Link
+                                                                href={`/results/${result.id}`}
+                                                                className="font-medium max-w-[200px] truncate block hover:underline hover:text-primary"
+                                                            >
                                                                 {result.exam.title}
-                                                            </span>
-                                                            {/* HIGH-006 FIX: Show attempt number */}
+                                                            </Link>
                                                             <Badge variant="outline" className="text-xs">
                                                                 Percobaan #{result.attemptNumber ?? 1}
                                                             </Badge>
@@ -229,18 +273,40 @@ export default function ResultsPage() {
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className={`font-bold text-lg ${
-                                                                isPassed ? 'text-green-600' : 'text-red-600'
-                                                            }`}>
-                                                                {result.totalScore ?? '-'}
-                                                            </span>
-                                                            {result.totalScore !== null && (
-                                                                isPassed ? (
-                                                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                                                ) : (
-                                                                    <XCircle className="h-4 w-4 text-red-500" />
-                                                                )
+                                                        <div className="space-y-1">
+                                                            {/* Score with passing score context */}
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`font-bold text-lg ${
+                                                                    result.status === 'FINISHED' && passingScore > 0
+                                                                        ? (isPassed ? 'text-green-600' : 'text-red-600')
+                                                                        : ''
+                                                                }`}>
+                                                                    {result.totalScore ?? '-'}
+                                                                </span>
+                                                                {passingScore > 0 && (
+                                                                    <span className="text-sm text-muted-foreground">
+                                                                        / {passingScore}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {/* ✅ FIX: Add prominent LULUS/TIDAK LULUS badge like detail page */}
+                                                            {result.status === 'FINISHED' && passingScore > 0 && (
+                                                                <Badge
+                                                                    variant={isPassed ? 'default' : 'destructive'}
+                                                                    className={`text-xs ${isPassed ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                                                                >
+                                                                    {isPassed ? (
+                                                                        <>
+                                                                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                                            LULUS
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <XCircle className="h-3 w-3 mr-1" />
+                                                                            TIDAK LULUS
+                                                                        </>
+                                                                    )}
+                                                                </Badge>
                                                             )}
                                                         </div>
                                                     </TableCell>

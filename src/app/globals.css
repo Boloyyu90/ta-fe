@@ -45,6 +45,27 @@
 
         /* Radius */
         --radius: 0.5rem;
+
+        /* Success colors (LULUS, pass states) */
+        --success: 142 76% 36%;          /* Green 600 */
+        --success-foreground: 0 0% 100%;
+
+        /* Warning colors (medium severity) */
+        --warning: 38 92% 50%;           /* Amber 500 */
+        --warning-foreground: 222.2 84% 4.9%;
+
+        /* Info colors (neutral notifications) */
+        --info: 199 89% 48%;             /* Sky 500 */
+        --info-foreground: 0 0% 100%;
+
+        /* Proctoring severity levels */
+        --severity-high: 0 84.2% 60.2%;      /* Red 500 */
+        --severity-medium: 38 92% 50%;       /* Amber 500 */
+        --severity-low: 220 14% 71%;         /* Gray 400 */
+
+        --severity-high-foreground: 0 0% 100%;
+        --severity-medium-foreground: 222.2 84% 4.9%;
+        --severity-low-foreground: 222.2 84% 4.9%;
     }
 
     .dark {
@@ -86,6 +107,18 @@
 
         /* Ring */
         --ring: 213 50% 50%;
+
+        /* Success colors for dark mode */
+        --success: 142 71% 45%;
+        --success-foreground: 210 40% 98%;
+
+        /* NEW: Warning colors for dark mode */
+        --warning: 38 92% 60%;
+        --warning-foreground: 210 40% 98%;
+
+        /* Info colors for dark mode */
+        --info: 199 89% 58%;
+        --info-foreground: 210 40% 98%;
     }
 }
 
@@ -98,13 +131,57 @@
         @apply bg-background text-foreground;
     }
 
-    /* ✅ CRITICAL: This enables smooth scroll for navbar anchor links */
     html {
         scroll-behavior: smooth;
     }
 
-    /* ✅ OPTIONAL: Add offset for fixed navbar to prevent content from hiding under it */
     section {
-        scroll-margin-top: 80px; /* Adjust based on navbar height (h-16 = 64px + padding) */
+        scroll-margin-top: 80px;
+    }
+}
+
+/* ✅ NEW: Utility classes for quick styling */
+@layer utilities {
+    /* Status badges */
+    .status-live {
+        @apply bg-red-500 text-white;
+    }
+
+    .status-monitoring {
+        @apply bg-primary text-primary-foreground;
+    }
+
+    .status-completed {
+        @apply bg-success text-success-foreground;
+    }
+
+    .status-warning {
+        @apply bg-warning text-warning-foreground;
+    }
+
+    /* Border accents */
+    .border-accent-success {
+        @apply border-l-4 border-l-success;
+    }
+
+    .border-accent-warning {
+        @apply border-l-4 border-l-warning;
+    }
+
+    .border-accent-danger {
+        @apply border-l-4 border-l-destructive;
+    }
+
+    /* Gradient backgrounds */
+    .gradient-primary {
+        @apply bg-gradient-to-br from-primary/10 to-primary/5;
+    }
+
+    .gradient-success {
+        @apply bg-gradient-to-br from-success/10 to-success/5;
+    }
+
+    .gradient-warning {
+        @apply bg-gradient-to-br from-warning/10 to-warning/5;
     }
 }
