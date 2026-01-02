@@ -277,9 +277,10 @@ export function ProctoringMonitor({
                                 : 'Pelanggaran terdeteksi';
 
                     // Create violation for UI display
+                    // ✅ FIX: Use validated violationType consistently (not result.eventType which can be null)
                     const violation: Violation = {
                         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                        type: result.eventType || 'NO_FACE_DETECTED',
+                        type: violationType,  // Use validated type from analysis.violations[0]
                         severity,
                         timestamp: new Date().toISOString(),
                         message,
