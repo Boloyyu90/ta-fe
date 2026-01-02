@@ -258,13 +258,13 @@ export default function TakeExamPage() {
                 autoDismissDelay={3000}
             />
 
-            {/* Sticky Header with Timer and Inline Proctoring */}
+            {/* Sticky Header with Timer and Webcam Preview */}
             <div className="sticky top-0 z-40 bg-background border-b shadow-sm">
                 <div className="max-w-7xl mx-auto px-4 py-3">
-                    {/* Top Row: Title + Timer + Proctoring Monitor */}
-                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-start">
+                    {/* Top Row: Title + Timer + Webcam Preview */}
+                    <div className="flex items-start gap-4">
                         {/* Left: Title, Timer, and Progress */}
-                        <div className="space-y-3">
+                        <div className="flex-1 space-y-3">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h1 className="text-lg font-bold">{sessionData?.exam.title}</h1>
@@ -291,13 +291,14 @@ export default function TakeExamPage() {
                             </div>
                         </div>
 
-                        {/* Right: Inline Proctoring Monitor - Always Visible */}
-                        <div className="w-full lg:w-72">
+                        {/* Right: Webcam Preview Only - Always Visible */}
+                        <div className="w-48 lg:w-56 flex-shrink-0">
                             <ProctoringMonitor
                                 sessionId={sessionId}
                                 enabled={true}
                                 captureInterval={5000}
                                 onNewViolation={handleNewViolation}
+                                uiMode="webcamOnly"
                             />
                         </div>
                     </div>

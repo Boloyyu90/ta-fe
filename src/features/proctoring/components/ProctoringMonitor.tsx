@@ -45,6 +45,8 @@ import type { ProctoringEvent, FaceAnalysisResult, Violation } from '../types/pr
 // COMPONENT PROPS
 // ============================================================================
 
+export type ProctoringUIMode = 'full' | 'webcamOnly';
+
 export interface ProctoringMonitorProps {
     /** Current exam session ID */
     sessionId: number;
@@ -56,6 +58,8 @@ export interface ProctoringMonitorProps {
     captureInterval?: number;
     /** Enable/disable proctoring */
     enabled?: boolean;
+    /** UI render mode: 'full' shows complete card, 'webcamOnly' shows just webcam preview */
+    uiMode?: ProctoringUIMode;
 }
 
 // ============================================================================
@@ -68,6 +72,7 @@ export function ProctoringMonitor({
                                       onNewViolation,
                                       captureInterval = 5000,  // 5s = 12 requests/min (within 30/min contract limit)
                                       enabled = true,
+                                      uiMode = 'full',
                                   }: ProctoringMonitorProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
@@ -154,13 +159,20 @@ export function ProctoringMonitor({
         context.drawImage(video, 0, 0, videoWidth, videoHeight);
 
         // Convert to base64
-        const base64Frame = canvas.toDataURL('image/jpeg', 0.8);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
 
-        // ✅ DEBUG: Log frame capture stats (remove after verification)
+        // ✅ CRITICAL FIX: Strip data URL prefix for backend compatibility
+        // Backend expects raw base64, not "data:image/jpeg;base64,..."
+        const base64Frame = dataUrl.includes(',')
+            ? dataUrl.split(',')[1]
+            : dataUrl;
+
+        // ✅ DEBUG: Log frame capture stats
         if (process.env.NODE_ENV === 'development') {
             console.log('[PROCTORING] Frame captured:', {
                 frameSize: Math.round(base64Frame.length / 1024) + 'KB',
                 dimensions: `${videoWidth}x${videoHeight}`,
+                hasValidBase64: base64Frame.length > 1000, // Should be 50KB+ for valid image
             });
         }
 
@@ -175,19 +187,46 @@ export function ProctoringMonitor({
         async () => {
             // Skip if already analyzing or not streaming
             if (isAnalyzing || !webcam.isStreaming) {
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('[PROCTORING] Skipping analysis:', {
+                        isAnalyzing,
+                        isStreaming: webcam.isStreaming,
+                    });
+                }
                 return;
             }
 
             const imageData = captureFrame();
-            if (!imageData) return;
+            if (!imageData) {
+                console.warn('[PROCTORING] captureFrame returned null - check video/canvas refs');
+                return;
+            }
 
             setAnalyzing(true);
 
             try {
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('[PROCTORING] Sending frame to ML API:', {
+                        sessionId,
+                        base64Length: imageData.length,
+                        base64Preview: imageData.substring(0, 50) + '...',
+                    });
+                }
+
                 // Call YOLO ML service via backend
                 const result = await analyzeFace.mutateAsync({
                     imageBase64: imageData,
                 });
+
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('[PROCTORING] ML API Response:', {
+                        status: result.analysis.status,
+                        violations: result.analysis.violations,
+                        eventLogged: result.eventLogged,
+                        eventType: result.eventType,
+                        usedFallback: result.usedFallback,
+                    });
+                }
 
                 // Store the analysis result
                 setLastAnalysis(result.analysis);
@@ -205,22 +244,23 @@ export function ProctoringMonitor({
                 );
 
                 if (hasViolation && result.eventLogged) {
-                    // Increment counters
-                    incrementViolationCount();
-
                     // Determine severity using helper function with type guard
                     const violationString = result.analysis.violations[0];
-                    
-                    // Validate that violation is a valid ProctoringEventType
+
+                    // ✅ CRITICAL FIX: Validate type BEFORE incrementing counters
+                    // This prevents counter/store mismatch on invalid types
                     if (!isProctoringEventType(violationString)) {
                         console.warn(
-                            `[Proctoring] Unknown violation type: ${violationString}. Using fallback.`
+                            `[Proctoring] Unknown violation type: ${violationString}. Skipping.`
                         );
-                        return; // Skip this violation
+                        return; // Skip this violation without incrementing counter
                     }
-                    
+
                     const violationType = violationString; // Now properly typed as ProctoringEventType
                     const severity = getSeverityForEventType(violationType);
+
+                    // ✅ FIX: Increment counters AFTER validation
+                    incrementViolationCount();
                     const isHighSeverity = severity === 'HIGH';
 
                     if (isHighSeverity) {
@@ -490,6 +530,90 @@ export function ProctoringMonitor({
     // RENDER
     // =========================================================================
 
+    // =========================================================================
+    // WEBCAM-ONLY MODE: Minimal UI with just the webcam preview
+    // =========================================================================
+    if (uiMode === 'webcamOnly') {
+        return (
+            <div className="relative aspect-video bg-black rounded-lg overflow-hidden border-2 border-primary/20">
+                {webcam.isStreaming ? (
+                    <>
+                        {/* Video element with proper dimensions for frame capture */}
+                        <video
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            width={640}
+                            height={480}
+                            className="w-full h-full object-cover"
+                        />
+                        {/* Hidden canvas for ML frame capture - MUST be in DOM */}
+                        <canvas
+                            ref={canvasRef}
+                            width={640}
+                            height={480}
+                            className="hidden"
+                        />
+                    </>
+                ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                        <div className="text-center">
+                            <CameraOff className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                            <p className="text-xs text-muted-foreground">
+                                {webcam.error || 'Menunggu kamera...'}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Minimal overlay: LIVE indicator + status */}
+                <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
+                    {/* LIVE indicator */}
+                    {webcam.isStreaming && isOnline && (
+                        <Badge className="status-live text-[10px] px-1.5 py-0.5 h-5 flex items-center gap-1">
+                            <div className="h-1.5 w-1.5 bg-white rounded-full animate-pulse" />
+                            LIVE
+                        </Badge>
+                    )}
+
+                    {/* Offline indicator */}
+                    {!isOnline && (
+                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5 h-5">
+                            <AlertTriangle className="h-3 w-3 mr-0.5" />
+                            Offline
+                        </Badge>
+                    )}
+
+                    {/* Analyzing indicator */}
+                    {isAnalyzing && isOnline && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 h-5 bg-background/80">
+                            <RefreshCw className="h-3 w-3 mr-0.5 animate-spin" />
+                            Analyzing
+                        </Badge>
+                    )}
+                </div>
+
+                {/* Bottom overlay: Session ID + violation count */}
+                {webcam.isStreaming && (
+                    <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center">
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 h-5 bg-background/80">
+                            Session #{sessionId}
+                        </Badge>
+                        {violationCount > 0 && (
+                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5 h-5">
+                                {violationCount} violation{violationCount > 1 ? 's' : ''}
+                            </Badge>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // =========================================================================
+    // FULL MODE: Complete card UI with all details
+    // =========================================================================
     return (
         <Card>
             <CardHeader className="pb-3">
@@ -550,15 +674,18 @@ export function ProctoringMonitor({
                 <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
                     {webcam.isStreaming ? (
                         <>
+                            {/* ✅ FIX: Added explicit dimensions for consistent frame capture */}
                             <video
                                 ref={videoRef}
                                 autoPlay
                                 playsInline
                                 muted
+                                width={640}
+                                height={480}
                                 className="w-full h-full object-cover"
                             />
                             {/* ✅ ML INTEGRATION: Hidden canvas for frame capture */}
-                            <canvas ref={canvasRef} className="hidden" />
+                            <canvas ref={canvasRef} width={640} height={480} className="hidden" />
                         </>
                     ) : (
                         <div className="absolute inset-0 flex items-center justify-center">
