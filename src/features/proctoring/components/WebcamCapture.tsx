@@ -78,14 +78,32 @@ export function WebcamCapture({
         // ✅ FIX: Use webcam.isActive
         if (!webcam.isActive || !videoRef.current || !onFrameCapture) return;
 
+        const video = videoRef.current;
+
+        // ✅ SAFEGUARD: Reject capture if video dimensions are 0 (not ready)
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+            console.warn('[WebcamCapture] Video not ready (dimensions are 0)');
+            return;
+        }
+
         const canvas = document.createElement('canvas');
-        canvas.width = videoRef.current.videoWidth;
-        canvas.height = videoRef.current.videoHeight;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
 
         const ctx = canvas.getContext('2d');
         if (ctx) {
-            ctx.drawImage(videoRef.current, 0, 0);
+            ctx.drawImage(video, 0, 0);
             const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+            // ✅ SAFEGUARD: Validate frame size before sending
+            const base64Data = imageData.split(',')[1] || imageData;
+            const frameSizeKB = Math.round(base64Data.length / 1024);
+
+            if (frameSizeKB < 10) {
+                console.warn('[WebcamCapture] Frame too small, skipping:', frameSizeKB + 'KB');
+                return;
+            }
+
             onFrameCapture(imageData);
         }
     }, [webcam.isActive, onFrameCapture]);
@@ -123,6 +141,8 @@ export function WebcamCapture({
                                 autoPlay
                                 playsInline
                                 muted
+                                width={640}
+                                height={480}
                                 className="w-full h-full object-cover"
                             />
                             <div className="absolute top-2 right-2">

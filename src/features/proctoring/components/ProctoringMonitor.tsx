@@ -137,21 +137,32 @@ export function ProctoringMonitor({
             return null;
         }
 
-        // ✅ Get actual video stream dimensions with fallback
-        const videoWidth = video.videoWidth || 640;
-        const videoHeight = video.videoHeight || 480;
+        // ✅ CRITICAL: Get ACTUAL video stream dimensions (not CSS dimensions)
+        const videoWidth = video.videoWidth;
+        const videoHeight = video.videoHeight;
 
-        // ✅ Validate dimensions are usable (not collapsed)
+        // ✅ SAFEGUARD: Reject capture if video dimensions are 0 (not ready)
+        if (videoWidth === 0 || videoHeight === 0) {
+            console.warn('[PROCTORING] captureFrame: Video not ready (dimensions are 0)', {
+                videoWidth,
+                videoHeight,
+                readyState: video.readyState,
+                hint: 'Video stream may not be fully initialized'
+            });
+            return null; // Don't capture empty frames
+        }
+
+        // ✅ Validate dimensions are usable (minimum 100x100)
         if (videoWidth < 100 || videoHeight < 100) {
             console.warn('[PROCTORING] captureFrame: Video dimensions too small:', {
                 videoWidth,
                 videoHeight,
-                hint: 'Check if video element has proper width/height attributes'
+                hint: 'Check camera resolution settings'
             });
-            // Still proceed but log warning
+            return null; // Reject frames that are too small
         }
 
-        // ✅ CRITICAL: Ensure canvas matches video dimensions
+        // ✅ CRITICAL: Ensure canvas matches video dimensions exactly
         canvas.width = videoWidth;
         canvas.height = videoHeight;
 
@@ -167,12 +178,26 @@ export function ProctoringMonitor({
             ? dataUrl.split(',')[1]
             : dataUrl;
 
+        // ✅ SAFEGUARD: Validate frame size (reject suspiciously small frames)
+        const frameSizeKB = Math.round(base64Frame.length / 1024);
+        const MIN_VALID_FRAME_SIZE_KB = 10; // A 640x480 JPEG should be at least 10KB
+
+        if (frameSizeKB < MIN_VALID_FRAME_SIZE_KB) {
+            console.warn('[PROCTORING] captureFrame: Frame too small, may be corrupted:', {
+                frameSize: frameSizeKB + 'KB',
+                minRequired: MIN_VALID_FRAME_SIZE_KB + 'KB',
+                dimensions: `${videoWidth}x${videoHeight}`,
+                hint: 'Video buffer may not have valid frame data'
+            });
+            return null; // Reject potentially corrupted frames
+        }
+
         // ✅ DEBUG: Log frame capture stats
         if (process.env.NODE_ENV === 'development') {
             console.log('[PROCTORING] Frame captured:', {
-                frameSize: Math.round(base64Frame.length / 1024) + 'KB',
+                frameSize: frameSizeKB + 'KB',
                 dimensions: `${videoWidth}x${videoHeight}`,
-                hasValidBase64: base64Frame.length > 1000, // Should be 50KB+ for valid image
+                isValidSize: frameSizeKB >= MIN_VALID_FRAME_SIZE_KB,
             });
         }
 
@@ -352,23 +377,88 @@ export function ProctoringMonitor({
 
         const initWebcam = async () => {
             try {
+                console.log('[PROCTORING] Initializing webcam...');
+
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: 'user', width: 640, height: 480 },
                     audio: false,
                 });
 
+                // Log stream info for debugging
+                const videoTrack = stream.getVideoTracks()[0];
+                const settings = videoTrack?.getSettings();
+                console.log('[PROCTORING] Stream acquired:', {
+                    trackLabel: videoTrack?.label,
+                    width: settings?.width,
+                    height: settings?.height,
+                });
+
                 streamRef.current = stream;
 
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
-                }
+                // ✅ CRITICAL SAFEGUARD: Retry logic if videoRef is not ready
+                // This handles race conditions where effect runs before DOM is fully painted
+                const attachStreamWithRetry = (retryCount = 0, maxRetries = 10) => {
+                    if (videoRef.current) {
+                        const video = videoRef.current;
+                        video.srcObject = stream;
 
-                setWebcamEnabled(true);
-                setWebcamStreaming(true);
-                setWebcamPermission(true);
-                setWebcamError(null);
+                        console.log('[PROCTORING] Stream attached to video element');
+
+                        // ✅ FIX: Wait for video to be ready before enabling capture
+                        // This prevents capturing empty/black frames when video buffer isn't ready
+                        const handleVideoReady = () => {
+                            // Verify dimensions are valid (not 0)
+                            if (video.videoWidth > 0 && video.videoHeight > 0) {
+                                console.log('[PROCTORING] Video ready:', {
+                                    videoWidth: video.videoWidth,
+                                    videoHeight: video.videoHeight,
+                                    clientWidth: video.clientWidth,
+                                    clientHeight: video.clientHeight,
+                                });
+                                setWebcamEnabled(true);
+                                setWebcamStreaming(true);
+                                setWebcamPermission(true);
+                                setWebcamError(null);
+                            } else {
+                                console.warn('[PROCTORING] Video ready but dimensions are 0, waiting...');
+                                // Retry on next frame
+                                requestAnimationFrame(() => {
+                                    if (video.videoWidth > 0 && video.videoHeight > 0) {
+                                        console.log('[PROCTORING] Video dimensions resolved on retry:', {
+                                            videoWidth: video.videoWidth,
+                                            videoHeight: video.videoHeight,
+                                        });
+                                        setWebcamEnabled(true);
+                                        setWebcamStreaming(true);
+                                        setWebcamPermission(true);
+                                        setWebcamError(null);
+                                    }
+                                });
+                            }
+                        };
+
+                        // Listen for loadedmetadata (dimensions available) and canplay (ready to render)
+                        video.addEventListener('loadedmetadata', handleVideoReady, { once: true });
+
+                        // Fallback: If already loaded (e.g., re-mount), check immediately
+                        if (video.readyState >= 1) { // HAVE_METADATA
+                            handleVideoReady();
+                        }
+                    } else if (retryCount < maxRetries) {
+                        // ✅ SAFEGUARD: Retry after a short delay if ref not ready
+                        console.warn(`[PROCTORING] videoRef not ready, retry ${retryCount + 1}/${maxRetries}`);
+                        setTimeout(() => attachStreamWithRetry(retryCount + 1, maxRetries), 50);
+                    } else {
+                        console.error('[PROCTORING] CRITICAL: videoRef never became available. Video element may not be in DOM.');
+                        setWebcamError('Gagal menginisialisasi video - elemen tidak ditemukan');
+                    }
+                };
+
+                // Start attachment with retry logic
+                attachStreamWithRetry();
+
             } catch (error) {
-                console.error('Webcam error:', error);
+                console.error('[PROCTORING] Webcam error:', error);
                 setWebcamEnabled(false);
                 setWebcamStreaming(false);
                 setWebcamPermission(false);
@@ -385,6 +475,7 @@ export function ProctoringMonitor({
         // Cleanup on unmount
         return () => {
             if (streamRef.current) {
+                console.log('[PROCTORING] Cleaning up webcam stream');
                 streamRef.current.getTracks().forEach(track => track.stop());
             }
         };
@@ -537,27 +628,32 @@ export function ProctoringMonitor({
     if (uiMode === 'webcamOnly') {
         return (
             <div className="relative aspect-video bg-black rounded-lg overflow-hidden border-2 border-primary/20">
-                {webcam.isStreaming ? (
-                    <>
-                        {/* Video element with proper dimensions for frame capture */}
-                        <video
-                            ref={videoRef}
-                            autoPlay
-                            playsInline
-                            muted
-                            width={640}
-                            height={480}
-                            className="w-full h-full object-cover"
-                        />
-                        {/* Hidden canvas for ML frame capture - MUST be in DOM */}
-                        <canvas
-                            ref={canvasRef}
-                            width={640}
-                            height={480}
-                            className="hidden"
-                        />
-                    </>
-                ) : (
+                {/* ✅ CRITICAL FIX: Video/canvas MUST always be in DOM for refs to work
+                 * Previous bug: Conditional rendering prevented stream attachment
+                 * because videoRef.current was null when initWebcam effect ran.
+                 *
+                 * The video element must exist BEFORE getUserMedia resolves,
+                 * otherwise video.srcObject = stream fails silently.
+                 */}
+                <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    width={640}
+                    height={480}
+                    className={`w-full h-full object-cover ${webcam.isStreaming ? '' : 'invisible'}`}
+                />
+                {/* Hidden canvas for ML frame capture - MUST always be in DOM */}
+                <canvas
+                    ref={canvasRef}
+                    width={640}
+                    height={480}
+                    className="hidden"
+                />
+
+                {/* Placeholder overlay - shown when not streaming */}
+                {!webcam.isStreaming && (
                     <div className="absolute inset-0 flex items-center justify-center bg-muted">
                         <div className="text-center">
                             <CameraOff className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
@@ -673,22 +769,24 @@ export function ProctoringMonitor({
 
                 {/* Webcam Preview */}
                 <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-                    {webcam.isStreaming ? (
-                        <>
-                            {/* ✅ FIX: Added explicit dimensions for consistent frame capture */}
-                            <video
-                                ref={videoRef}
-                                autoPlay
-                                playsInline
-                                muted
-                                width={640}
-                                height={480}
-                                className="w-full h-full object-cover"
-                            />
-                            {/* ✅ ML INTEGRATION: Hidden canvas for frame capture */}
-                            <canvas ref={canvasRef} width={640} height={480} className="hidden" />
-                        </>
-                    ) : (
+                    {/* ✅ CRITICAL FIX: Video/canvas MUST always be in DOM for refs to work
+                     * Previous bug: Conditional rendering prevented stream attachment
+                     * because videoRef.current was null when initWebcam effect ran.
+                     */}
+                    <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        width={640}
+                        height={480}
+                        className={`w-full h-full object-cover ${webcam.isStreaming ? '' : 'invisible'}`}
+                    />
+                    {/* Hidden canvas for ML frame capture - MUST always be in DOM */}
+                    <canvas ref={canvasRef} width={640} height={480} className="hidden" />
+
+                    {/* Placeholder overlay - shown when not streaming */}
+                    {!webcam.isStreaming && (
                         <div className="absolute inset-0 flex items-center justify-center">
                             <div className="text-center">
                                 <CameraOff className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
