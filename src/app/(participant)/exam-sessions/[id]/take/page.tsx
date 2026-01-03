@@ -130,10 +130,26 @@ export default function TakeExamPage() {
     // Always call useTimer unconditionally (Rules of Hooks)
     // Pass safe defaults when sessionData is not loaded yet
     // The hook treats durationMinutes ≤ 0 as "loading" state
+    //
+    // ✅ FIX: Use multiple data sources for timer values
+    // Priority: sessionData (fresh) > cachedSessionData (from start exam) > defaults
+    // This fixes "--:--" display when sessionData.durationMinutes is null
+    const timerStartedAt = sessionData?.startedAt
+        || cachedSessionData?.userExam?.startedAt
+        || new Date().toISOString();
+
+    const timerDurationMinutes = sessionData?.durationMinutes
+        || cachedSessionData?.userExam?.durationMinutes
+        || 0;
+
+    const timerRemainingMs = sessionData?.remainingTimeMs
+        ?? cachedSessionData?.userExam?.remainingTimeMs
+        ?? undefined;
+
     const timer = useTimer({
-        startedAt: sessionData?.startedAt || new Date().toISOString(),
-        durationMinutes: sessionData?.durationMinutes || 0, // Will be treated as loading
-        initialRemainingMs: sessionData?.remainingTimeMs ?? undefined, // ✅ HIGH-005 FIX: Use server-provided time
+        startedAt: timerStartedAt,
+        durationMinutes: timerDurationMinutes,
+        initialRemainingMs: timerRemainingMs,
         onExpire: () => {
             toast.error(getErrorMessage(EXAM_SESSION_ERRORS.EXAM_SESSION_TIMEOUT));
             submitExamMutation.mutate(undefined, {
