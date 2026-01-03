@@ -131,20 +131,33 @@ export default function TakeExamPage() {
     // Pass safe defaults when sessionData is not loaded yet
     // The hook treats durationMinutes ≤ 0 as "loading" state
     //
-    // ✅ FIX: Use multiple data sources for timer values
-    // Priority: sessionData (fresh) > cachedSessionData (from start exam) > defaults
-    // This fixes "--:--" display when sessionData.durationMinutes is null
+    // ✅ FIX: Get durationMinutes from correct location in response
+    // Backend sends: userExam.exam.durationMinutes (nested in exam object)
+    // Priority: sessionData.exam.durationMinutes > sessionData.durationMinutes > cachedData > 0
     const timerStartedAt = sessionData?.startedAt
         || cachedSessionData?.userExam?.startedAt
         || new Date().toISOString();
 
-    const timerDurationMinutes = sessionData?.durationMinutes
+    // ✅ FIX: durationMinutes is inside exam object, not at root level
+    const timerDurationMinutes = (sessionData?.exam as { durationMinutes?: number })?.durationMinutes
+        || sessionData?.durationMinutes
         || cachedSessionData?.userExam?.durationMinutes
         || 0;
 
     const timerRemainingMs = sessionData?.remainingTimeMs
         ?? cachedSessionData?.userExam?.remainingTimeMs
         ?? undefined;
+
+    // Debug logging for timer data (only in development)
+    if (process.env.NODE_ENV === 'development' && sessionData) {
+        console.log('[TIMER DEBUG]', {
+            startedAt: sessionData?.startedAt,
+            'exam.durationMinutes': (sessionData?.exam as { durationMinutes?: number })?.durationMinutes,
+            'root.durationMinutes': sessionData?.durationMinutes,
+            resolved: timerDurationMinutes,
+            remainingTimeMs: timerRemainingMs,
+        });
+    }
 
     const timer = useTimer({
         startedAt: timerStartedAt,
