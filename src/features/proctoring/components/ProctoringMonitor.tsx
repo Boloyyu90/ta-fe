@@ -210,22 +210,33 @@ export function ProctoringMonitor({
      */
     const handleFrameAnalysis = useCallback(
         async () => {
+            // ✅ CRITICAL DEBUG: Log every call to handleFrameAnalysis
+            console.log('[PROCTORING] handleFrameAnalysis called:', {
+                isAnalyzing,
+                isStreaming: webcam.isStreaming,
+                hasVideoRef: !!videoRef.current,
+                hasCanvasRef: !!canvasRef.current,
+                videoWidth: videoRef.current?.videoWidth,
+                videoHeight: videoRef.current?.videoHeight,
+            });
+
             // Skip if already analyzing or not streaming
             if (isAnalyzing || !webcam.isStreaming) {
-                if (process.env.NODE_ENV === 'development') {
-                    console.log('[PROCTORING] Skipping analysis:', {
-                        isAnalyzing,
-                        isStreaming: webcam.isStreaming,
-                    });
-                }
+                console.log('[PROCTORING] Skipping analysis:', {
+                    reason: isAnalyzing ? 'already analyzing' : 'webcam not streaming',
+                    isAnalyzing,
+                    isStreaming: webcam.isStreaming,
+                });
                 return;
             }
 
+            console.log('[PROCTORING] Attempting to capture frame...');
             const imageData = captureFrame();
             if (!imageData) {
                 console.warn('[PROCTORING] captureFrame returned null - check video/canvas refs');
                 return;
             }
+            console.log('[PROCTORING] Frame captured successfully, size:', Math.round(imageData.length / 1024) + 'KB');
 
             setAnalyzing(true);
 
@@ -419,6 +430,8 @@ export function ProctoringMonitor({
                                 setWebcamStreaming(true);
                                 setWebcamPermission(true);
                                 setWebcamError(null);
+                                // ✅ CRITICAL: This should trigger the capture interval effect
+                                console.log('[PROCTORING] ✅ Webcam fully initialized - capture interval should start now');
                             } else {
                                 console.warn('[PROCTORING] Video ready but dimensions are 0, waiting...');
                                 // Retry on next frame
@@ -432,6 +445,7 @@ export function ProctoringMonitor({
                                         setWebcamStreaming(true);
                                         setWebcamPermission(true);
                                         setWebcamError(null);
+                                        console.log('[PROCTORING] ✅ Webcam initialized (retry) - capture interval should start');
                                     }
                                 });
                             }
@@ -486,8 +500,16 @@ export function ProctoringMonitor({
     // =========================================================================
 
     useEffect(() => {
-        if (!enabled || !webcam.isStreaming) {
-            // Clear interval if webcam is not streaming
+        // ✅ CRITICAL DEBUG: Log every time this effect runs
+        console.log('[PROCTORING] Capture interval effect triggered:', {
+            enabled,
+            isStreaming: webcam.isStreaming,
+            currentInterval,
+            hasHandleFrameAnalysis: typeof handleFrameAnalysis === 'function',
+        });
+
+        if (!enabled) {
+            console.log('[PROCTORING] Capture interval skipped: enabled=false');
             if (captureIntervalRef.current) {
                 clearInterval(captureIntervalRef.current);
                 captureIntervalRef.current = null;
@@ -495,13 +517,42 @@ export function ProctoringMonitor({
             return;
         }
 
+        if (!webcam.isStreaming) {
+            console.log('[PROCTORING] Capture interval skipped: webcam.isStreaming=false');
+            if (captureIntervalRef.current) {
+                clearInterval(captureIntervalRef.current);
+                captureIntervalRef.current = null;
+            }
+            return;
+        }
+
+        // ✅ CRITICAL: Log when interval actually starts
+        console.log('[PROCTORING] ✅ Starting capture interval:', {
+            intervalMs: currentInterval,
+            timestamp: new Date().toISOString(),
+        });
+
+        // Clear any existing interval first
+        if (captureIntervalRef.current) {
+            clearInterval(captureIntervalRef.current);
+        }
+
         // Start periodic frame capture with adaptive interval
         captureIntervalRef.current = setInterval(() => {
+            console.log('[PROCTORING] Interval tick - calling handleFrameAnalysis');
             handleFrameAnalysis();
         }, currentInterval);
 
+        // Also do an immediate first capture after 1 second
+        const initialCapture = setTimeout(() => {
+            console.log('[PROCTORING] Initial capture (1s delay)');
+            handleFrameAnalysis();
+        }, 1000);
+
         // Cleanup on unmount or when dependencies change
         return () => {
+            console.log('[PROCTORING] Cleaning up capture interval');
+            clearTimeout(initialCapture);
             if (captureIntervalRef.current) {
                 clearInterval(captureIntervalRef.current);
                 captureIntervalRef.current = null;
