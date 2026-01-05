@@ -4,19 +4,24 @@
  * Proctoring Monitor Component - WITH ML INTEGRATION
  *
  * ============================================================================
- * CRITICAL FIX: Added complete ML/YOLO integration
+ * RATE LIMITING FIX: Prevents 429 errors through proper request management
  * ============================================================================
  *
- * Changes:
- * ✅ Integrated useAnalyzeFace hook for real-time face detection
- * ✅ Added periodic frame capture (captureInterval prop now functional)
- * ✅ Violation detection and logging via YOLO service
- * ✅ Real-time violation alerts with auto-dismiss
- * ✅ Store integration (addViolation, increment counters)
- * ✅ Indonesian error messages using PROCTORING_ERRORS
- * ✅ Graceful degradation on ML service failures
+ * Backend Contract Reference (backend-api-contract.md):
+ * - Rate Limit: 30 requests/minute
+ * - Recommended Interval: 3-5 seconds (we use 3s = 20 req/min)
  *
- * Real-time proctoring with ML-powered face detection for exam taking interface
+ * Fixes Applied:
+ * ✅ Request deduplication via isRequestInFlight ref
+ * ✅ Startup delay (2.5s) to prevent burst during hydration
+ * ✅ Stable interval constant (3000ms per backend recommendation)
+ * ✅ Smart 429 error handling with auto-recovery
+ * ✅ Stabilized useCallback dependencies to prevent effect re-triggering
+ *
+ * Previous Issues Fixed:
+ * - Burst requests at component mount causing 429 errors
+ * - No recovery from rate-limited state
+ * - Unstable dependencies causing interval recreation
  */
 
 'use client';
@@ -42,6 +47,29 @@ import { getSeverityForEventType, isProctoringEventType } from '../types/proctor
 import type { ProctoringEvent, FaceAnalysisResult, Violation } from '../types/proctoring.types';
 
 // ============================================================================
+// CONSTANTS (matches backend-api-contract.md Section 5.7 recommendation)
+// ============================================================================
+
+/**
+ * Default capture interval: 3 seconds = 20 requests/minute
+ * Backend rate limit: 30 requests/minute
+ * Buffer: 10 requests (33% margin)
+ */
+const DEFAULT_CAPTURE_INTERVAL_MS = 3000;
+
+/**
+ * Startup delay to let React complete hydration before starting captures.
+ * This prevents burst requests during component mount/re-render phase.
+ */
+const STARTUP_DELAY_MS = 2500;
+
+/**
+ * Recovery delay after 429 error (slightly over half of rate limit window).
+ * Backend rate limit window: 1 minute, so we wait 35 seconds to ensure reset.
+ */
+const RATE_LIMIT_RECOVERY_DELAY_MS = 35000;
+
+// ============================================================================
 // COMPONENT PROPS
 // ============================================================================
 
@@ -54,7 +82,7 @@ export interface ProctoringMonitorProps {
     onViolation?: (event: ProctoringEvent) => void;
     /** Callback when a new violation is added to UI */
     onNewViolation?: (violation: Violation) => void;
-    /** Interval between frame captures (ms) */
+    /** Interval between frame captures (ms) - default 3000ms per backend recommendation */
     captureInterval?: number;
     /** Enable/disable proctoring */
     enabled?: boolean;
@@ -70,7 +98,7 @@ export function ProctoringMonitor({
                                       sessionId,
                                       onViolation,
                                       onNewViolation,
-                                      captureInterval = 5000,  // 5s = 12 requests/min (within 30/min contract limit)
+                                      captureInterval = DEFAULT_CAPTURE_INTERVAL_MS,  // 3s = 20 req/min (per backend recommendation)
                                       enabled = true,
                                       uiMode = 'full',
                                   }: ProctoringMonitorProps) {
@@ -78,6 +106,12 @@ export function ProctoringMonitor({
     const streamRef = useRef<MediaStream | null>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const captureIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // ✅ FIX #1: Request deduplication - prevents concurrent API calls
+    const isRequestInFlight = useRef(false);
+
+    // ✅ FIX: Recovery timer ref for cleanup
+    const recoveryTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Get store state and actions
     const {
@@ -207,45 +241,50 @@ export function ProctoringMonitor({
     /**
      * Handle ML face analysis
      * THESIS SHOWCASE: YOLO integration for real-time face detection
+     *
+     * ✅ RATE LIMITING FIX: Implements request deduplication and smart 429 handling
      */
     const handleFrameAnalysis = useCallback(
         async () => {
-            // ✅ CRITICAL DEBUG: Log every call to handleFrameAnalysis
-            console.log('[PROCTORING] handleFrameAnalysis called:', {
-                isAnalyzing,
-                isStreaming: webcam.isStreaming,
-                hasVideoRef: !!videoRef.current,
-                hasCanvasRef: !!canvasRef.current,
-                videoWidth: videoRef.current?.videoWidth,
-                videoHeight: videoRef.current?.videoHeight,
-            });
-
-            // Skip if already analyzing or not streaming
-            if (isAnalyzing || !webcam.isStreaming) {
-                console.log('[PROCTORING] Skipping analysis:', {
-                    reason: isAnalyzing ? 'already analyzing' : 'webcam not streaming',
-                    isAnalyzing,
-                    isStreaming: webcam.isStreaming,
-                });
+            // ✅ FIX #1: Request deduplication - prevents concurrent API calls
+            // Uses ref instead of state to avoid stale closure issues
+            if (isRequestInFlight.current) {
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('[PROCTORING] Skipping: request already in flight');
+                }
                 return;
             }
 
-            console.log('[PROCTORING] Attempting to capture frame...');
+            // Skip if already analyzing (state-based) or not streaming
+            if (isAnalyzing || !webcam.isStreaming) {
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('[PROCTORING] Skipping analysis:', {
+                        reason: isAnalyzing ? 'already analyzing' : 'webcam not streaming',
+                        isAnalyzing,
+                        isStreaming: webcam.isStreaming,
+                    });
+                }
+                return;
+            }
+
             const imageData = captureFrame();
             if (!imageData) {
-                console.warn('[PROCTORING] captureFrame returned null - check video/canvas refs');
+                if (process.env.NODE_ENV === 'development') {
+                    console.warn('[PROCTORING] captureFrame returned null - check video/canvas refs');
+                }
                 return;
             }
-            console.log('[PROCTORING] Frame captured successfully, size:', Math.round(imageData.length / 1024) + 'KB');
 
+            // ✅ Lock: Prevent concurrent requests
+            isRequestInFlight.current = true;
             setAnalyzing(true);
 
             try {
                 if (process.env.NODE_ENV === 'development') {
                     console.log('[PROCTORING] Sending frame to ML API:', {
                         sessionId,
-                        base64Length: imageData.length,
-                        base64Preview: imageData.substring(0, 50) + '...',
+                        frameSize: Math.round(imageData.length / 1024) + 'KB',
+                        timestamp: new Date().toISOString(),
                     });
                 }
 
@@ -267,11 +306,13 @@ export function ProctoringMonitor({
                 // Store the analysis result
                 setLastAnalysis(result.analysis);
 
-                // ✅ ADAPTIVE RATE LIMITING: Reset on successful analysis
+                // ✅ Reset error state on successful analysis
                 if (consecutiveErrors > 0) {
                     setConsecutiveErrors(0);
                     setCurrentInterval(captureInterval);
-                    console.info('ML service recovered. Reset to normal interval.');
+                    if (process.env.NODE_ENV === 'development') {
+                        console.info('[PROCTORING] ML service recovered. Reset to normal interval.');
+                    }
                 }
 
                 // Check for violations (not FACE_DETECTED)
@@ -283,19 +324,18 @@ export function ProctoringMonitor({
                     // Determine severity using helper function with type guard
                     const violationString = result.analysis.violations[0];
 
-                    // ✅ CRITICAL FIX: Validate type BEFORE incrementing counters
-                    // This prevents counter/store mismatch on invalid types
+                    // Validate type BEFORE incrementing counters
                     if (!isProctoringEventType(violationString)) {
                         console.warn(
-                            `[Proctoring] Unknown violation type: ${violationString}. Skipping.`
+                            `[PROCTORING] Unknown violation type: ${violationString}. Skipping.`
                         );
-                        return; // Skip this violation without incrementing counter
+                        return;
                     }
 
-                    const violationType = violationString; // Now properly typed as ProctoringEventType
+                    const violationType = violationString;
                     const severity = getSeverityForEventType(violationType);
 
-                    // ✅ FIX: Increment counters AFTER validation
+                    // Increment counters AFTER validation
                     incrementViolationCount();
                     const isHighSeverity = severity === 'HIGH';
 
@@ -303,7 +343,7 @@ export function ProctoringMonitor({
                         incrementHighViolationCount();
                     }
 
-                    // Get violation message
+                    // Get violation message (Indonesian per user-stories)
                     const message = violationType === 'NO_FACE_DETECTED'
                         ? 'Wajah tidak terdeteksi'
                         : violationType === 'MULTIPLE_FACES'
@@ -313,10 +353,9 @@ export function ProctoringMonitor({
                                 : 'Pelanggaran terdeteksi';
 
                     // Create violation for UI display
-                    // ✅ FIX: Use validated violationType consistently (not result.eventType which can be null)
                     const violation: Violation = {
                         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                        type: violationType,  // Use validated type from analysis.violations[0]
+                        type: violationType,
                         severity,
                         timestamp: new Date().toISOString(),
                         message,
@@ -324,7 +363,7 @@ export function ProctoringMonitor({
 
                     addViolation(violation);
 
-                    // Notify parent component of new violation (for full-screen alert)
+                    // Notify parent component of new violation
                     onNewViolation?.(violation);
 
                     // Show alert for new violation
@@ -335,31 +374,75 @@ export function ProctoringMonitor({
                         setLastViolationAlert(null);
                     }, 5000);
                 }
-            } catch (error) {
-                console.error('Face analysis error:', error);
+            } catch (error: unknown) {
+                // ✅ FIX #4: Smart 429 error handling with auto-recovery
+                const errorStatus = (error as { status?: number; response?: { status?: number } })?.status
+                    || (error as { response?: { status?: number } })?.response?.status;
+                const errorMessage = (error as Error)?.message || 'Unknown error';
 
-                // ✅ ADAPTIVE RATE LIMITING: Exponential backoff on errors
-                const newErrorCount = consecutiveErrors + 1;
-                setConsecutiveErrors(newErrorCount);
-
-                // Increase interval exponentially: 5s → 10s → 20s → 40s (max)
-                const backoffMultiplier = Math.min(Math.pow(2, newErrorCount), 8);
-                const newInterval = captureInterval * backoffMultiplier;
-                setCurrentInterval(newInterval);
-
-                // Show error toast only on first error to avoid spam
-                if (newErrorCount === 1) {
-                    const errorMsg = getErrorMessage(PROCTORING_ERRORS.PROCTORING_ML_SERVICE_ERROR);
-                    toast.error('Error Proctoring', {
-                        description: errorMsg,
-                        duration: 10000,
+                if (process.env.NODE_ENV === 'development') {
+                    console.error('[PROCTORING] Face analysis error:', {
+                        message: errorMessage,
+                        status: errorStatus,
                     });
                 }
 
-                console.warn(`ML service error. Backing off to ${newInterval}ms interval.`);
-                // Don't block exam on proctoring errors - graceful degradation
+                if (errorStatus === 429) {
+                    // ✅ Rate limited: Pause and schedule auto-recovery
+                    console.warn(`[PROCTORING] Rate limited (429). Pausing ${RATE_LIMIT_RECOVERY_DELAY_MS / 1000}s for recovery.`);
+
+                    // User-friendly notification (Indonesian per user-stories)
+                    toast.warning('Sistem proctoring diperlambat sementara. Akan dilanjutkan otomatis dalam 35 detik.', {
+                        duration: 5000,
+                        id: 'proctoring-rate-limit',
+                    });
+
+                    // Temporarily pause captures
+                    setCurrentInterval(RATE_LIMIT_RECOVERY_DELAY_MS);
+
+                    // Clear any existing recovery timer
+                    if (recoveryTimerRef.current) {
+                        clearTimeout(recoveryTimerRef.current);
+                    }
+
+                    // ✅ Schedule auto-recovery to normal interval
+                    recoveryTimerRef.current = setTimeout(() => {
+                        if (process.env.NODE_ENV === 'development') {
+                            console.log('[PROCTORING] Auto-recovering, restoring normal interval');
+                        }
+                        setCurrentInterval(captureInterval);
+                        setConsecutiveErrors(0);
+
+                        toast.success('Sistem proctoring kembali normal.', {
+                            duration: 3000,
+                            id: 'proctoring-recovered',
+                        });
+                    }, RATE_LIMIT_RECOVERY_DELAY_MS);
+
+                } else {
+                    // Non-429 errors: Use exponential backoff per user-stories Section 8.2
+                    const newErrorCount = consecutiveErrors + 1;
+                    setConsecutiveErrors(newErrorCount);
+
+                    // Exponential backoff: 3s → 6s → 12s → 24s → max 30s
+                    const backoffMs = Math.min(captureInterval * Math.pow(2, newErrorCount), 30000);
+                    setCurrentInterval(backoffMs);
+
+                    // Show error toast only on first error to avoid spam
+                    if (newErrorCount === 1) {
+                        const errorMsg = getErrorMessage(PROCTORING_ERRORS.PROCTORING_ML_SERVICE_ERROR);
+                        toast.error('Error Proctoring', {
+                            description: errorMsg,
+                            duration: 10000,
+                        });
+                    }
+
+                    console.warn(`[PROCTORING] Error #${newErrorCount}. Backing off to ${backoffMs}ms.`);
+                }
             } finally {
+                // ✅ Unlock: Allow next request
                 setAnalyzing(false);
+                isRequestInFlight.current = false;
             }
         },
         [
@@ -368,11 +451,9 @@ export function ProctoringMonitor({
             captureFrame,
             setAnalyzing,
             analyzeFace,
-            setLastAnalysis,
             addViolation,
             incrementViolationCount,
             incrementHighViolationCount,
-            onViolation,
             onNewViolation,
             consecutiveErrors,
             captureInterval,
@@ -492,70 +573,90 @@ export function ProctoringMonitor({
                 console.log('[PROCTORING] Cleaning up webcam stream');
                 streamRef.current.getTracks().forEach(track => track.stop());
             }
+            // ✅ Also cleanup recovery timer if pending
+            if (recoveryTimerRef.current) {
+                clearTimeout(recoveryTimerRef.current);
+                recoveryTimerRef.current = null;
+            }
         };
     }, [enabled, setWebcamEnabled, setWebcamStreaming, setWebcamPermission, setWebcamError]);
 
     // =========================================================================
     // ML INTEGRATION: PERIODIC FRAME CAPTURE
+    // ✅ FIX #2: Startup delay to prevent burst requests during hydration
     // =========================================================================
 
     useEffect(() => {
-        // ✅ CRITICAL DEBUG: Log every time this effect runs
-        console.log('[PROCTORING] Capture interval effect triggered:', {
-            enabled,
-            isStreaming: webcam.isStreaming,
-            currentInterval,
-            hasHandleFrameAnalysis: typeof handleFrameAnalysis === 'function',
-        });
-
-        if (!enabled) {
-            console.log('[PROCTORING] Capture interval skipped: enabled=false');
+        // Guard: Early exit if not enabled or not streaming
+        if (!enabled || !webcam.isStreaming) {
             if (captureIntervalRef.current) {
                 clearInterval(captureIntervalRef.current);
                 captureIntervalRef.current = null;
             }
-            return;
-        }
-
-        if (!webcam.isStreaming) {
-            console.log('[PROCTORING] Capture interval skipped: webcam.isStreaming=false');
-            if (captureIntervalRef.current) {
-                clearInterval(captureIntervalRef.current);
-                captureIntervalRef.current = null;
+            if (process.env.NODE_ENV === 'development') {
+                console.log('[PROCTORING] Capture interval skipped:', {
+                    enabled,
+                    isStreaming: webcam.isStreaming,
+                });
             }
             return;
         }
 
-        // ✅ CRITICAL: Log when interval actually starts
-        console.log('[PROCTORING] ✅ Starting capture interval:', {
-            intervalMs: currentInterval,
-            timestamp: new Date().toISOString(),
-        });
+        let intervalId: NodeJS.Timeout | null = null;
+        let isCleanedUp = false;
 
-        // Clear any existing interval first
-        if (captureIntervalRef.current) {
-            clearInterval(captureIntervalRef.current);
+        if (process.env.NODE_ENV === 'development') {
+            console.log('[PROCTORING] Scheduling capture start:', {
+                startupDelayMs: STARTUP_DELAY_MS,
+                captureIntervalMs: currentInterval,
+                timestamp: new Date().toISOString(),
+            });
         }
 
-        // Start periodic frame capture with adaptive interval
-        captureIntervalRef.current = setInterval(() => {
-            console.log('[PROCTORING] Interval tick - calling handleFrameAnalysis');
-            handleFrameAnalysis();
-        }, currentInterval);
+        // ✅ FIX #2: Startup delay to let React stabilize (2.5 seconds)
+        // This prevents burst requests during hydration/re-render phase
+        const startupTimer = setTimeout(() => {
+            if (isCleanedUp) return;
 
-        // Also do an immediate first capture after 1 second
-        const initialCapture = setTimeout(() => {
-            console.log('[PROCTORING] Initial capture (1s delay)');
-            handleFrameAnalysis();
-        }, 1000);
+            if (process.env.NODE_ENV === 'development') {
+                console.log('[PROCTORING] Startup delay complete, beginning capture cycle');
+            }
 
-        // Cleanup on unmount or when dependencies change
+            // Initial capture
+            handleFrameAnalysis();
+
+            // Start regular interval (3 seconds per backend recommendation)
+            intervalId = setInterval(() => {
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('[PROCTORING] Interval tick - calling handleFrameAnalysis');
+                }
+                handleFrameAnalysis();
+            }, currentInterval);
+            captureIntervalRef.current = intervalId;
+
+            if (process.env.NODE_ENV === 'development') {
+                console.log('[PROCTORING] ✅ Capture interval started:', {
+                    intervalMs: currentInterval,
+                    expectedReqPerMin: Math.floor(60000 / currentInterval),
+                    rateLimit: '30/min',
+                    timestamp: new Date().toISOString(),
+                });
+            }
+        }, STARTUP_DELAY_MS);
+
+        // ✅ Comprehensive cleanup
         return () => {
-            console.log('[PROCTORING] Cleaning up capture interval');
-            clearTimeout(initialCapture);
+            isCleanedUp = true;
+            clearTimeout(startupTimer);
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
             if (captureIntervalRef.current) {
                 clearInterval(captureIntervalRef.current);
                 captureIntervalRef.current = null;
+            }
+            if (process.env.NODE_ENV === 'development') {
+                console.log('[PROCTORING] Capture interval cleaned up');
             }
         };
     }, [enabled, webcam.isStreaming, currentInterval, handleFrameAnalysis]);
