@@ -325,7 +325,7 @@ export default function TakeExamPage() {
                             <ProctoringMonitor
                                 sessionId={sessionId}
                                 enabled={true}
-                                captureInterval={5000}
+                                // captureInterval uses default 3000ms (per backend-api-contract.md Section 5.7)
                                 onNewViolation={handleNewViolation}
                                 uiMode="webcamOnly"
                             />

@@ -1,27 +1,5 @@
-// src/features/proctoring/components/ProctoringMonitor.tsx
-
 /**
  * Proctoring Monitor Component - WITH ML INTEGRATION
- *
- * ============================================================================
- * RATE LIMITING FIX: Prevents 429 errors through proper request management
- * ============================================================================
- *
- * Backend Contract Reference (backend-api-contract.md):
- * - Rate Limit: 30 requests/minute
- * - Recommended Interval: 3-5 seconds (we use 3s = 20 req/min)
- *
- * Fixes Applied:
- * ✅ Request deduplication via isRequestInFlight ref
- * ✅ Startup delay (2.5s) to prevent burst during hydration
- * ✅ Stable interval constant (3000ms per backend recommendation)
- * ✅ Smart 429 error handling with auto-recovery
- * ✅ Stabilized useCallback dependencies to prevent effect re-triggering
- *
- * Previous Issues Fixed:
- * - Burst requests at component mount causing 429 errors
- * - No recovery from rate-limited state
- * - Unstable dependencies causing interval recreation
  */
 
 'use client';
@@ -112,6 +90,16 @@ export function ProctoringMonitor({
 
     // ✅ FIX: Recovery timer ref for cleanup
     const recoveryTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // ✅ FIX: Stable ref for handleFrameAnalysis to prevent effect re-triggers
+    const handleFrameAnalysisRef = useRef<(() => Promise<void>) | undefined>(undefined);
+
+    // ✅ FIX: Stable ref for currentInterval to prevent effect re-triggers
+    const currentIntervalRef = useRef(captureInterval);
+
+    // ✅ FIX v2: Pause flag for 429 recovery - ACTUALLY stops interval from making requests
+    // This is critical because setCurrentInterval() doesn't stop the running setInterval()
+    const isPausedFor429Ref = useRef(false);
 
     // Get store state and actions
     const {
@@ -246,6 +234,14 @@ export function ProctoringMonitor({
      */
     const handleFrameAnalysis = useCallback(
         async () => {
+            // ✅ FIX v2: Check pause flag FIRST - skip if paused for 429 recovery
+            if (isPausedFor429Ref.current) {
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('[PROCTORING] Skipping: paused for 429 recovery');
+                }
+                return;
+            }
+
             // ✅ FIX #1: Request deduplication - prevents concurrent API calls
             // Uses ref instead of state to avoid stale closure issues
             if (isRequestInFlight.current) {
@@ -388,7 +384,9 @@ export function ProctoringMonitor({
                 }
 
                 if (errorStatus === 429) {
-                    // ✅ Rate limited: Pause and schedule auto-recovery
+                    // ✅ FIX v2: Set pause flag to ACTUALLY stop requests
+                    isPausedFor429Ref.current = true;
+
                     console.warn(`[PROCTORING] Rate limited (429). Pausing ${RATE_LIMIT_RECOVERY_DELAY_MS / 1000}s for recovery.`);
 
                     // User-friendly notification (Indonesian per user-stories)
@@ -397,20 +395,19 @@ export function ProctoringMonitor({
                         id: 'proctoring-rate-limit',
                     });
 
-                    // Temporarily pause captures
-                    setCurrentInterval(RATE_LIMIT_RECOVERY_DELAY_MS);
-
                     // Clear any existing recovery timer
                     if (recoveryTimerRef.current) {
                         clearTimeout(recoveryTimerRef.current);
                     }
 
-                    // ✅ Schedule auto-recovery to normal interval
+                    // ✅ Schedule auto-recovery
                     recoveryTimerRef.current = setTimeout(() => {
                         if (process.env.NODE_ENV === 'development') {
-                            console.log('[PROCTORING] Auto-recovering, restoring normal interval');
+                            console.log('[PROCTORING] Auto-recovering, resuming captures');
                         }
-                        setCurrentInterval(captureInterval);
+
+                        // ✅ FIX v2: Clear pause flag to resume captures
+                        isPausedFor429Ref.current = false;
                         setConsecutiveErrors(0);
 
                         toast.success('Sistem proctoring kembali normal.', {
@@ -459,6 +456,16 @@ export function ProctoringMonitor({
             captureInterval,
         ]
     );
+
+    // ✅ FIX: Keep handleFrameAnalysis ref updated (avoids stale closure in interval)
+    useEffect(() => {
+        handleFrameAnalysisRef.current = handleFrameAnalysis;
+    }, [handleFrameAnalysis]);
+
+    // ✅ FIX: Keep currentInterval ref updated (avoids effect re-triggers)
+    useEffect(() => {
+        currentIntervalRef.current = currentInterval;
+    }, [currentInterval]);
 
     // =========================================================================
     // WEBCAM INITIALIZATION
@@ -583,7 +590,7 @@ export function ProctoringMonitor({
 
     // =========================================================================
     // ML INTEGRATION: PERIODIC FRAME CAPTURE
-    // ✅ FIX #2: Startup delay to prevent burst requests during hydration
+    // ✅ FIX: Uses refs to avoid dependency-triggered re-runs
     // =========================================================================
 
     useEffect(() => {
@@ -608,37 +615,51 @@ export function ProctoringMonitor({
         if (process.env.NODE_ENV === 'development') {
             console.log('[PROCTORING] Scheduling capture start:', {
                 startupDelayMs: STARTUP_DELAY_MS,
-                captureIntervalMs: currentInterval,
+                captureIntervalMs: currentIntervalRef.current,
                 timestamp: new Date().toISOString(),
             });
         }
 
-        // ✅ FIX #2: Startup delay to let React stabilize (2.5 seconds)
-        // This prevents burst requests during hydration/re-render phase
+        // ✅ Startup delay to let React stabilize (2.5 seconds)
         const startupTimer = setTimeout(() => {
-            if (isCleanedUp) return;
+            if (isCleanedUp) {
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('[PROCTORING] Startup timer fired but already cleaned up, skipping');
+                }
+                return;
+            }
 
             if (process.env.NODE_ENV === 'development') {
                 console.log('[PROCTORING] Startup delay complete, beginning capture cycle');
             }
 
-            // Initial capture
-            handleFrameAnalysis();
+            // ✅ FIX: Call via ref - doesn't need to be in deps
+            handleFrameAnalysisRef.current?.();
 
-            // Start regular interval (3 seconds per backend recommendation)
+            // Start regular interval using ref value
             intervalId = setInterval(() => {
+                // ✅ FIX v2: Check pause flag inside interval callback
+                // This allows the interval to keep running but skip API calls during 429 recovery
+                if (isPausedFor429Ref.current) {
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log('[PROCTORING] Interval tick SKIPPED - paused for 429 recovery');
+                    }
+                    return;
+                }
+
                 if (process.env.NODE_ENV === 'development') {
                     console.log('[PROCTORING] Interval tick - calling handleFrameAnalysis');
                 }
-                handleFrameAnalysis();
-            }, currentInterval);
+                handleFrameAnalysisRef.current?.();
+            }, currentIntervalRef.current);
+
             captureIntervalRef.current = intervalId;
 
             if (process.env.NODE_ENV === 'development') {
                 console.log('[PROCTORING] ✅ Capture interval started:', {
-                    intervalMs: currentInterval,
-                    expectedReqPerMin: Math.floor(60000 / currentInterval),
-                    rateLimit: '30/min',
+                    intervalMs: currentIntervalRef.current,
+                    expectedReqPerMin: Math.floor(60000 / currentIntervalRef.current),
+                    rateLimit: '30/min (backend-api-contract.md Section 1.8)',
                     timestamp: new Date().toISOString(),
                 });
             }
@@ -659,7 +680,7 @@ export function ProctoringMonitor({
                 console.log('[PROCTORING] Capture interval cleaned up');
             }
         };
-    }, [enabled, webcam.isStreaming, currentInterval, handleFrameAnalysis]);
+    }, [enabled, webcam.isStreaming]); // ✅ MINIMAL DEPS - no handleFrameAnalysis, no currentInterval!
 
     // =========================================================================
     // TAB SWITCHING DETECTION
