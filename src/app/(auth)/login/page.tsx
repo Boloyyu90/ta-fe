@@ -1,23 +1,5 @@
 "use client";
 
-/**
- * LOGIN PAGE
- *
- * ✅ FIXED:
- * - Redirects authenticated users to appropriate dashboard
- * - Shows loading state while checking authentication
- * - Prevents flash of login form for authenticated users
- *
- * PURPOSE:
- * - Public page for user authentication
- * - Displays LoginForm component
- * - Redirects authenticated users to dashboard
- *
- * BACKEND INTEGRATION:
- * - Maps to: POST /api/v1/auth/login
- * - On success: Store tokens + redirect to /dashboard or /admin/dashboard based on role
- */
-
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { LoginForm } from "@/features/auth/components/LoginForm";
@@ -25,6 +7,7 @@ import { useAuth } from "@/features/auth/hooks";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function LoginPage() {
     const { isAuthenticated, isLoading, user } = useAuth();
@@ -63,7 +46,15 @@ export default function LoginPage() {
                 {/* Logo & Branding */}
                 <div className="text-center mb-8">
                     <Link href="/" className="inline-flex items-center justify-center space-x-2 mb-2">
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg" />
+                         <span className="relative w-10 h-10 rounded-lg overflow-hidden">
+                                <Image
+                                    src="/logo-prestige.webp"
+                                    alt="Prestige Tryout logo"
+                                    fill
+                                    className="object-contain"
+                                    priority
+                                />
+                            </span>
                         <span className="text-2xl font-bold text-foreground">Prestige Tryout</span>
                     </Link>
                 </div>

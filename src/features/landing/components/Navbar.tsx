@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Button } from "@/shared/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
@@ -14,7 +15,15 @@ export function Navbar() {
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center">
                         <Link href="/" className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg" />
+                            <span className="relative w-10 h-10 rounded-lg overflow-hidden">
+                                <Image
+                                    src="/logo-prestige.webp"
+                                    alt="Prestige Tryout logo"
+                                    fill
+                                    className="object-contain"
+                                    priority
+                                />
+                            </span>
                             <span className="text-xl font-bold text-foreground">Prestige Tryout</span>
                         </Link>
                     </div>

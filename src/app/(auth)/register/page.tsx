@@ -1,24 +1,5 @@
 "use client";
 
-/**
- * REGISTRATION PAGE - FIXED
- *
- * ✅ FIXED:
- * - Redirects authenticated users to appropriate dashboard
- * - Shows loading state while checking authentication
- * - Prevents flash of register form for authenticated users
- *
- * PURPOSE:
- * - Public page for new user registration
- * - Displays RegisterForm component
- * - Redirects authenticated users to dashboard
- *
- * BACKEND INTEGRATION:
- * - Maps to: POST /api/v1/auth/register
- * - Creates account with PARTICIPANT role by default
- * - Returns tokens immediately (auto-login)
- */
-
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { RegisterForm } from "@/features/auth/components/RegisterForm";
@@ -26,6 +7,7 @@ import { useAuth } from "@/features/auth/hooks";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Shield, BookOpen, Trophy, Loader2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function RegisterPage() {
     const { isAuthenticated, isLoading, user } = useAuth();
@@ -66,7 +48,15 @@ export default function RegisterPage() {
                     <div className="hidden md:block space-y-6">
                         <div className="space-y-2">
                             <Link href="/" className="inline-flex items-center space-x-2 mb-4">
-                                <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg" />
+                                 <span className="relative w-10 h-10 rounded-lg overflow-hidden">
+                                <Image
+                                    src="/logo-prestige.webp"
+                                    alt="Prestige Tryout logo"
+                                    fill
+                                    className="object-contain"
+                                    priority
+                                />
+                            </span>
                                 <span className="text-2xl font-bold text-foreground">Prestige Tryout</span>
                             </Link>
                             <h1 className="text-3xl font-bold text-foreground">
