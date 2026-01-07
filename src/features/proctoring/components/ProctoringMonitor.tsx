@@ -39,11 +39,13 @@ const DEFAULT_CAPTURE_INTERVAL_MS = 3000;
  * Startup delay to let React complete hydration before starting captures.
  * This prevents burst requests during component mount/re-render phase.
  */
-const STARTUP_DELAY_MS = 2500;
+const STARTUP_DELAY_MS = 4000;
 
 /**
  * Recovery delay after 429 error (slightly over half of rate limit window).
  * Backend rate limit window: 1 minute, so we wait 35 seconds to ensure reset.
+ *
+ * ✅ FIX: Changed from 65s to 35s to match documentation and allow faster recovery
  */
 const RATE_LIMIT_RECOVERY_DELAY_MS = 35000;
 
@@ -100,6 +102,10 @@ export function ProctoringMonitor({
     // ✅ FIX v2: Pause flag for 429 recovery - ACTUALLY stops interval from making requests
     // This is critical because setCurrentInterval() doesn't stop the running setInterval()
     const isPausedFor429Ref = useRef(false);
+
+    // ✅ FIX v3: Track consecutive 429 recovery attempts to prevent infinite pause
+    const consecutive429CountRef = useRef(0);
+    const MAX_429_RECOVERY_ATTEMPTS = 3;
 
     // Get store state and actions
     const {
@@ -303,11 +309,12 @@ export function ProctoringMonitor({
                 setLastAnalysis(result.analysis);
 
                 // ✅ Reset error state on successful analysis
-                if (consecutiveErrors > 0) {
+                if (consecutiveErrors > 0 || consecutive429CountRef.current > 0) {
                     setConsecutiveErrors(0);
+                    consecutive429CountRef.current = 0; // ✅ FIX v3: Reset 429 counter on success
                     setCurrentInterval(captureInterval);
                     if (process.env.NODE_ENV === 'development') {
-                        console.info('[PROCTORING] ML service recovered. Reset to normal interval.');
+                        console.info('[PROCTORING] ML service recovered. Reset to normal interval and 429 counter.');
                     }
                 }
 
@@ -384,13 +391,29 @@ export function ProctoringMonitor({
                 }
 
                 if (errorStatus === 429) {
+                    // ✅ FIX v3: Track consecutive 429 attempts
+                    consecutive429CountRef.current += 1;
+
                     // ✅ FIX v2: Set pause flag to ACTUALLY stop requests
                     isPausedFor429Ref.current = true;
 
-                    console.warn(`[PROCTORING] Rate limited (429). Pausing ${RATE_LIMIT_RECOVERY_DELAY_MS / 1000}s for recovery.`);
+                    const recoverySeconds = Math.round(RATE_LIMIT_RECOVERY_DELAY_MS / 1000);
+                    console.warn(`[PROCTORING] Rate limited (429). Attempt ${consecutive429CountRef.current}/${MAX_429_RECOVERY_ATTEMPTS}. Pausing ${recoverySeconds}s for recovery.`);
+
+                    // ✅ FIX v3: If exceeded max recovery attempts, disable proctoring captures
+                    if (consecutive429CountRef.current >= MAX_429_RECOVERY_ATTEMPTS) {
+                        console.error('[PROCTORING] Max 429 recovery attempts reached. Disabling proctoring captures.');
+                        toast.error('Sistem proctoring tidak dapat dipulihkan. Capture dihentikan untuk sesi ini.', {
+                            duration: 10000,
+                            id: 'proctoring-disabled',
+                        });
+                        // Keep isPausedFor429Ref.current = true, don't schedule recovery
+                        return;
+                    }
 
                     // User-friendly notification (Indonesian per user-stories)
-                    toast.warning('Sistem proctoring diperlambat sementara. Akan dilanjutkan otomatis dalam 35 detik.', {
+                    // ✅ FIX: Use actual recovery delay value instead of hardcoded
+                    toast.warning(`Sistem proctoring diperlambat sementara. Akan dilanjutkan otomatis dalam ${recoverySeconds} detik. (Percobaan ${consecutive429CountRef.current}/${MAX_429_RECOVERY_ATTEMPTS})`, {
                         duration: 5000,
                         id: 'proctoring-rate-limit',
                     });
@@ -409,6 +432,7 @@ export function ProctoringMonitor({
                         // ✅ FIX v2: Clear pause flag to resume captures
                         isPausedFor429Ref.current = false;
                         setConsecutiveErrors(0);
+                        // Note: Don't reset consecutive429CountRef here - it resets on successful request
 
                         toast.success('Sistem proctoring kembali normal.', {
                             duration: 3000,

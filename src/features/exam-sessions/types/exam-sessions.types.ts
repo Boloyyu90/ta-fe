@@ -77,11 +77,14 @@ export interface ExamInfo {
  * Exam info for list responses (GET /exam-sessions)
  * Contract requires allowRetake and maxAttempts to be present
  * Source: openapi-spec.yaml UserExamListItem.exam (lines 484-495)
+ *
+ * ✅ FIX: Added durationMinutes - backend returns this in exam object
  */
 export interface ExamInfoInList {
     id: number;
     title: string;
     description: string | null;
+    durationMinutes?: number;    // ✅ FIX: Backend returns this in getUserExam
     allowRetake: boolean;        // Required per contract
     maxAttempts: number | null;  // Required (nullable) per contract
 }
