@@ -28,6 +28,8 @@ import axios, {
     InternalAxiosRequestConfig,
 } from 'axios';
 import { useAuthStore } from '@/features/auth/store/auth.store';
+import { queryClient } from '@/shared/lib/queryClient';
+import { toast } from 'sonner';
 import type { ApiResponse, ApiError } from '@/shared/types/api.types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
@@ -118,20 +120,35 @@ class TypedApiClient {
                             return this.instance(original);
                         } catch (refreshError) {
                             // Refresh failed - clear auth and redirect to login
-                            // ✅ FIXED: Use clearAuth() not logout()
+                            console.warn('[Auth] Token refresh failed, session expired. Redirecting to login.');
+
+                            // REC-001: Clear React Query cache to prevent cross-user data leakage
+                            queryClient.clear();
+
+                            // Clear auth state from store and storage
                             useAuthStore.getState().clearAuth();
 
                             if (typeof window !== 'undefined') {
+                                // REC-002: Show user feedback before redirect
+                                toast.error('Sesi Anda telah berakhir. Silakan login kembali.');
                                 window.location.href = '/login';
                             }
 
                             return Promise.reject(this.transformError(error));
                         }
                     } else {
-                        // No refresh token - clear auth and redirect
+                        // No refresh token available - clear auth and redirect
+                        console.warn('[Auth] No refresh token available, session invalid. Redirecting to login.');
+
+                        // REC-001: Clear React Query cache to prevent cross-user data leakage
+                        queryClient.clear();
+
+                        // Clear auth state from store and storage
                         useAuthStore.getState().clearAuth();
 
                         if (typeof window !== 'undefined') {
+                            // REC-002: Show user feedback before redirect
+                            toast.error('Sesi Anda telah berakhir. Silakan login kembali.');
                             window.location.href = '/login';
                         }
 

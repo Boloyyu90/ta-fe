@@ -21,7 +21,7 @@ import {
 } from '@/shared/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { AlertTriangle, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertTriangle, AlertCircle, Loader2, ChevronLeft, ChevronRight, Flag } from 'lucide-react';
 import { ProctoringMonitor } from '@/features/proctoring/components/ProctoringMonitor';
 import { FullScreenViolationAlert } from '@/features/proctoring/components/FullScreenViolationAlert';
 import { ViolationHistorySidebar } from '@/features/proctoring/components/ViolationHistorySidebar';
@@ -358,6 +358,14 @@ export default function TakeExamPage() {
                                     >
                                         <ChevronLeft className="h-4 w-4 mr-1" />
                                         Sebelumnya
+                                    </Button>
+
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => toast.info('Fitur tandai soal akan segera hadir')}
+                                    >
+                                        <Flag className="h-4 w-4 mr-1" />
+                                        Tandai Soal
                                     </Button>
 
                                     <Button

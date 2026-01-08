@@ -1,4 +1,3 @@
-// src/features/exam-sessions/components/ExamHeader.tsx
 'use client';
 
 import type { ReactNode } from 'react';
@@ -22,13 +21,13 @@ function TimerBox({ value, label, isCritical }: { value: string; label: string; 
         <div className="flex flex-col items-center">
             <div
                 className={`
-                    bg-background text-foreground px-3 py-2 rounded-md min-w-[3.5rem] text-center
+                    bg-primary text-background px-3 py-2 rounded-md min-w-[3.5rem] text-center
                     ${isCritical ? 'animate-pulse' : ''}
                 `}
             >
                 <span className="text-2xl font-bold font-mono">{value}</span>
             </div>
-            <span className="text-xs mt-1 text-primary-foreground/80">{label}</span>
+            <span className="text-xs font-semibold mt-1 text-primary">{label}</span>
         </div>
     );
 }
@@ -42,14 +41,14 @@ export function ExamHeader({
     webcamSlot,
 }: ExamHeaderProps) {
     return (
-        <div className="bg-primary text-primary-foreground">
+        <div className="bg-background text-background">
             <div className="max-w-7xl mx-auto px-4 py-4">
                 <div className="flex items-center justify-between gap-4">
                     {/* Left: Title & subtitle */}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 bg-primary p-5">
                         <h1 className="text-xl font-bold truncate">{examTitle}</h1>
                         {subtitle && (
-                            <p className="text-sm text-primary-foreground/80 truncate">
+                            <p className="text-sm text-background truncate">
                                 {subtitle}
                             </p>
                         )}
@@ -76,7 +75,7 @@ export function ExamHeader({
 
                     {/* Right: Webcam/status indicator slot */}
                     {webcamSlot && (
-                        <div className="flex-shrink-0 hidden md:block">
+                        <div className="flex-shrink-0 hidden md:block w-[200px]">
                             {webcamSlot}
                         </div>
                     )}
