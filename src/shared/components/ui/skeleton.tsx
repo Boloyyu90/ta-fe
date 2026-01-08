@@ -1,5 +1,3 @@
-// src/shared/components/ui/skeleton.tsx
-
 /**
  * SKELETON COMPONENT
  *

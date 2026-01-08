@@ -1,6 +1,6 @@
 // src/features/exam-sessions/hooks/useTimer.ts
 import { useState, useEffect, useRef } from 'react';
-import { timerUtils } from '../utils/timer.utils';
+import { timerUtils, type TimeSegments } from '../utils/timer.utils';
 
 interface UseTimerOptions {
     startedAt: string;
@@ -64,6 +64,7 @@ export function useTimer({ startedAt, durationMinutes, initialRemainingMs, onExp
         return {
             remainingMs: Infinity,
             formattedTime: '--:--',
+            timeSegments: { hours: '--', minutes: '--', seconds: '--' } as TimeSegments,
             isCritical: false,
             isExpired: false,
             timeColor: 'text-muted-foreground',
@@ -74,6 +75,7 @@ export function useTimer({ startedAt, durationMinutes, initialRemainingMs, onExp
     return {
         remainingMs,
         formattedTime: timerUtils.formatTime(remainingMs),
+        timeSegments: timerUtils.formatTimeSegments(remainingMs),
         isCritical: timerUtils.isCriticalTime(remainingMs),
         isExpired: timerUtils.isExpired(remainingMs),
         timeColor: timerUtils.getTimeColor(remainingMs),

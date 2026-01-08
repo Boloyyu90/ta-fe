@@ -5,6 +5,12 @@
  * Helper functions for exam timer management
  */
 
+export interface TimeSegments {
+    hours: string;
+    minutes: string;
+    seconds: string;
+}
+
 export const timerUtils = {
     /**
      * Format milliseconds to MM:SS display
@@ -19,6 +25,26 @@ export const timerUtils = {
         const seconds = totalSeconds % 60;
 
         return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    },
+
+    /**
+     * Format milliseconds to separate hour/minute/second segments
+     * @param ms - Milliseconds remaining
+     * @returns Object with hours, minutes, seconds as zero-padded strings
+     */
+    formatTimeSegments(ms: number): TimeSegments {
+        if (ms <= 0) return { hours: '00', minutes: '00', seconds: '00' };
+
+        const totalSeconds = Math.floor(ms / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+        return {
+            hours: hours.toString().padStart(2, '0'),
+            minutes: minutes.toString().padStart(2, '0'),
+            seconds: seconds.toString().padStart(2, '0'),
+        };
     },
 
     /**
