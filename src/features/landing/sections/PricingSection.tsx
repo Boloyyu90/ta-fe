@@ -1,125 +1,215 @@
-import { Button } from "@/shared/components/ui/button";
-import { Check } from "lucide-react";
-import { FadeIn, FadeInStagger } from "@/shared/components/animations";
+'use client';
+
+import { Badge } from '@/shared/components/ui/badge';
+import { Card } from '@/shared/components/ui/card';
+import { Button } from '@/shared/components/ui/button';
+import { Section } from '@/shared/core/section';
+import { Animate } from '@/shared/core/animate';
+import Image from 'next/image';
+import { Check, X, ChevronRight } from 'lucide-react';
+import { cn } from '@/shared/lib/utils';
+
+const MASTER_FEATURES = [
+  { id: 'tryout', text: 'Akses Tryout SKD Premium' },
+  { id: 'video_discussion', text: 'Pembahasan Soal via Video' },
+  { id: 'detailed_analysis', text: 'Analisis Hasil & Peringkat Nasional' },
+  { id: 'discussion_group', text: 'Grup Diskusi Eksklusif' },
+  { id: 'personal_consulting', text: 'Konsultasi Personal 1-on-1' },
+  { id: 'interview_simulation', text: 'Simulasi Wawancara' },
+  { id: 'guarantee', text: 'Garansi Lulus*' },
+];
+
+interface Package {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  originalPrice?: number;
+  popular?: boolean;
+  badge?: string;
+  includedFeatureIds: string[];
+  featureDescriptions: { [key: string]: string };
+}
+
+const PriceDisplay = ({ price, originalPrice }: { price: number; originalPrice?: number }) => (
+  <div className="space-y-1">
+    <div className="flex items-baseline gap-2">
+      <span className="text-xs text-muted-foreground">RP</span>
+      <span className="text-2xl font-bold text-foreground">
+        {price === 0 ? 'GRATIS' : price.toLocaleString('id-ID')}
+      </span>
+      {originalPrice && originalPrice > price && (
+        <span className="text-sm text-muted-foreground line-through">
+          {originalPrice.toLocaleString('id-ID')}
+        </span>
+      )}
+    </div>
+    {originalPrice && originalPrice > price && (
+      <Badge variant="destructive" className="text-xs">
+        Hemat {Math.round(((originalPrice - price) / originalPrice) * 100)}%
+      </Badge>
+    )}
+  </div>
+);
+
+const PackageCard = ({ pkg, index }: { pkg: Package; index: number }) => (
+  <Card
+    className={cn(
+      'relative flex flex-col h-full overflow-hidden border-border hover:shadow-xl rounded-3xl p-6',
+      'transition-all duration-fast group'
+    )}
+  >
+    {pkg.popular && (
+      <div className="absolute -right-12 top-8 z-20">
+        <div className="bg-secondary px-12 py-2 rotate-45 shadow-lg">
+          <span className="text-xs font-bold text-center text-white">
+            POPULER
+          </span>
+        </div>
+      </div>
+    )}
+
+    <div className="flex flex-col h-full">
+      <div className="relative h-32 overflow-hidden mb-6 rounded-3xl border border-gray-200">
+        <Image
+          src="/images/illustrations/marketing/card-banner.svg"
+          alt="Package Banner"
+          fill
+          className="object-cover"
+        />
+      </div>
+
+      <div className="flex-1 space-y-6">
+        <div className="space-y-3">
+          <div className="flex justify-between items-start">
+            <h3 className="text-lg font-bold text-foreground">
+              {pkg.title}
+            </h3>
+            <Badge
+              variant={pkg.popular ? "secondary" : pkg.price === 0 ? "default" : "outline"}
+              className="font-medium"
+            >
+              {pkg.badge || (pkg.price === 0 ? "Gratis!" : "Premium!")}
+            </Badge>
+          </div>
+
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {pkg.description}
+          </p>
+        </div>
+
+        <PriceDisplay price={pkg.price} originalPrice={pkg.originalPrice} />
+
+        <div className="border-t border-border flex-1 pt-6 space-y-4">
+          {MASTER_FEATURES.map((feature) => {
+            const isIncluded = pkg.includedFeatureIds.includes(feature.id);
+            const featureText = pkg.featureDescriptions[feature.id] || feature.text;
+
+            return (
+              <div key={feature.id} className="flex items-start gap-3">
+                {isIncluded ? (
+                  <Check className="w-5 h-5 text-success mt-1 flex-shrink-0" />
+                ) : (
+                  <X className="w-5 h-5 text-destructive/50 mt-1 flex-shrink-0" />
+                )}
+                <span className={cn("text-sm", !isIncluded && "text-muted-foreground line-through")}>
+                  {featureText}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="pt-4">
+          <Button
+            className="w-full group"
+            size="lg"
+            variant="default"
+          >
+            {pkg.price === 0 ? 'Coba Gratis' : 'Pilih Paket'}
+            <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  </Card>
+);
 
 export function PricingSection() {
-    const plans = [
-        {
-            name: "Starter",
-            price: "$29",
-            period: "per month",
-            description: "Perfect for individual tutors",
-            features: [
-                "Up to 50 students",
-                "100 exam attempts/month",
-                "Basic proctoring",
-                "Standard analytics",
-                "Email support",
-            ],
-            cta: "Start Free Trial",
-            popular: false,
-        },
-        {
-            name: "Professional",
-            price: "$99",
-            period: "per month",
-            description: "Ideal for small tutoring centers",
-            features: [
-                "Up to 200 students",
-                "500 exam attempts/month",
-                "Advanced AI proctoring",
-                "Detailed analytics",
-                "Priority support",
-                "Custom question banks",
-            ],
-            cta: "Start Free Trial",
-            popular: true,
-        },
-        {
-            name: "Enterprise",
-            price: "Custom",
-            period: "contact sales",
-            description: "For large institutions",
-            features: [
-                "Unlimited students",
-                "Unlimited exams",
-                "Full AI proctoring suite",
-                "Advanced analytics & reporting",
-                "Dedicated support",
-                "Custom integrations",
-                "White-label options",
-            ],
-            cta: "Contact Sales",
-            popular: false,
-        },
-    ];
+  const packages: Package[] = [
+    {
+      id: "1",
+      title: "Paket Gratis",
+      description: "Coba platform kami dengan pengalaman yang menyegarkan.",
+      price: 0,
+      badge: "Gratis!",
+      includedFeatureIds: ['tryout'],
+      featureDescriptions: {
+        'tryout': "Akses 1x Tryout SKD",
+      }
+    },
+    {
+      id: "2",
+      title: "Paket Premium",
+      description: "Persiapan lengkap untuk hasil maksimal.",
+      price: 99000,
+      originalPrice: 149000,
+      popular: true,
+      badge: "Terlaris!",
+      includedFeatureIds: ['tryout', 'video_discussion', 'detailed_analysis', 'discussion_group'],
+      featureDescriptions: {
+        'tryout': "Akses 5x Tryout SKD",
+        'video_discussion': "Pembahasan Soal via Video HD",
+      }
+    },
+    {
+      id: "3",
+      title: "Paket Ultimate",
+      description: "Paket terlengkap dengan bimbingan personal.",
+      price: 199000,
+      originalPrice: 299000,
+      badge: "Best Value!",
+      includedFeatureIds: ['tryout', 'video_discussion', 'detailed_analysis', 'discussion_group', 'personal_consulting', 'interview_simulation', 'guarantee'],
+      featureDescriptions: {
+        'tryout': "Akses 10x Tryout SKD",
+      }
+    }
+  ];
 
-    return (
-        <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
-            <div className="container mx-auto">
-                <FadeIn>
-                    <div className="max-w-3xl mx-auto text-center mb-16">
-                        <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">Simple, Transparent Pricing</h2>
-                        <p className="text-lg text-muted-foreground">
-                            Choose the plan that fits your needs. All plans include a 14-day free trial.
-                        </p>
-                    </div>
-                </FadeIn>
+  return (
+    <Section id="packages" variant="default" padding="lg" container="default">
+      <div className="space-y-16">
+        <Animate animation="fadeInUp" className="text-center space-y-4">
+          <h2 className="font-bold tracking-normal text-center">
+            <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
+              Pilih Paket Belajar Terbaik
+            </span>
+          </h2>
+          <p className="text-muted-foreground text-center max-w-3xl mx-auto">
+            Mulai perjalanan sukses CASN Anda dengan paket yang dirancang sesuai kebutuhan dan budget.
+          </p>
+        </Animate>
 
-                <FadeInStagger className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto" staggerDelay={150} baseDelay={200}>
-                    {plans.map((plan, index) => (
-                        <div
-                            key={index}
-                            className={`relative p-8 rounded-2xl border transition-all duration-300 hover:scale-105 ${
-                                plan.popular
-                                    ? "border-primary bg-card shadow-xl ring-2 ring-primary/20"
-                                    : "border-border bg-card hover:border-primary/50"
-                            }`}
-                        >
-                            {plan.popular && (
-                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground text-sm font-medium">
-                                    Most Popular
-                                </div>
-                            )}
-
-                            <div className="text-center mb-6">
-                                <h3 className="text-xl font-bold text-card-foreground mb-2">{plan.name}</h3>
-                                <p className="text-sm text-muted-foreground mb-4">{plan.description}</p>
-                                <div className="flex items-baseline justify-center gap-2">
-                                    <span className="text-4xl font-bold text-foreground">{plan.price}</span>
-                                    <span className="text-muted-foreground">/{plan.period}</span>
-                                </div>
-                            </div>
-
-                            <ul className="space-y-3 mb-8">
-                                {plan.features.map((feature, featureIndex) => (
-                                    <li key={featureIndex} className="flex items-start gap-3">
-                                        <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                                        <span className="text-sm text-card-foreground">{feature}</span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            <Button
-                                className={`w-full ${plan.popular ? "bg-primary hover:bg-primary-700" : ""}`}
-                                variant={plan.popular ? "default" : "outline"}
-                                size="lg"
-                            >
-                                {plan.cta}
-                            </Button>
-                        </div>
-                    ))}
-                </FadeInStagger>
-
-                <FadeIn delay={800}>
-                    <p className="text-center text-sm text-muted-foreground mt-12">
-                        All plans include SSL encryption, data backups, and GDPR compliance.
-                        <a href="#" className="text-primary hover:underline ml-1">
-                            View detailed comparison →
-                        </a>
-                    </p>
-                </FadeIn>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
+          {packages.map((pkg, index) => (
+            <div
+              key={pkg.id}
+              className="animate-fadeInUp"
+              style={{ animationDelay: `${index * 150}ms` }}
+            >
+              <PackageCard pkg={pkg} index={index} />
             </div>
-        </section>
-    );
+          ))}
+        </div>
+
+        <Animate animation="fadeInUp" delay="normal" className="text-center">
+          <p className="text-sm text-muted-foreground mb-4">
+            *Syarat dan ketentuan berlaku. Garansi berlaku dengan ketentuan tertentu.
+          </p>
+        </Animate>
+      </div>
+    </Section>
+  );
 }
+
+export default PricingSection;

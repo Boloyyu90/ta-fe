@@ -50,7 +50,7 @@ export default function RegisterPage() {
                             <Link href="/" className="inline-flex items-center space-x-2 mb-4">
                                  <span className="relative w-10 h-10 rounded-lg overflow-hidden">
                                 <Image
-                                    src="/logo-prestige.webp"
+                                    src="/logo-prestige.svg"
                                     alt="Prestige Tryout logo"
                                     fill
                                     className="object-contain"

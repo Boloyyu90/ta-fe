@@ -1,13 +1,12 @@
 import { Navbar, Footer } from "@/features/landing/components";
 import {
     HeroSection,
-    ProblemSection,
-    SolutionSection,
+    AboutSection,
+    BenefitsSection,
     FeaturesSection,
-    ProctoringHighlightSection,
-    HowItWorksSection,
     PricingSection,
     TestimonialsSection,
+    FaqSection,
     CtaSection,
 } from "@/features/landing/sections";
 
@@ -17,13 +16,12 @@ export default function HomePage() {
             <Navbar />
             <main>
                 <HeroSection />
-                <ProblemSection />
-                <SolutionSection />
+                <AboutSection />
+                <BenefitsSection />
                 <FeaturesSection />
-                <ProctoringHighlightSection />
-                <HowItWorksSection />
                 <PricingSection />
                 <TestimonialsSection />
+                <FaqSection />
                 <CtaSection />
             </main>
             <Footer />

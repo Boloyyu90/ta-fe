@@ -34,8 +34,27 @@ import type { ApiResponse, ApiError } from '@/shared/types/api.types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
+// ============================================================================
+// EXAM-CRITICAL ENDPOINTS (should NOT redirect to login on auth failure)
+// ============================================================================
+const EXAM_CRITICAL_PATTERNS = [
+    /\/exam-sessions\/\d+\/submit/,
+    /\/exam-sessions\/\d+\/answers/,
+    /\/proctoring\/\d+\/events/,
+    /\/proctoring\/\d+\/analyze/,
+];
+
+const isExamCriticalEndpoint = (url: string | undefined): boolean => {
+    if (!url) return false;
+    return EXAM_CRITICAL_PATTERNS.some(pattern => pattern.test(url));
+};
+
 class TypedApiClient {
     private instance: AxiosInstance;
+
+    // Token refresh mutex state to prevent race conditions (409 Conflict)
+    private isRefreshing = false;
+    private refreshSubscribers: Array<(token: string) => void> = [];
 
     constructor() {
         this.instance = axios.create({
@@ -46,6 +65,22 @@ class TypedApiClient {
         });
 
         this.setupInterceptors();
+    }
+
+    /**
+     * Subscribe to token refresh completion
+     * Used to queue requests while refresh is in progress
+     */
+    private subscribeTokenRefresh(callback: (token: string) => void): void {
+        this.refreshSubscribers.push(callback);
+    }
+
+    /**
+     * Notify all subscribers that token has been refreshed
+     */
+    private onTokenRefreshed(token: string): void {
+        this.refreshSubscribers.forEach(callback => callback(token));
+        this.refreshSubscribers = [];
     }
 
     private setupInterceptors(): void {
@@ -84,14 +119,30 @@ class TypedApiClient {
 
                 // Check if this is an auth endpoint (don't retry auth calls)
                 const isAuthEndpoint = original.url?.includes('/auth/');
+                const requestUrl = original.url || '';
 
                 // Handle 401 Unauthorized - attempt token refresh
                 if (error.response?.status === 401 && !isAuthEndpoint && !original._retry) {
                     original._retry = true;
 
+                    // MUTEX: If already refreshing, queue this request
+                    if (this.isRefreshing) {
+                        console.log('[Auth] Token refresh in progress, queuing request:', requestUrl);
+                        return new Promise((resolve) => {
+                            this.subscribeTokenRefresh((token: string) => {
+                                if (original.headers) {
+                                    original.headers.Authorization = `Bearer ${token}`;
+                                }
+                                resolve(this.instance(original));
+                            });
+                        });
+                    }
+
                     const refreshToken = useAuthStore.getState().refreshToken;
 
                     if (refreshToken) {
+                        this.isRefreshing = true;
+
                         try {
                             // Call refresh endpoint directly (avoid interceptor loop)
                             const refreshResponse = await axios.post<
@@ -106,10 +157,12 @@ class TypedApiClient {
                             const user = useAuthStore.getState().user;
 
                             // Update auth store with new tokens
-                            // ✅ FIXED: Use setAuth(user, tokens) not setTokens
                             if (user) {
                                 useAuthStore.getState().setAuth(user, tokens);
                             }
+
+                            // Notify all queued requests
+                            this.onTokenRefreshed(tokens.accessToken);
 
                             // Update original request with new token
                             if (original.headers) {
@@ -119,6 +172,13 @@ class TypedApiClient {
                             // Retry original request
                             return this.instance(original);
                         } catch (refreshError) {
+                            // Check if this is an exam-critical endpoint
+                            if (isExamCriticalEndpoint(requestUrl)) {
+                                console.warn('[Auth] Refresh failed on exam-critical endpoint, NOT redirecting to login:', requestUrl);
+                                // Let the component handle the error (redirect to results or show message)
+                                return Promise.reject(this.transformError(error));
+                            }
+
                             // Refresh failed - clear auth and redirect to login
                             console.warn('[Auth] Token refresh failed, session expired. Redirecting to login.');
 
@@ -135,8 +195,16 @@ class TypedApiClient {
                             }
 
                             return Promise.reject(this.transformError(error));
+                        } finally {
+                            this.isRefreshing = false;
                         }
                     } else {
+                        // Check if this is an exam-critical endpoint
+                        if (isExamCriticalEndpoint(requestUrl)) {
+                            console.warn('[Auth] No refresh token on exam-critical endpoint, NOT redirecting:', requestUrl);
+                            return Promise.reject(this.transformError(error));
+                        }
+
                         // No refresh token available - clear auth and redirect
                         console.warn('[Auth] No refresh token available, session invalid. Redirecting to login.');
 

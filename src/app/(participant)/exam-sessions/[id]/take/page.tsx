@@ -90,8 +90,12 @@ export default function TakeExamPage() {
     const submitAnswerMutation = useSubmitAnswer(sessionId);
     const submitExamMutation = useSubmitExam(sessionId);
 
-    // Load existing answers when cached data is available
+    // localStorage backup key for this session
+    const ANSWER_BACKUP_KEY = `exam-${sessionId}-answers-backup`;
+
+    // Load existing answers when cached data is available OR from localStorage backup
     useEffect(() => {
+        // First try to load from server cache
         if (cachedSessionData?.answers && cachedSessionData.answers.length > 0) {
             const newAnswersMap = new Map<number, AnswerOption>();
             cachedSessionData.answers.forEach((answer) => {
@@ -100,8 +104,27 @@ export default function TakeExamPage() {
                 }
             });
             setAnswersMap(newAnswersMap);
+            return;
         }
-    }, [cachedSessionData]);
+
+        // Fallback: Try to restore from localStorage backup (crash recovery)
+        try {
+            const backup = localStorage.getItem(ANSWER_BACKUP_KEY);
+            if (backup && answersMap.size === 0) {
+                const parsed = JSON.parse(backup) as Record<string, string>;
+                const restoredMap = new Map<number, AnswerOption>(
+                    Object.entries(parsed).map(([k, v]) => [Number(k), v as AnswerOption])
+                );
+                if (restoredMap.size > 0) {
+                    setAnswersMap(restoredMap);
+                    console.log('[Exam] Restored', restoredMap.size, 'answers from localStorage backup');
+                    toast.info(`${restoredMap.size} jawaban dipulihkan dari backup lokal`);
+                }
+            }
+        } catch (e) {
+            console.warn('[Exam] Failed to restore backup:', e);
+        }
+    }, [cachedSessionData, ANSWER_BACKUP_KEY, answersMap.size]);
 
     // Update selectedOption when navigating between questions
     useEffect(() => {
@@ -144,10 +167,33 @@ export default function TakeExamPage() {
         durationMinutes: timerDurationMinutes,
         initialRemainingMs: timerRemainingMs,
         onExpire: () => {
-            toast.error(getErrorMessage(EXAM_SESSION_ERRORS.EXAM_SESSION_TIMEOUT));
+            toast.error('Waktu habis! Ujian diserahkan otomatis.');
             submitExamMutation.mutate(undefined, {
                 onSuccess: (result) => {
+                    // Clear localStorage backup on successful submit
+                    localStorage.removeItem(`exam-${sessionId}-answers-backup`);
                     router.push(`/results/${result.result.id}`);
+                },
+                onError: (error) => {
+                    // CRITICAL: Always redirect to results, even on error
+                    // Backend may have auto-submitted due to time expiry
+                    console.error('[Timer Expiry] Auto-submit failed:', error);
+
+                    const status = (error as { status?: number })?.status;
+
+                    if (status === 429) {
+                        toast.error('Server sibuk. Mengarahkan ke halaman hasil...');
+                    } else if (status === 401 || status === 403) {
+                        toast.error('Sesi berakhir. Mengarahkan ke halaman hasil...');
+                    } else {
+                        toast.error('Gagal menyerahkan ujian. Mengarahkan ke halaman hasil...');
+                    }
+
+                    // Redirect to exam sessions page - let user check their result there
+                    // Backend might have auto-completed the session
+                    setTimeout(() => {
+                        router.push(`/exam-sessions/${sessionId}`);
+                    }, 1500);
                 },
             });
         },
@@ -213,7 +259,7 @@ export default function TakeExamPage() {
     const totalQuestions = questionsData.questions.length;
     const answeredCount = answersMap.size;
 
-    // Handle answer change
+    // Handle answer change with localStorage backup
     const handleAnswerChange = async (value: AnswerOption) => {
         setSelectedOption(value);
 
@@ -221,6 +267,15 @@ export default function TakeExamPage() {
         newAnswersMap.set(currentQuestion.examQuestionId, value);
         setAnswersMap(newAnswersMap);
 
+        // BACKUP TO LOCALSTORAGE (always, before server call)
+        try {
+            const backupData = Object.fromEntries(newAnswersMap);
+            localStorage.setItem(ANSWER_BACKUP_KEY, JSON.stringify(backupData));
+        } catch (e) {
+            console.warn('[Exam] Failed to backup answer:', e);
+        }
+
+        // Submit to server
         submitAnswerMutation.mutate({
             examQuestionId: currentQuestion.examQuestionId,
             selectedOption: value,
@@ -228,8 +283,20 @@ export default function TakeExamPage() {
             onSuccess: () => {
                 toast.success('Jawaban tersimpan', { duration: 1000 });
             },
-            onError: () => {
-                toast.error(getErrorMessage(EXAM_SESSION_ERRORS.EXAM_SESSION_ANSWER_SAVE_FAILED));
+            onError: (error) => {
+                const status = (error as { status?: number })?.status;
+
+                if (status === 429) {
+                    // Rate limited - answer is already backed up locally
+                    toast.warning('Server sibuk, jawaban disimpan lokal', { duration: 2000 });
+                    console.warn('[SubmitAnswer] Rate limited, answer backed up locally');
+                } else if (status === 401 || status === 403) {
+                    // Auth error - don't show scary message during exam
+                    toast.warning('Sesi terputus, jawaban disimpan lokal', { duration: 2000 });
+                } else {
+                    toast.error(getErrorMessage(EXAM_SESSION_ERRORS.EXAM_SESSION_ANSWER_SAVE_FAILED));
+                }
+                // Answer is already backed up to localStorage above
             },
         });
     };
@@ -243,11 +310,25 @@ export default function TakeExamPage() {
     const handleSubmitExam = () => {
         submitExamMutation.mutate(undefined, {
             onSuccess: (result) => {
+                // Clear localStorage backup on successful submission
+                localStorage.removeItem(ANSWER_BACKUP_KEY);
                 toast.success('Ujian berhasil diserahkan!');
                 router.push(`/results/${result.result.id}`);
             },
-            onError: () => {
-                toast.error(getErrorMessage(EXAM_SESSION_ERRORS.EXAM_SESSION_SUBMIT_FAILED));
+            onError: (error) => {
+                const status = (error as { status?: number })?.status;
+
+                if (status === 429) {
+                    toast.error('Server sibuk. Silakan coba lagi dalam beberapa detik.');
+                } else if (status === 401 || status === 403) {
+                    // Auth error during submit - redirect to session page, backend might have auto-submitted
+                    toast.error('Sesi terputus. Mengarahkan ke halaman ujian...');
+                    setTimeout(() => {
+                        router.push(`/exam-sessions/${sessionId}`);
+                    }, 1500);
+                } else {
+                    toast.error(getErrorMessage(EXAM_SESSION_ERRORS.EXAM_SESSION_SUBMIT_FAILED));
+                }
             },
         });
     };
@@ -267,7 +348,7 @@ export default function TakeExamPage() {
             <div className="sticky top-0 z-40 shadow-sm">
                 <ExamHeader
                     examTitle={sessionData?.exam.title || 'Ujian'}
-                    subtitle={`Kerjakan soal dengan jujur dan sungguh-sungguh`}
+                    subtitle={`Kerjakan soal dengan jujur dan sungguh-sungguh untuk mengukur potensimu, Semangat!`}
                     timeSegments={timer.timeSegments}
                     isCritical={timer.isCritical}
                     isExpired={timer.isExpired}

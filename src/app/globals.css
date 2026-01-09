@@ -140,6 +140,34 @@
     }
 }
 
+/* ============================================================================
+   🎯 ANIMATION SYSTEM
+   ============================================================================ */
+
+/* Animation timing variables */
+:root {
+    --animation-duration-fast: 350ms;
+    --animation-duration-normal: 600ms;
+    --animation-duration-slow: 800ms;
+    --animation-easing-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --animation-easing-gentle: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+    /* Shadows */
+    --shadow-soft: 0 2px 8px hsl(var(--foreground) / 0.06);
+    --shadow-medium: 0 4px 16px hsl(var(--foreground) / 0.08);
+    --shadow-large: 0 8px 32px hsl(var(--foreground) / 0.12);
+    --shadow-colored-primary: 0 8px 25px hsl(var(--primary) / 0.15);
+    --shadow-colored-secondary: 0 8px 25px hsl(var(--secondary) / 0.15);
+}
+
+.dark {
+    --shadow-soft: 0 2px 8px rgb(0 0 0 / 0.4);
+    --shadow-medium: 0 4px 16px rgb(0 0 0 / 0.5);
+    --shadow-large: 0 8px 32px rgb(0 0 0 / 0.6);
+    --shadow-colored-primary: 0 8px 25px hsl(var(--primary) / 0.3);
+    --shadow-colored-secondary: 0 8px 25px hsl(var(--secondary) / 0.3);
+}
+
 /* ✅ NEW: Utility classes for quick styling */
 @layer utilities {
     /* Status badges */
@@ -183,5 +211,199 @@
 
     .gradient-warning {
         @apply bg-gradient-to-br from-warning/10 to-warning/5;
+    }
+
+    /* Core entrance animations */
+    .animate-fadeInUp {
+        animation: fadeInUp var(--animation-duration-normal) var(--animation-easing-smooth) forwards;
+    }
+
+    .animate-fadeInLeft {
+        animation: fadeInLeft var(--animation-duration-fast) var(--animation-easing-smooth) forwards;
+    }
+
+    .animate-fadeInRight {
+        animation: fadeInRight var(--animation-duration-fast) var(--animation-easing-smooth) forwards;
+    }
+
+    .animate-scaleIn {
+        animation: scaleIn var(--animation-duration-slow) var(--animation-easing-gentle) forwards;
+    }
+
+    .animate-wipe-in-right {
+        animation: wipeInRight var(--animation-duration-normal) var(--animation-easing-smooth) forwards;
+    }
+
+    /* Speed modifiers */
+    .animation-duration-fast {
+        animation-duration: var(--animation-duration-fast) !important;
+    }
+
+    .animation-duration-normal {
+        animation-duration: var(--animation-duration-normal) !important;
+    }
+
+    .animation-duration-slow {
+        animation-duration: var(--animation-duration-slow) !important;
+    }
+
+    /* Delay modifiers */
+    .animation-delay-fast {
+        animation-delay: var(--animation-duration-fast);
+    }
+
+    .animation-delay-normal {
+        animation-delay: var(--animation-duration-normal);
+    }
+
+    .animation-delay-slow {
+        animation-delay: var(--animation-duration-slow);
+    }
+
+    /* Performance optimization */
+    .gpu-accelerated {
+        will-change: transform, opacity;
+        transform: translateZ(0);
+    }
+
+    /* Initial hidden states */
+    .animate-fadeInUp,
+    .animate-fadeInLeft,
+    .animate-fadeInRight,
+    .animate-scaleIn {
+        opacity: 0;
+    }
+
+    /* Shadow utilities */
+    .shadow-soft {
+        box-shadow: var(--shadow-soft);
+    }
+
+    .shadow-medium {
+        box-shadow: var(--shadow-medium);
+    }
+
+    .shadow-large {
+        box-shadow: var(--shadow-large);
+    }
+
+    .shadow-colored-primary {
+        box-shadow: var(--shadow-colored-primary);
+    }
+
+    .shadow-colored-secondary {
+        box-shadow: var(--shadow-colored-secondary);
+    }
+}
+
+/* ============================================================================
+   🎯 COMPONENT UTILITIES
+   ============================================================================ */
+@layer components {
+    /* Interactive elements */
+    .interactive {
+        transition:
+            transform var(--animation-duration-fast) var(--animation-easing-smooth),
+            box-shadow var(--animation-duration-fast) var(--animation-easing-smooth);
+        will-change: transform, box-shadow;
+    }
+
+    .interactive:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-soft);
+    }
+
+    .card-hover {
+        @apply interactive;
+    }
+
+    .card-hover:hover {
+        box-shadow: var(--shadow-medium);
+    }
+
+    /* Transition utilities */
+    .transition-fast {
+        transition-duration: var(--animation-duration-fast);
+        transition-timing-function: var(--animation-easing-smooth);
+    }
+
+    .transition-normal {
+        transition-duration: var(--animation-duration-normal);
+        transition-timing-function: var(--animation-easing-smooth);
+    }
+
+    .duration-fast {
+        transition-duration: var(--animation-duration-fast);
+    }
+}
+
+/* ============================================================================
+   🎯 KEYFRAMES
+   ============================================================================ */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeInRight {
+    from {
+        opacity: 0;
+        transform: translateX(40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes wipeInRight {
+    from {
+        transform: scaleX(0);
+    }
+    to {
+        transform: scaleX(1);
+    }
+}
+
+/* ============================================================================
+   🎯 ACCESSIBILITY - REDUCED MOTION SUPPORT
+   ============================================================================ */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .interactive:hover {
+        transform: none;
     }
 }
