@@ -2,9 +2,8 @@
 
 import { useState } from 'react';
 import { Card } from '@/shared/components/ui/card';
-import { Section } from '@/shared/core/section';
-import { Animate } from '@/shared/core/animate';
-import { motion, AnimatePresence } from 'framer-motion';
+import { SectionWrapper } from '@/shared/components/SectionWrapper';
+import { FadeIn, FadeInStagger } from '@/shared/components/animations';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
@@ -55,8 +54,8 @@ export function FaqSection() {
   };
 
   return (
-    <Section id="faq" variant="default" padding="default" container="narrow">
-      <Animate animation="fadeInUp">
+    <SectionWrapper id="faq" containerClassName="max-w-4xl">
+      <FadeIn direction="up">
         <div className="text-center mb-8 md:mb-12">
           <h2 className="font-bold mb-4">
             <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
@@ -64,90 +63,65 @@ export function FaqSection() {
             </span>
           </h2>
         </div>
-      </Animate>
+      </FadeIn>
 
-      <div className="space-y-3 pb-12">
-        {faqs.map((faq, index) => (
-          <div
-            key={faq.id}
-            className="animate-fadeInUp"
-            style={{ animationDelay: `${index * 100}ms` }}
-          >
-            <div className="group">
-              <motion.div
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className="will-change-transform"
+      <FadeInStagger staggerDelay={100} direction="up" className="space-y-3 pb-12">
+        {faqs.map((faq) => {
+          const isOpen = openFaq === faq.id;
+          return (
+            <Card
+              key={faq.id}
+              className={cn(
+                "border overflow-hidden transition-all duration-300",
+                isOpen
+                  ? "border-primary shadow-md bg-primary/5"
+                  : "border-border bg-card hover:shadow-sm hover:border-primary/30"
+              )}
+            >
+              <button
+                className="w-full p-4 md:p-5 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset rounded-lg"
+                onClick={() => toggleFaq(faq.id)}
+                aria-expanded={isOpen}
               >
-                <Card className={cn(
-                  "border overflow-hidden transition-colors duration-fast",
-                  openFaq === faq.id
-                    ? "border-primary shadow-md bg-primary/5"
-                    : "border-border bg-card hover:shadow-sm hover:border-primary/30"
+                <span className={cn(
+                  "pr-4 leading-snug transition-colors duration-300 font-medium",
+                  isOpen ? "text-primary" : "text-foreground"
                 )}>
+                  {faq.question}
+                </span>
 
-                  <motion.button
-                    className="w-full p-4 md:p-5 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset rounded-lg"
-                    onClick={() => toggleFaq(faq.id)}
-                    aria-expanded={openFaq === faq.id}
-                    whileHover={{ backgroundColor: "rgba(var(--primary-rgb), 0.02)" }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <span className={cn(
-                      "pr-4 leading-snug transition-colors duration-fast font-medium",
-                      openFaq === faq.id ? "text-primary" : "text-foreground"
-                    )}>
-                      {faq.question}
-                    </span>
+                <div className={cn(
+                  "flex-shrink-0 transition-transform duration-300",
+                  isOpen ? "rotate-180" : "rotate-0"
+                )}>
+                  <ChevronDown className={cn(
+                    "w-4 h-4 transition-colors duration-300",
+                    isOpen ? "text-primary" : "text-muted-foreground"
+                  )} />
+                </div>
+              </button>
 
-                    <div className={cn(
-                      "flex-shrink-0 transition-transform duration-fast",
-                      openFaq === faq.id ? "rotate-180" : "rotate-0"
-                    )}>
-                      <ChevronDown className={cn(
-                        "w-4 h-4 transition-colors duration-fast",
-                        openFaq === faq.id ? "text-primary" : "text-muted-foreground"
-                      )} />
+              <div
+                className={cn(
+                  "grid transition-all duration-300 ease-in-out",
+                  isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                )}
+              >
+                <div className="overflow-hidden">
+                  <div className="px-4 md:px-5 pb-4 md:pb-5">
+                    <div className="pt-3 border-t border-primary/20">
+                      <p className="text-muted-foreground text-sm leading-relaxed">
+                        {faq.answer}
+                      </p>
                     </div>
-                  </motion.button>
-
-                  <AnimatePresence>
-                    {openFaq === faq.id && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{
-                          duration: 0.35,
-                          ease: [0.25, 0.46, 0.45, 0.94],
-                          opacity: { duration: 0.25 }
-                        }}
-                        className="overflow-hidden"
-                      >
-                        <motion.div
-                          initial={{ y: -10 }}
-                          animate={{ y: 0 }}
-                          exit={{ y: -10 }}
-                          transition={{ duration: 0.25, delay: 0.1 }}
-                          className="px-4 md:px-5 pb-4 md:pb-5"
-                        >
-                          <div className="pt-3 border-t border-primary/20">
-                            <p className="text-muted-foreground text-sm leading-relaxed">
-                              {faq.answer}
-                            </p>
-                          </div>
-                        </motion.div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </Card>
-              </motion.div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </Section>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </FadeInStagger>
+    </SectionWrapper>
   );
 }
 

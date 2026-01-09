@@ -5,9 +5,26 @@ import { Button } from "@/shared/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
+import { useActiveSection } from "@/shared/hooks/useActiveSection";
+import { cn } from "@/shared/lib/utils";
+
+const NAV_LINKS = [
+    { href: "#about", label: "Tentang" },
+    { href: "#benefits", label: "Keunggulan" },
+    { href: "#features", label: "Fitur" },
+    { href: "#pricing", label: "Harga" },
+    { href: "#testimonials", label: "Testimoni" },
+    { href: "#faq", label: "FAQ" },
+];
 
 export function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
+    const activeSection = useActiveSection();
+
+    const isActive = (href: string) => {
+        const sectionId = href.replace("#", "");
+        return activeSection === sectionId;
+    };
 
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
@@ -29,26 +46,31 @@ export function Navbar() {
                     </div>
 
                     <div className="hidden md:flex items-center space-x-8">
-                        <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                            Features
-                        </a>
-                        <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                            How It Works
-                        </a>
-                        <a href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                            Pricing
-                        </a>
-                        <a href="#testimonials" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                            Testimonials
-                        </a>
+                        {NAV_LINKS.map((link) => (
+                            <a
+                                key={link.href}
+                                href={link.href}
+                                className={cn(
+                                    "text-sm font-medium transition-colors relative py-1",
+                                    isActive(link.href)
+                                        ? "text-primary"
+                                        : "text-muted-foreground hover:text-primary"
+                                )}
+                            >
+                                {link.label}
+                                {isActive(link.href) && (
+                                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-full" />
+                                )}
+                            </a>
+                        ))}
                     </div>
 
                     <div className="hidden md:flex items-center space-x-4">
                         <Button variant="ghost" size="sm" asChild>
-                            <Link href="/login">Login</Link>
+                            <Link href="/login">Masuk</Link>
                         </Button>
-                        <Button size="sm" className="bg-primary hover:bg-primary-700">
-                            Book Demo
+                        <Button size="sm" className="bg-primary hover:bg-primary/90" asChild>
+                            <Link href="/register">Daftar</Link>
                         </Button>
                     </div>
 
@@ -63,42 +85,29 @@ export function Navbar() {
             </div>
 
             {isOpen && (
-                <div className="md:hidden border-t border-border bg-background animate-slide-in-bottom">
-                    <div className="px-4 pt-2 pb-4 space-y-3">
-                        <a
-                            href="#features"
-                            className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-                            onClick={() => setIsOpen(false)}
-                        >
-                            Features
-                        </a>
-                        <a
-                            href="#how-it-works"
-                            className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-                            onClick={() => setIsOpen(false)}
-                        >
-                            How It Works
-                        </a>
-                        <a
-                            href="#pricing"
-                            className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-                            onClick={() => setIsOpen(false)}
-                        >
-                            Pricing
-                        </a>
-                        <a
-                            href="#testimonials"
-                            className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-                            onClick={() => setIsOpen(false)}
-                        >
-                            Testimonials
-                        </a>
+                <div className="md:hidden border-t border-border bg-background">
+                    <div className="px-4 pt-2 pb-4 space-y-1">
+                        {NAV_LINKS.map((link) => (
+                            <a
+                                key={link.href}
+                                href={link.href}
+                                className={cn(
+                                    "block px-3 py-2 text-base font-medium rounded-md transition-colors",
+                                    isActive(link.href)
+                                        ? "text-primary bg-primary/10"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                                )}
+                                onClick={() => setIsOpen(false)}
+                            >
+                                {link.label}
+                            </a>
+                        ))}
                         <div className="pt-4 space-y-2">
                             <Button variant="outline" className="w-full" asChild>
-                                <Link href="/login">Login</Link>
+                                <Link href="/login">Masuk</Link>
                             </Button>
-                            <Button className="w-full bg-primary hover:bg-primary-700">
-                                Book Demo
+                            <Button className="w-full bg-primary hover:bg-primary/90" asChild>
+                                <Link href="/register">Daftar</Link>
                             </Button>
                         </div>
                     </div>

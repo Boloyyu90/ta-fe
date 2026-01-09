@@ -3,8 +3,8 @@
 import { Badge } from '@/shared/components/ui/badge';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
-import { Section } from '@/shared/core/section';
-import { Animate } from '@/shared/core/animate';
+import { SectionWrapper } from '@/shared/components/SectionWrapper';
+import { FadeIn, FadeInStagger } from '@/shared/components/animations';
 import Image from 'next/image';
 import { Check, X, ChevronRight } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
@@ -52,11 +52,11 @@ const PriceDisplay = ({ price, originalPrice }: { price: number; originalPrice?:
   </div>
 );
 
-const PackageCard = ({ pkg, index }: { pkg: Package; index: number }) => (
+const PackageCard = ({ pkg }: { pkg: Package }) => (
   <Card
     className={cn(
       'relative flex flex-col h-full overflow-hidden border-border hover:shadow-xl rounded-3xl p-6',
-      'transition-all duration-fast group'
+      'transition-all duration-300 group'
     )}
   >
     {pkg.popular && (
@@ -177,9 +177,9 @@ export function PricingSection() {
   ];
 
   return (
-    <Section id="packages" variant="default" padding="lg" container="default">
+    <SectionWrapper id="pricing">
       <div className="space-y-16">
-        <Animate animation="fadeInUp" className="text-center space-y-4">
+        <FadeIn direction="up" className="text-center space-y-4">
           <h2 className="font-bold tracking-normal text-center">
             <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
               Pilih Paket Belajar Terbaik
@@ -188,27 +188,21 @@ export function PricingSection() {
           <p className="text-muted-foreground text-center max-w-3xl mx-auto">
             Mulai perjalanan sukses CASN Anda dengan paket yang dirancang sesuai kebutuhan dan budget.
           </p>
-        </Animate>
+        </FadeIn>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
-          {packages.map((pkg, index) => (
-            <div
-              key={pkg.id}
-              className="animate-fadeInUp"
-              style={{ animationDelay: `${index * 150}ms` }}
-            >
-              <PackageCard pkg={pkg} index={index} />
-            </div>
+        <FadeInStagger staggerDelay={150} direction="up" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
+          {packages.map((pkg) => (
+            <PackageCard key={pkg.id} pkg={pkg} />
           ))}
-        </div>
+        </FadeInStagger>
 
-        <Animate animation="fadeInUp" delay="normal" className="text-center">
+        <FadeIn direction="up" delay={400} className="text-center">
           <p className="text-sm text-muted-foreground mb-4">
             *Syarat dan ketentuan berlaku. Garansi berlaku dengan ketentuan tertentu.
           </p>
-        </Animate>
+        </FadeIn>
       </div>
-    </Section>
+    </SectionWrapper>
   );
 }
 
