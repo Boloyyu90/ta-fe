@@ -70,7 +70,7 @@ const PackageCard = ({ pkg }: { pkg: Package }) => (
     )}
 
     <div className="flex flex-col h-full">
-      <div className="relative h-32 overflow-hidden mb-6 rounded-3xl border border-gray-200">
+      <div className="relative h-32 overflow-hidden mb-6 rounded-3xl border border-border">
         <Image
           src="/images/illustrations/marketing/card-banner.svg"
           alt="Package Banner"

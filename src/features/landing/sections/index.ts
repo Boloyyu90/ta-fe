@@ -1,5 +1,6 @@
 export { HeroSection } from "./HeroSection";
 export { AboutSection } from "./AboutSection";
+export { ProctoringHighlightSection } from "./ProctoringHighlightSection";
 export { BenefitsSection } from "./BenefitsSection";
 export { FeaturesSection } from "./FeaturesSection";
 export { PricingSection } from "./PricingSection";

@@ -2,6 +2,7 @@ import { Navbar, Footer } from "@/features/landing/components";
 import {
     HeroSection,
     AboutSection,
+    ProctoringHighlightSection,
     BenefitsSection,
     FeaturesSection,
     PricingSection,
@@ -17,6 +18,7 @@ export default function HomePage() {
             <main>
                 <HeroSection />
                 <AboutSection />
+                <ProctoringHighlightSection />
                 <BenefitsSection />
                 <FeaturesSection />
                 <PricingSection />
