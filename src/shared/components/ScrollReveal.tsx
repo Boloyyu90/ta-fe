@@ -52,7 +52,9 @@ export function ScrollReveal({
     const element = ref.current;
     if (!element) return;
 
-    // Check if user prefers reduced motion
+    // DEMO MODE: Animasi selalu berjalan, abaikan preferensi reduced motion
+    // Uncomment blok di bawah untuk mengembalikan ke mode aksesibilitas:
+    /*
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
@@ -61,6 +63,7 @@ export function ScrollReveal({
       setIsVisible(true);
       return;
     }
+    */
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -87,7 +90,7 @@ export function ScrollReveal({
     <div
       ref={ref}
       className={cn(
-        "motion-safe:transition-all motion-safe:duration-700",
+        "transition-all duration-700",
         isVisible ? animate : initial,
         className
       )}

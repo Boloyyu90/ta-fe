@@ -289,7 +289,9 @@
         animation: none !important;
     }
 
-    /* For fade-in animations: show content instantly without animation */
+    /* DEMO MODE: Fade-in animations tetap berjalan meskipun reduced motion aktif */
+    /* Uncomment blok di bawah ini untuk mengembalikan ke mode aksesibilitas: */
+    /*
     .animate-fade-in,
     .animate-fade-in-up,
     .animate-fade-in-down,
@@ -299,6 +301,7 @@
         opacity: 1 !important;
         transform: none !important;
     }
+    */
 
     .interactive:hover {
         transform: none;
