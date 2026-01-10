@@ -278,15 +278,33 @@
     }
 }
 
-/* Reduced motion support */
+/* Reduced motion support - only affects decorative animations */
 @media (prefers-reduced-motion: reduce) {
-    * {
+    /* Disable only decorative/non-essential animations */
+    .animate-float,
+    .animate-pulse-subtle,
+    .animate-gradient-x,
+    .animate-ping,
+    .animate-blink {
+        animation: none !important;
+    }
+
+    /* Keep fade-in animations but make them instant for accessibility */
+    .animate-fade-in,
+    .animate-fade-in-up,
+    .animate-fade-in-down,
+    .animate-fade-in-left,
+    .animate-fade-in-right {
         animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
+        animation-delay: 0ms !important;
     }
 
     .interactive:hover {
         transform: none;
+    }
+
+    /* Reduce scroll behavior */
+    html {
+        scroll-behavior: auto;
     }
 }

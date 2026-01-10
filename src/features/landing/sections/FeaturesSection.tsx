@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { SectionWrapper } from '@/shared/components/SectionWrapper';
+import { ScrollReveal } from '@/shared/components/ScrollReveal';
 import { cn } from '@/shared/lib/utils';
 import { Check, ChevronRight, Zap, Trophy, Library } from 'lucide-react';
 
@@ -99,54 +100,58 @@ export function FeaturesSection() {
     return (
       <SectionWrapper id="features">
           <div className="relative z-10 space-y-8">
-              <div className="text-center space-y-4 animate-fade-in-up">
-                  <h2 className="font-bold tracking-normal text-center">
-                      <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
-                          Fitur Unggulan Prestige Academy
-                      </span>
-                  </h2>
-                  <p className="text-muted-foreground text-center max-w-3xl mx-auto">
-                      Persiapkan diri dengan pengalaman terbaik berbasis riset untuk menghadapi ujian di depan Anda.
-                  </p>
-              </div>
+              <ScrollReveal direction="up">
+                  <div className="text-center space-y-4">
+                      <h2 className="font-bold tracking-normal text-center">
+                          <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
+                              Fitur Unggulan Prestige Academy
+                          </span>
+                      </h2>
+                      <p className="text-muted-foreground text-center max-w-3xl mx-auto">
+                          Persiapkan diri dengan pengalaman terbaik berbasis riset untuk menghadapi ujian di depan Anda.
+                      </p>
+                  </div>
+              </ScrollReveal>
 
               <div className="max-w-7xl mx-auto">
-                  <div className="mb-10 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-                      <div className="flex justify-center">
-                          <Card className={cn(
-                            "flex flex-col items-stretch p-2 space-y-2 w-full max-w-sm rounded-full",
-                            "lg:inline-flex lg:flex-row lg:items-center lg:space-y-0 lg:space-x-6 lg:w-auto lg:max-w-none"
-                          )}>
-                              {features.map((feature) => {
-                                  const isActive = activeFeature === feature.id;
-                                  const IconComponent = feature.icon;
-                                  return (
-                                    <button
-                                      key={feature.id}
-                                      onClick={() => setActiveFeature(feature.id)}
-                                      className={cn(
-                                        'relative flex items-center gap-3 px-5 py-3 rounded-full transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-                                        'justify-center w-full lg:w-auto lg:justify-start',
-                                        isActive ? tabColorClasses[feature.color] : 'hover:bg-muted'
-                                      )}
-                                      aria-pressed={isActive}
-                                    >
-                                        <IconComponent className={cn('w-5 h-5 transition-colors', getIconColorClass(feature.color, isActive))} />
-                                        <span className="font-semibold text-sm md:text-base whitespace-nowrap">
-                                            {feature.title}
-                                        </span>
-                                    </button>
-                                  );
-                              })}
-                          </Card>
+                  <ScrollReveal direction="up" delay={150}>
+                      <div className="mb-10">
+                          <div className="flex justify-center">
+                              <Card className={cn(
+                                "flex flex-col items-stretch p-2 space-y-2 w-full max-w-sm rounded-full",
+                                "lg:inline-flex lg:flex-row lg:items-center lg:space-y-0 lg:space-x-6 lg:w-auto lg:max-w-none"
+                              )}>
+                                  {features.map((feature) => {
+                                      const isActive = activeFeature === feature.id;
+                                      const IconComponent = feature.icon;
+                                      return (
+                                        <button
+                                          key={feature.id}
+                                          onClick={() => setActiveFeature(feature.id)}
+                                          className={cn(
+                                            'relative flex items-center gap-3 px-5 py-3 rounded-full transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                                            'justify-center w-full lg:w-auto lg:justify-start',
+                                            isActive ? tabColorClasses[feature.color] : 'hover:bg-muted'
+                                          )}
+                                          aria-pressed={isActive}
+                                        >
+                                            <IconComponent className={cn('w-5 h-5 transition-colors', getIconColorClass(feature.color, isActive))} />
+                                            <span className="font-semibold text-sm md:text-base whitespace-nowrap">
+                                                {feature.title}
+                                            </span>
+                                        </button>
+                                      );
+                                  })}
+                              </Card>
+                          </div>
                       </div>
-                  </div>
+                  </ScrollReveal>
 
                   <div className={cn(
                     "flex flex-col gap-8",
                     "lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center"
                   )}>
-                      <div className="order-1 lg:order-1 flex items-center justify-center animate-fade-in-right" style={{ animationDelay: '300ms' }}>
+                      <ScrollReveal direction="right" delay={300} className="order-1 lg:order-1 flex items-center justify-center">
                           <Image
                             src={activeFeatureData.mockup}
                             alt={`${activeFeatureData.title} mockup`}
@@ -155,9 +160,9 @@ export function FeaturesSection() {
                             className="w-full h-auto max-w-md"
                             priority={activeFeature === 'simulasi'}
                           />
-                      </div>
+                      </ScrollReveal>
 
-                      <div className="order-2 lg:order-2 space-y-8 animate-fade-in-left" style={{ animationDelay: '300ms' }}>
+                      <ScrollReveal direction="left" delay={300} className="order-2 lg:order-2 space-y-8">
                           <div className="space-y-4">
                               <h3 className="text-2xl sm:text-3xl font-bold leading-tight text-foreground">
                                   {activeFeatureData.title}{' '}
@@ -192,7 +197,7 @@ export function FeaturesSection() {
                                   <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                               </Button>
                           </div>
-                      </div>
+                      </ScrollReveal>
                   </div>
               </div>
           </div>
