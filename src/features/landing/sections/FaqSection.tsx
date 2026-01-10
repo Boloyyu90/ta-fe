@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Card } from '@/shared/components/ui/card';
 import { SectionWrapper } from '@/shared/components/SectionWrapper';
-import { FadeIn, FadeInStagger } from '@/shared/components/animations';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
@@ -55,7 +54,7 @@ export function FaqSection() {
 
   return (
     <SectionWrapper id="faq" containerClassName="max-w-4xl">
-      <FadeIn direction="up">
+      <div className="animate-fade-in-up">
         <div className="text-center mb-8 md:mb-12">
           <h2 className="font-bold mb-4">
             <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
@@ -63,64 +62,64 @@ export function FaqSection() {
             </span>
           </h2>
         </div>
-      </FadeIn>
+      </div>
 
-      <FadeInStagger staggerDelay={100} direction="up" className="space-y-3 pb-12">
+      <div className="space-y-3 pb-12 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
         {faqs.map((faq) => {
           const isOpen = openFaq === faq.id;
           return (
-            <Card
-              key={faq.id}
-              className={cn(
-                "border overflow-hidden transition-all duration-300",
-                isOpen
-                  ? "border-primary shadow-md bg-primary/5"
-                  : "border-border bg-card hover:shadow-sm hover:border-primary/30"
-              )}
-            >
-              <button
-                className="w-full p-4 md:p-5 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset rounded-lg"
-                onClick={() => toggleFaq(faq.id)}
-                aria-expanded={isOpen}
-              >
-                <span className={cn(
-                  "pr-4 leading-snug transition-colors duration-300 font-medium",
-                  isOpen ? "text-primary" : "text-foreground"
-                )}>
-                  {faq.question}
-                </span>
-
-                <div className={cn(
-                  "flex-shrink-0 transition-transform duration-300",
-                  isOpen ? "rotate-180" : "rotate-0"
-                )}>
-                  <ChevronDown className={cn(
-                    "w-4 h-4 transition-colors duration-300",
-                    isOpen ? "text-primary" : "text-muted-foreground"
-                  )} />
-                </div>
-              </button>
-
-              <div
+              <Card
+                key={faq.id}
                 className={cn(
-                  "grid transition-all duration-300 ease-in-out",
-                  isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  "border overflow-hidden transition-all duration-300",
+                  isOpen
+                    ? "border-primary shadow-md bg-primary/5"
+                    : "border-border bg-card hover:shadow-sm hover:border-primary/30"
                 )}
               >
-                <div className="overflow-hidden">
-                  <div className="px-4 md:px-5 pb-4 md:pb-5">
-                    <div className="pt-3 border-t border-primary/20">
-                      <p className="text-muted-foreground text-sm leading-relaxed">
-                        {faq.answer}
-                      </p>
+                <button
+                  className="w-full p-4 md:p-5 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset rounded-lg"
+                  onClick={() => toggleFaq(faq.id)}
+                  aria-expanded={isOpen}
+                >
+                  <span className={cn(
+                    "pr-4 leading-snug transition-colors duration-300 font-medium",
+                    isOpen ? "text-primary" : "text-foreground"
+                  )}>
+                    {faq.question}
+                  </span>
+
+                  <div className={cn(
+                    "flex-shrink-0 transition-transform duration-300",
+                    isOpen ? "rotate-180" : "rotate-0"
+                  )}>
+                    <ChevronDown className={cn(
+                      "w-4 h-4 transition-colors duration-300",
+                      isOpen ? "text-primary" : "text-muted-foreground"
+                    )} />
+                  </div>
+                </button>
+
+                <div
+                  className={cn(
+                    "grid transition-all duration-300 ease-in-out",
+                    isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  )}
+                >
+                  <div className="overflow-hidden">
+                    <div className="px-4 md:px-5 pb-4 md:pb-5">
+                      <div className="pt-3 border-t border-primary/20">
+                        <p className="text-muted-foreground text-sm leading-relaxed">
+                          {faq.answer}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </Card>
+              </Card>
           );
         })}
-      </FadeInStagger>
+      </div>
     </SectionWrapper>
   );
 }

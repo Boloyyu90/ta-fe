@@ -3,17 +3,12 @@
 import { Button } from "@/shared/components/ui/button";
 import Link from 'next/link';
 import Image from 'next/image';
-import { FadeIn } from '@/shared/components/animations';
 
 export function HeroSection() {
   return (
     <section id="home" className="relative min-h-screen overflow-hidden pt-16">
       <div className="absolute inset-0 z-0">
-        <FadeIn
-          direction="left"
-          duration={800}
-          className="absolute bottom-0 left-0 w-[48vw] h-full hidden lg:block"
-        >
+        <div className="absolute bottom-0 left-0 w-[48vw] h-full hidden lg:block animate-fade-in-right" style={{ animationDelay: '200ms' }}>
           <Image
             src="/images/backgrounds/hero-asset-left.svg"
             alt=""
@@ -22,13 +17,9 @@ export function HeroSection() {
             sizes="42vw"
             priority={false}
           />
-        </FadeIn>
+        </div>
 
-        <FadeIn
-          direction="right"
-          duration={800}
-          className="absolute bottom-0 right-0 w-[75vw] sm:w-[65vw] md:w-[55vw] lg:w-[48vw] h-full"
-        >
+        <div className="absolute bottom-0 right-0 w-[75vw] sm:w-[65vw] md:w-[55vw] lg:w-[48vw] h-full animate-fade-in-left" style={{ animationDelay: '200ms' }}>
           <Image
             src="/images/backgrounds/hero-asset-right.svg"
             alt="CPNS Professional"
@@ -37,14 +28,14 @@ export function HeroSection() {
             priority
             sizes="(min-width: 1024px) 45vw, (min-width: 768px) 55vw, (min-width: 640px) 65vw, 75vw"
           />
-        </FadeIn>
+        </div>
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="flex justify-start min-h-[calc(100vh-4rem)] pt-20 pb-8 lg:pl-32">
           <div className="w-full lg:w-[55%] xl:w-[50%]">
 
-            <FadeIn direction="up" className="mb-8">
+            <div className="mb-8 animate-fade-in-up">
               <h1 className="tracking-normal text-center sm:text-center md:text-center lg:text-left space-y-2">
                 <span className="block text-foreground font-bold text-3xl sm:text-4xl md:text-5xl">Langkah Awal</span>
                 <span className="block text-foreground font-bold text-3xl sm:text-4xl md:text-5xl">Menuju Karir</span>
@@ -56,15 +47,15 @@ export function HeroSection() {
                   </span>
                 </span>
               </h1>
-            </FadeIn>
+            </div>
 
-            <FadeIn direction="up" delay={100} className="mb-6">
+            <div className="mb-6 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
               <p className="text-muted-foreground text-sm md:text-base max-w-lg mx-auto sm:mx-auto md:mx-auto lg:mx-0 text-center sm:text-center md:text-center lg:text-left leading-relaxed">
                 Prestige Academy membuka sayap menuju era cemerlangmu! Seperti Jalak Bali yang istimewa, kami mengubah pengetahuan menjadi pencerahan. Terbang tinggi bersama kami, melestarikan nilai berharga sambil menembus batas potensimu!
               </p>
-            </FadeIn>
+            </div>
 
-            <FadeIn direction="up" delay={200}>
+            <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
               <div className="flex flex-col sm:flex-row gap-4 pt-4 justify-center sm:justify-center md:justify-center lg:justify-start">
                 <Button
                   size="lg"
@@ -88,7 +79,7 @@ export function HeroSection() {
                   </Link>
                 </Button>
               </div>
-            </FadeIn>
+            </div>
           </div>
         </div>
       </div>

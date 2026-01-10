@@ -3,7 +3,6 @@
 import Image from 'next/image';
 import { Card } from '@/shared/components/ui/card';
 import { SectionWrapper } from '@/shared/components/SectionWrapper';
-import { FadeIn, FadeInStagger } from '@/shared/components/animations';
 import { cn } from '@/shared/lib/utils';
 
 interface Benefit {
@@ -48,8 +47,7 @@ export function BenefitsSection() {
   ];
 
   return (
-    <section id="benefits" className="relative overflow-hidden py-16 md:py-20 lg:py-24 scroll-mt-20">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <SectionWrapper id="benefits" className="relative overflow-hidden">
         <div className="hidden lg:block absolute top-40 left-0 pointer-events-none">
           <Image
             src="/images/backgrounds/benefit-asset-top.svg"
@@ -70,7 +68,7 @@ export function BenefitsSection() {
         </div>
 
         <div className="relative z-10 space-y-12 sm:space-y-14 md:space-y-16">
-          <FadeIn direction="up" className="text-center space-y-3 sm:space-y-4">
+          <div className="text-center space-y-3 sm:space-y-4 animate-fade-in-up">
             <h2 className="font-bold tracking-normal text-center px-2">
               <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
                 Kenapa harus Tryout {''}
@@ -79,9 +77,9 @@ export function BenefitsSection() {
                 di Prestige Academy?
               </span>
             </h2>
-          </FadeIn>
+          </div>
 
-          <FadeIn direction="up" delay={200}>
+          <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
             <div className="relative max-w-xs sm:max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
               <Card className="relative shadow-md overflow-hidden p-6 sm:p-7 md:p-8 rounded-3xl">
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
@@ -96,7 +94,7 @@ export function BenefitsSection() {
 
                 <div className="hidden lg:block absolute top-20 bottom-20 xl:top-24 xl:bottom-24 left-1/2 w-1 -translate-x-1/2 bg-gradient-to-b from-transparent via-primary/70 to-transparent" />
 
-                <FadeInStagger staggerDelay={150} direction="up" className="relative space-y-8 sm:space-y-10 md:space-y-12 lg:space-y-16 py-6 sm:py-7 md:py-8">
+                <div className="relative space-y-8 sm:space-y-10 md:space-y-12 lg:space-y-16 py-6 sm:py-7 md:py-8">
                   {benefits.map((benefit, index) => (
                     <div
                       key={benefit.step}
@@ -130,13 +128,12 @@ export function BenefitsSection() {
                       </div>
                     </div>
                   ))}
-                </FadeInStagger>
+                </div>
               </Card>
             </div>
-          </FadeIn>
+          </div>
         </div>
-      </div>
-    </section>
+    </SectionWrapper>
   );
 }
 

@@ -5,7 +5,6 @@ import Image from 'next/image';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { SectionWrapper } from '@/shared/components/SectionWrapper';
-import { FadeIn, FadeInStagger } from '@/shared/components/animations';
 import { cn } from '@/shared/lib/utils';
 import { Check, ChevronRight, Zap, Trophy, Library } from 'lucide-react';
 
@@ -100,7 +99,7 @@ export function FeaturesSection() {
     return (
       <SectionWrapper id="features">
           <div className="relative z-10 space-y-8">
-              <FadeIn direction="up" className="text-center space-y-4">
+              <div className="text-center space-y-4 animate-fade-in-up">
                   <h2 className="font-bold tracking-normal text-center">
                       <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
                           Fitur Unggulan Prestige Academy
@@ -109,10 +108,10 @@ export function FeaturesSection() {
                   <p className="text-muted-foreground text-center max-w-3xl mx-auto">
                       Persiapkan diri dengan pengalaman terbaik berbasis riset untuk menghadapi ujian di depan Anda.
                   </p>
-              </FadeIn>
+              </div>
 
               <div className="max-w-7xl mx-auto">
-                  <FadeIn direction="up" delay={200} className="mb-10">
+                  <div className="mb-10 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
                       <div className="flex justify-center">
                           <Card className={cn(
                             "flex flex-col items-stretch p-2 space-y-2 w-full max-w-sm rounded-full",
@@ -141,13 +140,13 @@ export function FeaturesSection() {
                               })}
                           </Card>
                       </div>
-                  </FadeIn>
+                  </div>
 
                   <div className={cn(
                     "flex flex-col gap-8",
                     "lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center"
                   )}>
-                      <FadeIn direction="left" className="order-1 lg:order-1 flex items-center justify-center">
+                      <div className="order-1 lg:order-1 flex items-center justify-center animate-fade-in-right" style={{ animationDelay: '300ms' }}>
                           <Image
                             src={activeFeatureData.mockup}
                             alt={`${activeFeatureData.title} mockup`}
@@ -156,9 +155,9 @@ export function FeaturesSection() {
                             className="w-full h-auto max-w-md"
                             priority={activeFeature === 'simulasi'}
                           />
-                      </FadeIn>
+                      </div>
 
-                      <FadeIn direction="right" className="order-2 lg:order-2 space-y-8">
+                      <div className="order-2 lg:order-2 space-y-8 animate-fade-in-left" style={{ animationDelay: '300ms' }}>
                           <div className="space-y-4">
                               <h3 className="text-2xl sm:text-3xl font-bold leading-tight text-foreground">
                                   {activeFeatureData.title}{' '}
@@ -169,16 +168,19 @@ export function FeaturesSection() {
                               <p className="text-muted-foreground">{activeFeatureData.description}</p>
                           </div>
 
-                          <FadeInStagger staggerDelay={100} direction="up" className="space-y-4">
+                          <div className="space-y-4">
                               {activeFeatureData.benefits.map((benefit, index) => (
-                                <div key={index} className="flex items-center gap-4">
+                                <div
+                                  key={index}
+                                  className="flex items-center gap-4"
+                                >
                                     <div className={cn('w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0', getCheckBgClass(activeColorName))}>
                                         <Check className={cn('w-4 h-4', getCheckTextClass(activeColorName))} strokeWidth={3} />
                                     </div>
                                     <span className="font-medium">{benefit}</span>
                                 </div>
                               ))}
-                          </FadeInStagger>
+                          </div>
 
                           <div className="pt-4">
                               <Button
@@ -190,7 +192,7 @@ export function FeaturesSection() {
                                   <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                               </Button>
                           </div>
-                      </FadeIn>
+                      </div>
                   </div>
               </div>
           </div>

@@ -1,15 +1,14 @@
 import { Eye, Camera, AlertTriangle, Shield } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
-import { FadeIn } from "@/shared/components/animations";
+import { SectionWrapper } from "@/shared/components/SectionWrapper";
 
 export function ProctoringHighlightSection() {
     return (
-        <section className="py-20 px-4 sm:px-6 lg:px-8">
-            <div className="container mx-auto">
+        <SectionWrapper id="proctoring">
                 <div className="relative rounded-3xl bg-gradient-to-br from-primary to-secondary p-1 overflow-hidden">
                     <div className="rounded-3xl bg-background p-8 sm:p-12">
                         <div className="grid lg:grid-cols-2 gap-12 items-center">
-                            <FadeIn direction="left">
+                            <div className="animate-fade-in-left">
                                 <div className="space-y-6">
                                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary border border-primary/20">
                                         <Shield className="w-4 h-4" />
@@ -61,9 +60,9 @@ export function ProctoringHighlightSection() {
                                         Pelajari Lebih Lanjut
                                     </Button>
                                 </div>
-                            </FadeIn>
+                            </div>
 
-                            <FadeIn direction="right" delay={200}>
+                            <div className="animate-fade-in-right" style={{ animationDelay: '150ms' }}>
                                 <div className="relative">
                                     <div className="aspect-square rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-border/50 backdrop-blur-sm flex items-center justify-center">
                                         <div className="text-center space-y-4 p-8">
@@ -75,11 +74,10 @@ export function ProctoringHighlightSection() {
                                         </div>
                                     </div>
                                 </div>
-                            </FadeIn>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+        </SectionWrapper>
     );
 }

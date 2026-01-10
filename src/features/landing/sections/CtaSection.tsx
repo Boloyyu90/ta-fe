@@ -1,12 +1,11 @@
 import { Button } from "@/shared/components/ui/button";
+import { SectionWrapper } from "@/shared/components/SectionWrapper";
 import { ArrowRight, Mail } from "lucide-react";
-import { FadeIn } from "@/shared/components/animations";
 
 export function CtaSection() {
     return (
-        <section className="py-20 px-4 sm:px-6 lg:px-8">
-            <div className="container mx-auto">
-                <FadeIn>
+        <SectionWrapper id="cta">
+            <div className="animate-fade-in-up">
                     <div className="relative rounded-3xl overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-primary animate-gradient-x" />
 
@@ -42,8 +41,7 @@ export function CtaSection() {
                             </div>
                         </div>
                     </div>
-                </FadeIn>
             </div>
-        </section>
+        </SectionWrapper>
     );
 }

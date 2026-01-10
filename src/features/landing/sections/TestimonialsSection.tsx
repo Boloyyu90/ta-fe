@@ -6,7 +6,6 @@ import { SectionWrapper } from '@/shared/components/SectionWrapper';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
-import { FadeIn } from '@/shared/components/animations';
 import { cn } from '@/shared/lib/utils';
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 
@@ -98,7 +97,7 @@ export function TestimonialsSection() {
   return (
     <SectionWrapper id="testimonials">
       <div className="space-y-12">
-        <FadeIn direction="up" className="text-center space-y-4">
+        <div className="text-center space-y-4 animate-fade-in-up">
           <h2 className="font-bold text-center">
             <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
              Apa Kata Mereka Mengenai Prestige Academy?
@@ -107,9 +106,9 @@ export function TestimonialsSection() {
           <p className="text-muted-foreground text-center max-w-3xl mx-auto">
             Ribuan peserta sudah merasakan manfaat belajar di Prestige Academy dan berhasil mencapai impian mereka.
           </p>
-        </FadeIn>
+        </div>
 
-        <FadeIn direction="up" delay={200}>
+        <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
           <div
             ref={scrollContainerRef}
             className="flex gap-6 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-4 -mx-4 px-4"
@@ -216,7 +215,7 @@ export function TestimonialsSection() {
               <ChevronRight className="w-5 h-5" />
             </Button>
           </div>
-        </FadeIn>
+        </div>
       </div>
     </SectionWrapper>
   );

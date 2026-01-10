@@ -4,7 +4,6 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { SectionWrapper } from '@/shared/components/SectionWrapper';
-import { FadeIn, FadeInStagger } from '@/shared/components/animations';
 import Image from 'next/image';
 import { Check, X, ChevronRight } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
@@ -179,7 +178,7 @@ export function PricingSection() {
   return (
     <SectionWrapper id="pricing">
       <div className="space-y-16">
-        <FadeIn direction="up" className="text-center space-y-4">
+        <div className="text-center space-y-4 animate-fade-in-up">
           <h2 className="font-bold tracking-normal text-center">
             <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
               Pilih Paket Belajar Terbaik
@@ -188,19 +187,19 @@ export function PricingSection() {
           <p className="text-muted-foreground text-center max-w-3xl mx-auto">
             Mulai perjalanan sukses CASN Anda dengan paket yang dirancang sesuai kebutuhan dan budget.
           </p>
-        </FadeIn>
+        </div>
 
-        <FadeInStagger staggerDelay={150} direction="up" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch animate-fade-in-up" style={{ animationDelay: '150ms' }}>
           {packages.map((pkg) => (
             <PackageCard key={pkg.id} pkg={pkg} />
           ))}
-        </FadeInStagger>
+        </div>
 
-        <FadeIn direction="up" delay={400} className="text-center">
+        <div className="text-center animate-fade-in-up" style={{ animationDelay: '450ms' }}>
           <p className="text-sm text-muted-foreground mb-4">
             *Syarat dan ketentuan berlaku. Garansi berlaku dengan ketentuan tertentu.
           </p>
-        </FadeIn>
+        </div>
       </div>
     </SectionWrapper>
   );
