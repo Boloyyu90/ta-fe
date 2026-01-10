@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { Card } from '@/shared/components/ui/card';
 import { SectionWrapper } from '@/shared/components/SectionWrapper';
+import { ScrollReveal } from '@/shared/components/ScrollReveal';
 import { cn } from '@/shared/lib/utils';
 
 interface Benefit {
@@ -68,18 +69,20 @@ export function BenefitsSection() {
         </div>
 
         <div className="relative z-10 space-y-12 sm:space-y-14 md:space-y-16">
-          <div className="text-center space-y-3 sm:space-y-4 animate-fade-in-up">
-            <h2 className="font-bold tracking-normal text-center px-2">
-              <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
-                Kenapa harus Tryout {''}
-              </span>
-              <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
-                di Prestige Academy?
-              </span>
-            </h2>
-          </div>
+          <ScrollReveal direction="up">
+            <div className="text-center space-y-3 sm:space-y-4">
+              <h2 className="font-bold tracking-normal text-center px-2">
+                <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
+                  Kenapa harus Tryout {''}
+                </span>
+                <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
+                  di Prestige Academy?
+                </span>
+              </h2>
+            </div>
+          </ScrollReveal>
 
-          <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+          <ScrollReveal direction="up" delay={150}>
             <div className="relative max-w-xs sm:max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
               <Card className="relative shadow-md overflow-hidden p-6 sm:p-7 md:p-8 rounded-3xl">
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
@@ -131,7 +134,7 @@ export function BenefitsSection() {
                 </div>
               </Card>
             </div>
-          </div>
+          </ScrollReveal>
         </div>
     </SectionWrapper>
   );

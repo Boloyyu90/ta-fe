@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card } from '@/shared/components/ui/card';
 import { SectionWrapper } from '@/shared/components/SectionWrapper';
+import { ScrollReveal } from '@/shared/components/ScrollReveal';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
@@ -54,7 +55,7 @@ export function FaqSection() {
 
   return (
     <SectionWrapper id="faq" containerClassName="max-w-4xl">
-      <div className="animate-fade-in-up">
+      <ScrollReveal direction="up">
         <div className="text-center mb-8 md:mb-12">
           <h2 className="font-bold mb-4">
             <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
@@ -62,9 +63,9 @@ export function FaqSection() {
             </span>
           </h2>
         </div>
-      </div>
+      </ScrollReveal>
 
-      <div className="space-y-3 pb-12 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+      <ScrollReveal direction="up" delay={150} className="space-y-3 pb-12">
         {faqs.map((faq) => {
           const isOpen = openFaq === faq.id;
           return (
@@ -119,7 +120,7 @@ export function FaqSection() {
               </Card>
           );
         })}
-      </div>
+      </ScrollReveal>
     </SectionWrapper>
   );
 }

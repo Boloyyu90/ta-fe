@@ -96,11 +96,14 @@ import { ScrollReveal } from "@/shared/components/ScrollReveal";
 
 ### Aksesibilitas (Reduced Motion)
 
-Sistem animasi menghormati preferensi `prefers-reduced-motion`:
+Sistem animasi menghormati preferensi `prefers-reduced-motion` dari sistem operasi pengguna:
 
-- Animasi dekoratif (float, pulse, ping, blink) dinonaktifkan sepenuhnya
-- Animasi fade-in menjadi instan (tanpa delay)
-- Gunakan prefix `motion-safe:` untuk animasi yang hanya aktif saat motion diizinkan
+**Perilaku saat reduced motion aktif:**
+- Animasi dekoratif (float, pulse, ping, blink, gradient-x) dinonaktifkan sepenuhnya
+- Animasi fade-in ditampilkan langsung tanpa transisi (content tetap visible)
+- Komponen `ScrollReveal` otomatis menampilkan konten tanpa animasi
+
+**Penggunaan di markup:**
 
 ```jsx
 // Animasi hanya aktif jika motion diizinkan
@@ -109,3 +112,30 @@ Sistem animasi menghormati preferensi `prefers-reduced-motion`:
 // Gaya alternatif untuk reduced motion
 <div className="motion-reduce:opacity-100">Content</div>
 ```
+
+### Best Practices Animasi
+
+1. **Above the fold (HeroSection)**: Gunakan CSS animation dengan `motion-safe:` prefix
+   ```jsx
+   <div className="motion-safe:animate-fade-in-up">...</div>
+   ```
+
+2. **Below the fold (section lain)**: Gunakan komponen `ScrollReveal` untuk efek scroll reveal
+   ```jsx
+   <ScrollReveal direction="up" delay={150}>
+     <div>Content akan muncul saat di-scroll</div>
+   </ScrollReveal>
+   ```
+
+3. **Stagger effect**: Gunakan prop `delay` pada ScrollReveal untuk efek bertahap
+   ```jsx
+   <ScrollReveal direction="up" delay={0}>Item 1</ScrollReveal>
+   <ScrollReveal direction="up" delay={100}>Item 2</ScrollReveal>
+   <ScrollReveal direction="up" delay={200}>Item 3</ScrollReveal>
+   ```
+
+### Troubleshooting Animasi
+
+- **Animasi tidak muncul**: Pastikan `tailwindcss-animate` ada di devDependencies
+- **Animasi terlalu cepat/lambat**: Sesuaikan `animation-duration` di `tailwind.config.js`
+- **ScrollReveal tidak trigger**: Periksa nilai `threshold` (default 0.1 = 10% elemen visible)

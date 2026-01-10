@@ -3,6 +3,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { SectionWrapper } from '@/shared/components/SectionWrapper';
+import { ScrollReveal } from '@/shared/components/ScrollReveal';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
@@ -97,18 +98,20 @@ export function TestimonialsSection() {
   return (
     <SectionWrapper id="testimonials">
       <div className="space-y-12">
-        <div className="text-center space-y-4 animate-fade-in-up">
-          <h2 className="font-bold text-center">
-            <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
-             Apa Kata Mereka Mengenai Prestige Academy?
-            </span>
-          </h2>
-          <p className="text-muted-foreground text-center max-w-3xl mx-auto">
-            Ribuan peserta sudah merasakan manfaat belajar di Prestige Academy dan berhasil mencapai impian mereka.
-          </p>
-        </div>
+        <ScrollReveal direction="up">
+          <div className="text-center space-y-4">
+            <h2 className="font-bold text-center">
+              <span className="text-3xl sm:text-4xl md:text-4xl text-foreground">
+               Apa Kata Mereka Mengenai Prestige Academy?
+              </span>
+            </h2>
+            <p className="text-muted-foreground text-center max-w-3xl mx-auto">
+              Ribuan peserta sudah merasakan manfaat belajar di Prestige Academy dan berhasil mencapai impian mereka.
+            </p>
+          </div>
+        </ScrollReveal>
 
-        <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+        <ScrollReveal direction="up" delay={150}>
           <div
             ref={scrollContainerRef}
             className="flex gap-6 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-4 -mx-4 px-4"
@@ -215,7 +218,7 @@ export function TestimonialsSection() {
               <ChevronRight className="w-5 h-5" />
             </Button>
           </div>
-        </div>
+        </ScrollReveal>
       </div>
     </SectionWrapper>
   );

@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { Badge } from '@/shared/components/ui/badge';
 import { SectionWrapper } from '@/shared/components/SectionWrapper';
+import { ScrollReveal } from '@/shared/components/ScrollReveal';
 
 export function AboutSection() {
   const features = [
@@ -14,7 +15,7 @@ export function AboutSection() {
 
   return (
     <SectionWrapper id="about">
-      <div className="animate-fade-in-up">
+      <ScrollReveal direction="up">
         <div className="mb-12 sm:mb-14 md:mb-16 lg:flex justify-center hidden">
           <div className="inline-flex items-center rounded-full bg-card border border-border px-4 sm:px-6 py-2 sm:py-3 shadow-soft hover:shadow-medium transition-all">
             <span className="text-card-foreground text-xs sm:text-sm font-medium">
@@ -25,10 +26,10 @@ export function AboutSection() {
             </span>
           </div>
         </div>
-      </div>
+      </ScrollReveal>
 
       <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 md:gap-14 lg:gap-16 items-center">
-        <div className="lg:order-1 order-2 animate-fade-in-right" style={{ animationDelay: '150ms' }}>
+        <ScrollReveal direction="right" delay={150} className="lg:order-1 order-2">
           <div className="relative max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto lg:mx-0">
             <Image
               src="/images/illustrations/marketing/about-asset.svg"
@@ -54,9 +55,9 @@ export function AboutSection() {
               </div>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
 
-        <div className="lg:order-2 order-1 space-y-6 sm:space-y-7 md:space-y-8 text-center sm:text-center md:text-center lg:text-left animate-fade-in-left" style={{ animationDelay: '150ms' }}>
+        <ScrollReveal direction="left" delay={150} className="lg:order-2 order-1 space-y-6 sm:space-y-7 md:space-y-8 text-center sm:text-center md:text-center lg:text-left">
           <h2 className="tracking-normal space-y-2 font-bold">
             <span className="block text-3xl sm:text-4xl md:text-4xl text-foreground">
               Tentang,
@@ -96,7 +97,7 @@ export function AboutSection() {
               ))}
             </div>
           </div>
-        </div>
+        </ScrollReveal>
       </div>
     </SectionWrapper>
   );

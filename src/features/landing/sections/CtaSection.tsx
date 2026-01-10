@@ -1,11 +1,12 @@
 import { Button } from "@/shared/components/ui/button";
 import { SectionWrapper } from "@/shared/components/SectionWrapper";
+import { ScrollReveal } from "@/shared/components/ScrollReveal";
 import { ArrowRight, Mail } from "lucide-react";
 
 export function CtaSection() {
     return (
         <SectionWrapper id="cta">
-            <div className="animate-fade-in-up">
+            <ScrollReveal direction="up">
                     <div className="relative rounded-3xl overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-primary animate-gradient-x" />
 
@@ -41,7 +42,7 @@ export function CtaSection() {
                             </div>
                         </div>
                     </div>
-            </div>
+            </ScrollReveal>
         </SectionWrapper>
     );
 }

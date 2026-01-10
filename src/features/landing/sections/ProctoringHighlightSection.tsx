@@ -1,14 +1,16 @@
 import { Eye, Camera, AlertTriangle, Shield } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { SectionWrapper } from "@/shared/components/SectionWrapper";
+import { ScrollReveal } from "@/shared/components/ScrollReveal";
 
 export function ProctoringHighlightSection() {
     return (
         <SectionWrapper id="proctoring">
+            <ScrollReveal direction="fade">
                 <div className="relative rounded-3xl bg-gradient-to-br from-primary to-secondary p-1 overflow-hidden">
                     <div className="rounded-3xl bg-background p-8 sm:p-12">
                         <div className="grid lg:grid-cols-2 gap-12 items-center">
-                            <div className="animate-fade-in-left">
+                            <div>
                                 <div className="space-y-6">
                                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary border border-primary/20">
                                         <Shield className="w-4 h-4" />
@@ -62,7 +64,7 @@ export function ProctoringHighlightSection() {
                                 </div>
                             </div>
 
-                            <div className="animate-fade-in-right" style={{ animationDelay: '150ms' }}>
+                            <div>
                                 <div className="relative">
                                     <div className="aspect-square rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-border/50 backdrop-blur-sm flex items-center justify-center">
                                         <div className="text-center space-y-4 p-8">
@@ -78,6 +80,7 @@ export function ProctoringHighlightSection() {
                         </div>
                     </div>
                 </div>
+            </ScrollReveal>
         </SectionWrapper>
     );
 }

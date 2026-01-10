@@ -280,7 +280,7 @@
 
 /* Reduced motion support - only affects decorative animations */
 @media (prefers-reduced-motion: reduce) {
-    /* Disable only decorative/non-essential animations */
+    /* Disable decorative/looping animations completely */
     .animate-float,
     .animate-pulse-subtle,
     .animate-gradient-x,
@@ -289,14 +289,15 @@
         animation: none !important;
     }
 
-    /* Keep fade-in animations but make them instant for accessibility */
+    /* For fade-in animations: show content instantly without animation */
     .animate-fade-in,
     .animate-fade-in-up,
     .animate-fade-in-down,
     .animate-fade-in-left,
     .animate-fade-in-right {
-        animation-duration: 0.01ms !important;
-        animation-delay: 0ms !important;
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
     }
 
     .interactive:hover {
