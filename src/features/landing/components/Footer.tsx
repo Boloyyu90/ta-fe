@@ -12,7 +12,7 @@ export function Footer() {
                             <span className="text-lg font-bold text-foreground">Prestige Tryout</span>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                            Modern exam tryout & proctoring platform for tutoring centers and exam participants.
+                            Platform tryout ujian modern dengan sistem pengawasan berbasis AI untuk bimbel dan peserta ujian.
                         </p>
                         <div className="flex space-x-4">
                             <a href="#" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Facebook">
@@ -31,42 +31,42 @@ export function Footer() {
                     </div>
 
                     <div>
-                        <h3 className="font-semibold text-foreground mb-4">Product</h3>
+                        <h3 className="font-semibold text-foreground mb-4">Produk</h3>
                         <ul className="space-y-2">
                             <li>
                                 <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    Features
+                                    Fitur
                                 </a>
                             </li>
                             <li>
                                 <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    Pricing
+                                    Harga
                                 </a>
                             </li>
                             <li>
                                 <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    Security
+                                    Keamanan
                                 </a>
                             </li>
                             <li>
                                 <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    Integrations
+                                    Integrasi
                                 </a>
                             </li>
                         </ul>
                     </div>
 
                     <div>
-                        <h3 className="font-semibold text-foreground mb-4">Company</h3>
+                        <h3 className="font-semibold text-foreground mb-4">Perusahaan</h3>
                         <ul className="space-y-2">
                             <li>
-                                <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    About Us
+                                <a href="#about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                                    Tentang Kami
                                 </a>
                             </li>
                             <li>
                                 <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    Careers
+                                    Karir
                                 </a>
                             </li>
                             <li>
@@ -76,33 +76,33 @@ export function Footer() {
                             </li>
                             <li>
                                 <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    Contact
+                                    Kontak
                                 </a>
                             </li>
                         </ul>
                     </div>
 
                     <div>
-                        <h3 className="font-semibold text-foreground mb-4">Support</h3>
+                        <h3 className="font-semibold text-foreground mb-4">Bantuan</h3>
                         <ul className="space-y-2">
                             <li>
-                                <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    Help Center
+                                <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                                    Pusat Bantuan
                                 </a>
                             </li>
                             <li>
                                 <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    Documentation
+                                    Dokumentasi
                                 </a>
                             </li>
                             <li>
                                 <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    Privacy Policy
+                                    Kebijakan Privasi
                                 </a>
                             </li>
                             <li>
                                 <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    Terms of Service
+                                    Syarat & Ketentuan
                                 </a>
                             </li>
                         </ul>
@@ -111,7 +111,7 @@ export function Footer() {
 
                 <div className="mt-12 pt-8 border-t border-border">
                     <p className="text-center text-sm text-muted-foreground">
-                        © {new Date().getFullYear()} Prestige Tryout Platform. All rights reserved.
+                        © {new Date().getFullYear()} Prestige Tryout Platform. Hak cipta dilindungi.
                     </p>
                 </div>
             </div>

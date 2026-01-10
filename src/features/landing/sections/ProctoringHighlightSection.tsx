@@ -13,25 +13,25 @@ export function ProctoringHighlightSection() {
                                 <div className="space-y-6">
                                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary border border-primary/20">
                                         <Shield className="w-4 h-4" />
-                                        <span className="text-sm font-medium">Innovation Highlight</span>
+                                        <span className="text-sm font-medium">Inovasi Unggulan</span>
                                     </div>
 
                                     <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-                                        AI-Powered Proctoring with YOLO ML Detection
+                                        Pengawasan Berbasis AI dengan Deteksi YOLO ML
                                     </h2>
 
                                     <p className="text-lg text-muted-foreground leading-relaxed">
-                                        Our advanced machine learning system monitors exam sessions in real-time, detecting suspicious
-                                        behavior and maintaining exam integrity without invasive surveillance.
+                                        Sistem machine learning canggih kami memantau sesi ujian secara real-time, mendeteksi
+                                        perilaku mencurigakan dan menjaga integritas ujian tanpa pengawasan yang invasif.
                                     </p>
 
                                     <div className="space-y-4">
                                         <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50 border border-border hover:border-primary/50 transition-colors">
                                             <Eye className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" />
                                             <div>
-                                                <h4 className="font-semibold text-foreground mb-1">Gaze Tracking</h4>
+                                                <h4 className="font-semibold text-foreground mb-1">Pelacakan Pandangan</h4>
                                                 <p className="text-sm text-muted-foreground">
-                                                    Monitors eye movement to detect when participants look away from the screen.
+                                                    Memantau pergerakan mata untuk mendeteksi saat peserta melihat ke luar layar.
                                                 </p>
                                             </div>
                                         </div>
@@ -39,9 +39,9 @@ export function ProctoringHighlightSection() {
                                         <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50 border border-border hover:border-primary/50 transition-colors">
                                             <Camera className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" />
                                             <div>
-                                                <h4 className="font-semibold text-foreground mb-1">Face Recognition</h4>
+                                                <h4 className="font-semibold text-foreground mb-1">Pengenalan Wajah</h4>
                                                 <p className="text-sm text-muted-foreground">
-                                                    Verifies participant identity and detects multiple people in frame.
+                                                    Memverifikasi identitas peserta dan mendeteksi kehadiran orang lain dalam frame.
                                                 </p>
                                             </div>
                                         </div>
@@ -49,16 +49,16 @@ export function ProctoringHighlightSection() {
                                         <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50 border border-border hover:border-primary/50 transition-colors">
                                             <AlertTriangle className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" />
                                             <div>
-                                                <h4 className="font-semibold text-foreground mb-1">Behavior Analysis</h4>
+                                                <h4 className="font-semibold text-foreground mb-1">Analisis Perilaku</h4>
                                                 <p className="text-sm text-muted-foreground">
-                                                    Flags unusual patterns and alerts proctors for manual review.
+                                                    Menandai pola yang tidak biasa dan memberitahu pengawas untuk review manual.
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
 
                                     <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary/10">
-                                        Learn More About Proctoring
+                                        Pelajari Lebih Lanjut
                                     </Button>
                                 </div>
                             </FadeIn>
@@ -71,7 +71,7 @@ export function ProctoringHighlightSection() {
                                                 <Shield className="w-16 h-16 text-white" />
                                             </div>
                                             <h3 className="text-2xl font-bold text-foreground">YOLO ML</h3>
-                                            <p className="text-muted-foreground">Real-Time Detection Engine</p>
+                                            <p className="text-muted-foreground">Mesin Deteksi Real-Time</p>
                                         </div>
                                     </div>
                                 </div>

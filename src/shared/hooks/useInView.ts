@@ -19,24 +19,33 @@ export const useInView = <T extends HTMLElement = HTMLDivElement>(
         const element = ref.current;
         if (!element) return;
 
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setIsInView(true);
-                    if (triggerOnce) {
-                        observer.unobserve(element);
-                    }
-                } else if (!triggerOnce) {
-                    setIsInView(false);
-                }
-            },
-            { threshold, rootMargin }
-        );
+        let observer: IntersectionObserver | null = null;
 
-        observer.observe(element);
+        // Double rAF: memastikan browser sudah paint state awal (opacity-0)
+        // sebelum kita mulai observe untuk trigger animasi
+        const rafId = requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                observer = new IntersectionObserver(
+                    ([entry]) => {
+                        if (entry.isIntersecting) {
+                            setIsInView(true);
+                            if (triggerOnce && observer) {
+                                observer.unobserve(element);
+                            }
+                        } else if (!triggerOnce) {
+                            setIsInView(false);
+                        }
+                    },
+                    { threshold, rootMargin }
+                );
+
+                observer.observe(element);
+            });
+        });
 
         return () => {
-            observer.disconnect();
+            cancelAnimationFrame(rafId);
+            observer?.disconnect();
         };
     }, [threshold, rootMargin, triggerOnce]);
 

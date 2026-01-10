@@ -160,7 +160,7 @@ export function TestimonialsSection() {
                           className={cn(
                             "w-4 h-4",
                             i < testimonial.rating
-                              ? "text-yellow-400 fill-yellow-400"
+                              ? "text-rating fill-rating"
                               : "text-muted-foreground/50"
                           )}
                         />

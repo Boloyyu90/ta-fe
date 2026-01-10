@@ -67,6 +67,10 @@
         --severity-medium-foreground: 222.2 84% 4.9%;
         --severity-low-foreground: 222.2 84% 4.9%;
 
+        /* Rating stars */
+        --rating: 45 93% 47%;
+        --rating-foreground: 0 0% 100%;
+
         /* Shadows */
         --shadow-soft: 0 2px 8px hsl(var(--foreground) / 0.06);
         --shadow-medium: 0 4px 16px hsl(var(--foreground) / 0.08);
@@ -127,6 +131,10 @@
         --info: 199 89% 58%;
         --info-foreground: 210 40% 98%;
 
+        /* Rating stars for dark mode */
+        --rating: 45 93% 58%;
+        --rating-foreground: 0 0% 100%;
+
         /* Shadows for dark mode */
         --shadow-soft: 0 2px 8px rgb(0 0 0 / 0.4);
         --shadow-medium: 0 4px 16px rgb(0 0 0 / 0.5);
@@ -157,7 +165,7 @@
 @layer utilities {
     /* Status badges */
     .status-live {
-        @apply bg-red-500 text-white;
+        @apply bg-destructive text-destructive-foreground;
     }
 
     .status-monitoring {

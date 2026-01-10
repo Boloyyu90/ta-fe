@@ -77,6 +77,12 @@ module.exports = {
                     medium: "hsl(var(--severity-medium))",
                     low: "hsl(var(--severity-low))",
                 },
+
+                // Rating stars
+                rating: {
+                    DEFAULT: "hsl(var(--rating))",
+                    foreground: "hsl(var(--rating-foreground))",
+                },
             },
             borderRadius: {
                 lg: "var(--radius)",
