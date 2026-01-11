@@ -40,18 +40,20 @@ export function ExamFilters({
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search exams by title or description..."
+                        placeholder="Cari ujian berdasarkan judul atau deskripsi..."
                         value={searchQuery}
                         onChange={(e) => onSearchChange(e.target.value)}
                         className="pl-10 pr-10"
                     />
                     {searchQuery && (
-                        <button
+                        <Button
+                            variant="ghost"
+                            size="iconXs"
                             onClick={() => onSearchChange('')}
                             className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         >
                             <X className="h-4 w-4" />
-                        </button>
+                        </Button>
                     )}
                 </div>
 
@@ -59,12 +61,12 @@ export function ExamFilters({
                 <Select value={statusFilter} onValueChange={onStatusFilterChange}>
                     <SelectTrigger className="w-full md:w-[200px]">
                         <Filter className="h-4 w-4 mr-2" />
-                        <SelectValue placeholder="Filter by status" />
+                        <SelectValue placeholder="Filter status" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="ALL">All Exams</SelectItem>
-                        <SelectItem value="ACTIVE">Active Only</SelectItem>
-                        <SelectItem value="INACTIVE">Inactive Only</SelectItem>
+                        <SelectItem value="ALL">Semua Ujian</SelectItem>
+                        <SelectItem value="ACTIVE">Aktif</SelectItem>
+                        <SelectItem value="INACTIVE">Tidak Aktif</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -73,29 +75,33 @@ export function ExamFilters({
             {hasActiveFilters && (
                 <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm text-muted-foreground">Active filters:</span>
+                        <span className="text-sm text-muted-foreground">Filter aktif:</span>
 
                         {searchQuery && (
                             <Badge variant="secondary" className="gap-1">
-                                Search: {searchQuery}
-                                <button
+                                Pencarian: {searchQuery}
+                                <Button
+                                    variant="ghost"
+                                    size="iconXs"
                                     onClick={() => onSearchChange('')}
-                                    className="ml-1 hover:text-foreground"
+                                    className="ml-1 hover:text-foreground h-auto w-auto p-0"
                                 >
                                     <X className="h-3 w-3" />
-                                </button>
+                                </Button>
                             </Badge>
                         )}
 
                         {statusFilter !== 'ALL' && (
                             <Badge variant="secondary" className="gap-1">
                                 Status: {statusFilter}
-                                <button
+                                <Button
+                                    variant="ghost"
+                                    size="iconXs"
                                     onClick={() => onStatusFilterChange('ALL')}
-                                    className="ml-1 hover:text-foreground"
+                                    className="ml-1 hover:text-foreground h-auto w-auto p-0"
                                 >
                                     <X className="h-3 w-3" />
-                                </button>
+                                </Button>
                             </Badge>
                         )}
                     </div>
@@ -106,7 +112,7 @@ export function ExamFilters({
                         onClick={onClearFilters}
                         className="text-muted-foreground hover:text-foreground"
                     >
-                        Clear all filters
+                        Hapus semua filter
                     </Button>
                 </div>
             )}
@@ -114,7 +120,7 @@ export function ExamFilters({
             {/* Results Count */}
             <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          {resultsCount} {resultsCount === 1 ? 'exam' : 'exams'} found
+          {resultsCount} ujian ditemukan
         </span>
             </div>
         </div>

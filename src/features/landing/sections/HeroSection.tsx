@@ -8,17 +8,6 @@ export function HeroSection() {
   return (
     <section id="home" className="relative min-h-screen overflow-hidden pt-16">
       <div className="absolute inset-0 z-0">
-        <div className="absolute bottom-0 left-0 w-[48vw] h-full hidden lg:block animate-fade-in-right delay-200">
-          <Image
-            src="/images/backgrounds/hero-asset-left.svg"
-            alt=""
-            fill
-            className="object-contain object-bottom"
-            sizes="42vw"
-            priority={false}
-          />
-        </div>
-
         <div className="absolute bottom-0 right-0 w-[75vw] sm:w-[65vw] md:w-[55vw] lg:w-[48vw] h-full animate-fade-in-left delay-200">
           <Image
             src="/images/backgrounds/hero-asset-right.svg"
@@ -32,7 +21,7 @@ export function HeroSection() {
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="flex justify-start min-h-[calc(100vh-4rem)] pt-20 pb-8 lg:pl-32">
+        <div className="flex justify-start min-h-[calc(100vh-4rem)] pt-32 pb-8 lg:pl-28">
           <div className="w-full lg:w-[55%] xl:w-[50%]">
 
             <div className="mb-8 animate-fade-in-up">
@@ -41,7 +30,7 @@ export function HeroSection() {
                 <span className="block text-foreground font-bold text-3xl sm:text-4xl md:text-5xl">Menuju Karir</span>
                 <span className="block font-bold text-3xl sm:text-4xl md:text-5xl">
                   Impian{' '}
-                  <span className="relative text-primary font-bold text-3xl sm:text-4xl md:text-5xl">
+                  <span className="relative text-primary font-bold text-3xl sm:text-4xl md:text-6xl">
                     CPNS!
                     <span className="absolute bottom-0 left-0 w-full h-1 sm:h-1.5 lg:h-1.5 bg-secondary rounded-full origin-left scale-x-0 animate-[scaleX_0.6s_ease-out_0.8s_forwards]"></span>
                   </span>

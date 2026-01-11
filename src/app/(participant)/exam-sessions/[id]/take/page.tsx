@@ -470,6 +470,9 @@ export default function TakeExamPage() {
                                 <CardTitle className="text-base">Daftar Soal</CardTitle>
                             </CardHeader>
                             <CardContent>
+                                {/* NOTE: Menggunakan <button> manual untuk question navigation grid
+                                    karena memiliki aspect-square dan 3 state visual berbeda (current/answered/unanswered).
+                                    Komponen Button shadcn tidak mendukung aspect-ratio dan conditional styling kompleks ini. */}
                                 <div className="grid grid-cols-5 gap-2">
                                     {questionsData.questions.map((q, index) => {
                                         const isAnswered = answersMap.has(q.examQuestionId);

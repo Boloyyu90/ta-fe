@@ -114,7 +114,7 @@ export function ExamCard({ exam, showActions = true }: ExamCardProps) {
                     {/* Passing Score */}
                     <div className="flex items-center gap-2 text-muted-foreground">
                         <Target className="h-4 w-4" />
-                        <span>Passing: {exam.passingScore}</span>
+                        <span>Nilai Lulus: {exam.passingScore}</span>
                     </div>
 
                     {/* Schedule (if set) */}

@@ -42,13 +42,13 @@ import type { QuestionType, Question } from '../types/questions.types';
 
 // Form validation schema
 const questionFormSchema = z.object({
-    content: z.string().min(10, 'Question content must be at least 10 characters'),
+    content: z.string().min(10, 'Isi pertanyaan minimal 10 karakter'),
     options: z.object({
-        A: z.string().min(1, 'Option A is required'),
-        B: z.string().min(1, 'Option B is required'),
-        C: z.string().min(1, 'Option C is required'),
-        D: z.string().min(1, 'Option D is required'),
-        E: z.string().min(1, 'Option E is required'),
+        A: z.string().min(1, 'Opsi A wajib diisi'),
+        B: z.string().min(1, 'Opsi B wajib diisi'),
+        C: z.string().min(1, 'Opsi C wajib diisi'),
+        D: z.string().min(1, 'Opsi D wajib diisi'),
+        E: z.string().min(1, 'Opsi E wajib diisi'),
     }),
     correctAnswer: z.enum(['A', 'B', 'C', 'D', 'E']),
     questionType: z.enum(['TIU', 'TWK', 'TKP']),
@@ -68,7 +68,7 @@ export function QuestionForm({
                                  defaultValues,
                                  onSubmit,
                                  isSubmitting = false,
-                                 submitLabel = 'Submit',
+                                 submitLabel = 'Simpan',
                              }: QuestionFormProps) {
     /**
      * Initialize form with react-hook-form
@@ -113,14 +113,14 @@ export function QuestionForm({
                     name="questionType"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Question Type</FormLabel>
+                            <FormLabel>Tipe Soal</FormLabel>
                             <Select
                                 onValueChange={field.onChange}
                                 defaultValue={field.value}
                             >
                                 <FormControl>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Select question type" />
+                                        <SelectValue placeholder="Pilih tipe soal" />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
@@ -132,7 +132,7 @@ export function QuestionForm({
                                 </SelectContent>
                             </Select>
                             <FormDescription>
-                                Select the category for this question
+                                Pilih kategori untuk soal ini
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -145,16 +145,16 @@ export function QuestionForm({
                     name="content"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Question Content</FormLabel>
+                            <FormLabel>Isi Pertanyaan</FormLabel>
                             <FormControl>
                                 <Textarea
-                                    placeholder="Enter the question text..."
+                                    placeholder="Masukkan teks pertanyaan..."
                                     className="min-h-[120px] resize-none"
                                     {...field}
                                 />
                             </FormControl>
                             <FormDescription>
-                                Write a clear and concise question (minimum 10 characters)
+                                Tulis pertanyaan yang jelas dan ringkas (minimal 10 karakter)
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -163,7 +163,7 @@ export function QuestionForm({
 
                 {/* Answer Options */}
                 <div className="space-y-4">
-                    <h3 className="text-sm font-medium">Answer Options</h3>
+                    <h3 className="text-sm font-medium">Pilihan Jawaban</h3>
                     {(['A', 'B', 'C', 'D', 'E'] as const).map((optionKey) => (
                         <FormField
                             key={optionKey}
@@ -171,10 +171,10 @@ export function QuestionForm({
                             name={`options.${optionKey}`}
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Option {optionKey}</FormLabel>
+                                    <FormLabel>Opsi {optionKey}</FormLabel>
                                     <FormControl>
                                         <Input
-                                            placeholder={`Enter option ${optionKey}...`}
+                                            placeholder={`Masukkan opsi ${optionKey}...`}
                                             {...field}
                                         />
                                     </FormControl>
@@ -191,7 +191,7 @@ export function QuestionForm({
                     name="correctAnswer"
                     render={({ field }) => (
                         <FormItem className="space-y-3">
-                            <FormLabel>Correct Answer</FormLabel>
+                            <FormLabel>Jawaban Benar</FormLabel>
                             <FormControl>
                                 <RadioGroup
                                     onValueChange={field.onChange}
@@ -209,7 +209,7 @@ export function QuestionForm({
                                                     <RadioGroupItem value={optionKey} />
                                                 </FormControl>
                                                 <FormLabel className="font-normal">
-                                                    Option {optionKey}
+                                                    Opsi {optionKey}
                                                     {optionText && `: ${optionText}`}
                                                 </FormLabel>
                                             </FormItem>
@@ -218,7 +218,7 @@ export function QuestionForm({
                                 </RadioGroup>
                             </FormControl>
                             <FormDescription>
-                                Select which option is the correct answer
+                                Pilih opsi mana yang merupakan jawaban benar
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -231,7 +231,7 @@ export function QuestionForm({
                     name="imageUrl"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Image URL (Optional)</FormLabel>
+                            <FormLabel>URL Gambar (Opsional)</FormLabel>
                             <FormControl>
                                 <Input
                                     placeholder="https://example.com/image.jpg"
@@ -239,8 +239,8 @@ export function QuestionForm({
                                 />
                             </FormControl>
                             <FormDescription>
-                                ⚠️ Note: Image upload is not yet supported by the backend.
-                                This field is for future enhancement.
+                                ⚠️ Catatan: Fitur upload gambar belum didukung oleh backend.
+                                Field ini untuk pengembangan di masa depan.
                             </FormDescription>
                             <FormMessage />
                         </FormItem>

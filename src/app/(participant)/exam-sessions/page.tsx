@@ -65,7 +65,7 @@ export default function ExamSessionsPage() {
                     <Link href="/dashboard">
                         <Button variant="ghost" size="sm">
                             <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back to Dashboard
+                            Kembali ke Dashboard
                         </Button>
                     </Link>
                 </div>

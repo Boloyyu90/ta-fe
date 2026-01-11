@@ -78,6 +78,9 @@ export function FaqSection() {
                     : "border-border bg-card hover:shadow-sm hover:border-primary/30"
                 )}
               >
+                {/* NOTE: Menggunakan <button> manual karena accordion membutuhkan
+                    full-width button dengan custom padding dan focus ring styling.
+                    Komponen Button shadcn tidak cocok untuk use case ini. */}
                 <button
                   className="w-full p-4 md:p-5 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset rounded-lg"
                   onClick={() => toggleFaq(faq.id)}

@@ -111,7 +111,7 @@ export default function AdminResultsPage() {
                     <Link href="/admin/dashboard">
                         <Button variant="ghost" size="sm">
                             <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back to Dashboard
+                            Kembali ke Dashboard
                         </Button>
                     </Link>
                 </div>
@@ -234,7 +234,7 @@ export default function AdminResultsPage() {
                                             <TableHead>Ujian</TableHead>
                                             <TableHead>Skor</TableHead>
                                             <TableHead>Status</TableHead>
-                                            <TableHead>Progress</TableHead>
+                                            <TableHead>Progres</TableHead>
                                             <TableHead>Waktu Submit</TableHead>
                                             <TableHead className="w-[80px]">Aksi</TableHead>
                                         </TableRow>

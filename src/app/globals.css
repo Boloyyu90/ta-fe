@@ -22,11 +22,11 @@
 
         /* Secondary: #F0A245 (Orange) */
         --secondary: 33 85% 61%;
-        --secondary-foreground: 222.2 84% 4.9%;
+        --secondary-foreground: 0 0% 100%; /* putih */
 
         /* Accent: Using secondary color */
         --accent: 33 85% 61%;
-        --accent-foreground: 222.2 84% 4.9%;
+        --accent-foreground: 0 0% 100%;
 
         /* Muted */
         --muted: 210 40% 96.1%;

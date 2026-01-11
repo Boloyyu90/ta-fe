@@ -121,9 +121,9 @@ export function ProctoringEventsList({
                             <TableRow>
                                 <TableHead>Waktu</TableHead>
                                 <TableHead>Tipe Event</TableHead>
-                                <TableHead>Severity</TableHead>
-                                <TableHead>Confidence</TableHead>
-                                {showUserInfo && <TableHead>User</TableHead>}
+                                <TableHead>Tingkat</TableHead>
+                                <TableHead>Keyakinan</TableHead>
+                                {showUserInfo && <TableHead>Pengguna</TableHead>}
                             </TableRow>
                         </TableHeader>
                         <TableBody>

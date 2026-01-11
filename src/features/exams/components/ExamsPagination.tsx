@@ -72,7 +72,7 @@ export function ExamsPagination({
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-8">
             {/* Items per page selector */}
             <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Items per page:</span>
+                <span className="text-sm text-muted-foreground">Item per halaman:</span>
                 <Select
                     value={itemsPerPage.toString()}
                     onValueChange={(value) => onItemsPerPageChange(parseInt(value))}
@@ -91,7 +91,7 @@ export function ExamsPagination({
 
             {/* Page info */}
             <div className="text-sm text-muted-foreground">
-                Showing {startItem} to {endItem} of {totalItems} results
+                Menampilkan {startItem} - {endItem} dari {totalItems} hasil
             </div>
 
             {/* Pagination controls */}

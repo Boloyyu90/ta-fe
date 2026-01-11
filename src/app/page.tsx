@@ -2,13 +2,11 @@ import { Navbar, Footer } from "@/features/landing/components";
 import {
     HeroSection,
     AboutSection,
-    ProctoringHighlightSection,
     BenefitsSection,
     FeaturesSection,
     PricingSection,
     TestimonialsSection,
     FaqSection,
-    CtaSection,
 } from "@/features/landing/sections";
 
 export default function HomePage() {
@@ -18,13 +16,11 @@ export default function HomePage() {
             <main>
                 <HeroSection />
                 <AboutSection />
-                <ProctoringHighlightSection />
                 <BenefitsSection />
                 <FeaturesSection />
                 <PricingSection />
                 <TestimonialsSection />
                 <FaqSection />
-                <CtaSection />
             </main>
             <Footer />
         </div>

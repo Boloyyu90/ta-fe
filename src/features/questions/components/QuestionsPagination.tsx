@@ -35,7 +35,7 @@ export function QuestionsPagination({
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-border">
             {/* Items per page selector */}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>Show</span>
+                <span>Tampilkan</span>
                 <Select
                     value={String(itemsPerPage)}
                     onValueChange={(value) => onItemsPerPageChange(Number(value))}
@@ -49,12 +49,12 @@ export function QuestionsPagination({
                         <SelectItem value="50">50</SelectItem>
                     </SelectContent>
                 </Select>
-                <span>per page</span>
+                <span>per halaman</span>
             </div>
 
             {/* Pagination info */}
             <div className="text-sm text-muted-foreground">
-                Showing {startItem} to {endItem} of {totalItems} questions
+                Menampilkan {startItem} - {endItem} dari {totalItems} soal
             </div>
 
             {/* Page navigation */}

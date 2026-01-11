@@ -121,6 +121,9 @@ export function FeaturesSection() {
                                 "flex flex-col items-stretch p-2 space-y-2 w-full max-w-sm rounded-full",
                                 "lg:inline-flex lg:flex-row lg:items-center lg:space-y-0 lg:space-x-6 lg:w-auto lg:max-w-none"
                               )}>
+                                  {/* NOTE: Menggunakan <button> manual karena tab buttons memiliki
+                                      warna dinamis (primary/secondary/success) berdasarkan feature.color.
+                                      Komponen Button shadcn tidak mendukung color variants seperti ini. */}
                                   {features.map((feature) => {
                                       const isActive = activeFeature === feature.id;
                                       const IconComponent = feature.icon;

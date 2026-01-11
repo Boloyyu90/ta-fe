@@ -269,8 +269,8 @@ export default function SessionProctoringPage({ params }: PageProps) {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead className="w-[180px]">Waktu</TableHead>
-                                            <TableHead>Event Type</TableHead>
-                                            <TableHead className="w-[100px]">Severity</TableHead>
+                                            <TableHead>Tipe Event</TableHead>
+                                            <TableHead className="w-[100px]">Tingkat</TableHead>
                                             <TableHead className="w-[80px]">Detail</TableHead>
                                         </TableRow>
                                     </TableHeader>

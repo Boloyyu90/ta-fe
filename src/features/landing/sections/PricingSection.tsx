@@ -73,7 +73,7 @@ const PackageCard = ({ pkg }: { pkg: Package }) => (
       <div className="relative h-32 overflow-hidden mb-6 rounded-3xl border border-border">
         <Image
           src="/images/illustrations/marketing/card-banner.svg"
-          alt="Package Banner"
+          alt="Banner Paket"
           fill
           className="object-cover"
         />
@@ -168,7 +168,7 @@ export function PricingSection() {
       description: "Paket terlengkap dengan bimbingan personal.",
       price: 199000,
       originalPrice: 299000,
-      badge: "Best Value!",
+      badge: "Terbaik!",
       includedFeatureIds: ['tryout', 'video_discussion', 'detailed_analysis', 'discussion_group', 'personal_consulting', 'interview_simulation', 'guarantee'],
       featureDescriptions: {
         'tryout': "Akses 10x Tryout SKD",

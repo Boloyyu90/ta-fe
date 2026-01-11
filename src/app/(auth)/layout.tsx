@@ -23,19 +23,21 @@ export default function AuthLayout({
 
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-muted/30">
+            <div className="min-h-screen flex items-center justify-center bg-background">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Checking authentication...</p>
+                    <p className="text-sm text-muted-foreground">Memeriksa autentikasi...</p>
                 </div>
             </div>
         );
     }
 
-    // ✅ Only render login/register pages after verification completes
+    // Single full-screen centered wrapper for all auth pages (supports 2-column layout)
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
-            {children}
+        <div className="min-h-screen flex items-center justify-center bg-muted/30 py-8 px-4">
+            <div className="w-full max-w-5xl">
+                {children}
+            </div>
         </div>
     );
 }

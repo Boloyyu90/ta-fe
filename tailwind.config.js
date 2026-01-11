@@ -17,6 +17,10 @@ module.exports = {
             },
         },
         extend: {
+            // Font Family Configuration
+            fontFamily: {
+                sans: ['var(--font-poppins)', 'system-ui', 'sans-serif'],
+            },
             colors: {
                 border: "hsl(var(--border))",
                 input: "hsl(var(--input))",
@@ -109,6 +113,48 @@ module.exports = {
                     "100%": {
                         transform: "translateY(0)",
                         opacity: "1",
+                    },
+                },
+
+                // Carousel animations
+                "slide-in-right": {
+                    "0%": {
+                        opacity: "0",
+                        transform: "translateX(100px) scale(0.9)"
+                    },
+                    "100%": {
+                        opacity: "1",
+                        transform: "translateX(0) scale(1)"
+                    },
+                },
+                "slide-in-left": {
+                    "0%": {
+                        opacity: "0",
+                        transform: "translateX(-100px) scale(0.9)"
+                    },
+                    "100%": {
+                        opacity: "1",
+                        transform: "translateX(0) scale(1)"
+                    },
+                },
+                "slide-out-right": {
+                    "0%": {
+                        opacity: "1",
+                        transform: "translateX(0) scale(1)"
+                    },
+                    "100%": {
+                        opacity: "0",
+                        transform: "translateX(100px) scale(0.9)"
+                    },
+                },
+                "slide-out-left": {
+                    "0%": {
+                        opacity: "1",
+                        transform: "translateX(0) scale(1)"
+                    },
+                    "100%": {
+                        opacity: "0",
+                        transform: "translateX(-100px) scale(0.9)"
                     },
                 },
                 "pulse-subtle": {
@@ -207,12 +253,17 @@ module.exports = {
                 "blink": "blink 1s ease-in-out infinite",
                 "shake": "shake 0.5s ease-in-out",
 
-                // FIXED: Added 100ms base delay for paint time
                 "fade-in": "fade-in 0.5s ease-out 0.1s both",
                 "fade-in-up": "fade-in-up 0.5s ease-out 0.1s both",
                 "fade-in-down": "fade-in-down 0.5s ease-out 0.1s both",
                 "fade-in-left": "fade-in-left 0.5s ease-out 0.1s both",
                 "fade-in-right": "fade-in-right 0.5s ease-out 0.1s both",
+
+                // Carousel animations
+                "slide-in-right": "slide-in-right 0.5s ease-out both",
+                "slide-in-left": "slide-in-left 0.5s ease-out both",
+                "slide-out-right": "slide-out-right 0.5s ease-out both",
+                "slide-out-left": "slide-out-left 0.5s ease-out both",
             },
         },
     },

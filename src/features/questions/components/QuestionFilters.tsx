@@ -41,7 +41,7 @@ export function QuestionFilters({
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         type="text"
-                        placeholder="Search questions..."
+                        placeholder="Cari soal..."
                         value={searchQuery}
                         onChange={(e) => onSearchChange(e.target.value)}
                         className="pl-10"
@@ -51,10 +51,10 @@ export function QuestionFilters({
                 {/* Type Filter */}
                 <Select value={typeFilter} onValueChange={onTypeFilterChange}>
                     <SelectTrigger className="w-full md:w-[200px]">
-                        <SelectValue placeholder="All Types" />
+                        <SelectValue placeholder="Semua Tipe" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="ALL">All Types</SelectItem>
+                        <SelectItem value="ALL">Semua Tipe</SelectItem>
                         <SelectItem value="TIU">TIU - Tes Intelegensia Umum</SelectItem>
                         <SelectItem value="TWK">TWK - Tes Wawasan Kebangsaan</SelectItem>
                         <SelectItem value="TKP">TKP - Tes Karakteristik Pribadi</SelectItem>
@@ -69,7 +69,7 @@ export function QuestionFilters({
                         className="flex items-center gap-2"
                     >
                         <X className="h-4 w-4" />
-                        Clear
+                        Hapus
                     </Button>
                 )}
             </div>
@@ -77,7 +77,7 @@ export function QuestionFilters({
             {/* Results Count */}
             <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>
-                    {resultsCount} question{resultsCount !== 1 ? 's' : ''} found
+                    {resultsCount} soal ditemukan
                 </span>
             </div>
         </div>

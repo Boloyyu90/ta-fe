@@ -82,10 +82,12 @@ export const LoginForm = () => {
                                         disabled={isPending}
                                         {...field}
                                     />
-                                    <button
+                                    <Button
                                         type="button"
+                                        variant="ghost"
+                                        size="iconSm"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                         tabIndex={-1}
                                         aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
                                     >
@@ -94,7 +96,7 @@ export const LoginForm = () => {
                                         ) : (
                                             <Eye className="h-4 w-4" />
                                         )}
-                                    </button>
+                                    </Button>
                                 </div>
                             </FormControl>
                             <FormMessage />

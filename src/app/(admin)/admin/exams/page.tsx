@@ -192,7 +192,7 @@ export default function AdminExamsPage() {
                     <Link href="/admin/dashboard">
                         <Button variant="ghost" size="sm">
                             <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back to Dashboard
+                            Kembali ke Dashboard
                         </Button>
                     </Link>
                 </div>
@@ -268,7 +268,7 @@ export default function AdminExamsPage() {
                                                 <TableHead className="w-[300px]">Judul</TableHead>
                                                 <TableHead>Status</TableHead>
                                                 <TableHead>Durasi</TableHead>
-                                                <TableHead>Passing Score</TableHead>
+                                                <TableHead>Nilai Lulus</TableHead>
                                                 <TableHead>Soal</TableHead>
                                                 <TableHead>Waktu</TableHead>
                                                 <TableHead className="w-[70px]">Aksi</TableHead>

@@ -34,7 +34,7 @@ export function Navbar() {
                         <Link href="/" className="flex items-center space-x-2">
                             <span className="relative w-10 h-10 rounded-lg overflow-hidden">
                                 <Image
-                                    src="/logo-prestige.svg"
+                                    src="./images/logo/logo-prestige.svg"
                                     alt="Prestige Tryout logo"
                                     fill
                                     className="object-contain"
@@ -74,13 +74,15 @@ export function Navbar() {
                         </Button>
                     </div>
 
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setIsOpen(!isOpen)}
-                        className="md:hidden p-2 rounded-md text-foreground hover:bg-muted transition-colors"
+                        className="md:hidden"
                         aria-label="Toggle menu"
                     >
                         {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                    </button>
+                    </Button>
                 </div>
             </div>
 
