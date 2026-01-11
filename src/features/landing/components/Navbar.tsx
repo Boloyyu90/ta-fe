@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { Button } from "@/shared/components/ui/button";
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useActiveSection } from "@/shared/hooks/useActiveSection";
 import { cn } from "@/shared/lib/utils";
@@ -19,7 +19,22 @@ const NAV_LINKS = [
 
 export function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
     const activeSection = useActiveSection();
+
+    // Track scroll position
+    useEffect(() => {
+        const handleScroll = () => {
+            // Threshold: 50px from top
+            setIsScrolled(window.scrollY > 50);
+        };
+
+        // Check initial scroll position
+        handleScroll();
+
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
 
     const isActive = (href: string) => {
         const sectionId = href.replace("#", "");
@@ -27,14 +42,21 @@ export function Navbar() {
     };
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
+        <nav
+            className={cn(
+                "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+                isScrolled
+                    ? "bg-background/80 backdrop-blur-lg border-b border-border shadow-sm"
+                    : "bg-transparent border-b border-transparent"
+            )}
+        >
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center">
                         <Link href="/" className="flex items-center space-x-2">
                             <span className="relative w-10 h-10 rounded-lg overflow-hidden">
                                 <Image
-                                    src="./images/logo/logo-prestige.svg"
+                                    src="/images/logo/logo-prestige.svg"
                                     alt="Prestige Tryout logo"
                                     fill
                                     className="object-contain"
@@ -86,8 +108,9 @@ export function Navbar() {
                 </div>
             </div>
 
+            {/* Mobile menu - always has background for readability */}
             {isOpen && (
-                <div className="md:hidden border-t border-border bg-background">
+                <div className="md:hidden border-t border-border bg-background/95 backdrop-blur-lg">
                     <div className="px-4 pt-2 pb-4 space-y-1">
                         {NAV_LINKS.map((link) => (
                             <a

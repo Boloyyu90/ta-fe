@@ -1,14 +1,5 @@
 "use client";
 
-/**
- * REGISTER FORM COMPONENT - CORRECTED
- *
- * ✅ Uses refactored schemas (registerFormSchema, RegisterFormWithConfirmData)
- * ✅ Correct import paths
- * ✅ Strips confirmPassword before sending to API
- * ✅ Proper type annotations
- */
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

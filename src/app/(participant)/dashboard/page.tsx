@@ -38,6 +38,7 @@ import Link from 'next/link';
 import type { ExamStatus } from '@/shared/types/enum.types';
 import type { UserExam, ExamResult } from '@/features/exam-sessions/types/exam-sessions.types';
 import type { ExamPublic } from '@/features/exams/types/exams.types';
+import Image from "next/image";
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -163,7 +164,6 @@ export default function DashboardPage() {
     };
 
     // Extract data from responses
-    // ✅ P2 FIX: Removed redundant filter - backend already filters by status='IN_PROGRESS'
     const inProgressSessions: UserExam[] = inProgressData?.data ?? [];
     const recentResults: ExamResult[] = recentResultsData ?? [];
     const availableExams: ExamPublic[] = availableExamsData ?? [];
@@ -174,7 +174,15 @@ export default function DashboardPage() {
             <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <div className="container flex h-16 items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg" />
+                         <span className="relative w-10 h-10 rounded-lg overflow-hidden">
+                            <Image
+                                src="/images/logo/logo-prestige.svg"
+                                alt="Prestige Tryout logo"
+                                fill
+                                className="object-contain"
+                                priority
+                            />
+                         </span>
                         <span className="font-bold text-xl">Prestige Tryout</span>
                     </div>
                     <div className="flex items-center gap-4">
@@ -183,7 +191,7 @@ export default function DashboardPage() {
                             <span className="font-medium">{user?.name || user?.email}</span>
                         </div>
                         <Button
-                            variant="ghost"
+                            variant="destructive"
                             size="sm"
                             onClick={() => logout()}
                             disabled={isLoggingOut}

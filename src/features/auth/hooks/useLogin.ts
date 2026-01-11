@@ -1,13 +1,3 @@
-// src/features/auth/hooks/useLogin.ts
-
-/**
- * USE LOGIN HOOK - FIXED
- *
- * ✅ Works with unwrapped API responses (just payload)
- * ✅ Proper error handling with Indonesian messages
- * ✅ Role-based navigation
- */
-
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
@@ -81,9 +71,10 @@ export const useLogin = () => {
             // Store auth state in Zustand + storage (localStorage or sessionStorage based on rememberMe)
             setAuth(user, tokens, rememberMe);
 
-            // Show success toast in Indonesian
+            // Enhanced success toast
             toast.success('Login Berhasil!', {
                 description: `Selamat datang kembali, ${user.name}!`,
+                duration: 4000,
             });
 
             // Navigate based on role
@@ -98,7 +89,7 @@ export const useLogin = () => {
             // Extract user-friendly error message
             const message = extractErrorMessage(error);
 
-            // Show error toast in Indonesian
+            // Enhanced error toast
             toast.error('Login Gagal', {
                 description: message,
                 duration: 5000,

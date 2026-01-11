@@ -1,14 +1,5 @@
 "use client";
 
-/**
- * USE LOGOUT HOOK - FIXED
- *
- * ✅ Removed useEffect anti-pattern
- * ✅ Uses onSuccess/onError callbacks
- * ✅ Proper Indonesian message
- * ✅ Clears React Query cache to prevent cross-user data leakage
- */
-
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/features/auth/store/auth.store";
@@ -44,8 +35,11 @@ export const useLogout = () => {
             // Clear auth state from store and storage
             clearAuth();
 
-            // Show success message in Indonesian
-            toast.success("Berhasil keluar");
+            // Success toast
+            toast.success("Berhasil Keluar", {
+                description: "Sampai jumpa lagi!",
+                duration: 3000,
+            });
 
             // Redirect to login page
             router.push("/login");

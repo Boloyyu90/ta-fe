@@ -1,19 +1,8 @@
-// src/features/auth/types/auth.types.ts
-
-/**
- * AUTH TYPES - REFACTORED TO ALIGN WITH BACKEND
- *
- * ✅ Uses shared enum types
- * ✅ Matches backend response structure exactly
- * ✅ Clear separation of request/response types
- * ✅ Properly typed with ApiResponse wrapper
- */
-
 import type { UserRole } from '@/shared/types/enum.types';
 import type { ApiResponse } from '@/shared/types/api.types';
 
 // ============================================================================
-// BASE USER ENTITY (matches backend User model)
+// BASE USER ENTITY
 // ============================================================================
 
 /**

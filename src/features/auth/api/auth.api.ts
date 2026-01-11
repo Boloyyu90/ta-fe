@@ -1,21 +1,3 @@
-// src/features/auth/api/auth.api.ts
-
-/**
- * AUTH API CLIENT
- *
- * ============================================================================
- *
- *
- * PHASE 2 FIX: Correct type parameter usage
- * ============================================================================
- *
- * apiClient.post<T>() returns Promise<ApiResponse<T>>
- * We pass T (payload type), not ApiResponse<T>
- * Access payload via response.data
- *
- * Types imported from: @/features/auth/types/auth.types.ts (Phase 1)
- */
-
 import { apiClient } from '@/shared/lib/api';
 import type {
     LoginRequest,

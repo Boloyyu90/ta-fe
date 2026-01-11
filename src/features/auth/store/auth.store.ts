@@ -1,16 +1,3 @@
-// src/features/auth/store/auth.store.refactored.ts
-
-/**
- * AUTH STORE - REFACTORED
- *
- * ✅ Uses refactored types
- * ✅ Proper localStorage sync
- * ✅ Type-safe actions
- * ✅ Hydration from localStorage on init
- *
- * This is a Zustand store that manages authentication state
- */
-
 import { create } from 'zustand';
 import type { User, TokensData, AuthStore } from '@/features/auth/types/auth.types';
 import { storageGet, storageSet, storageRemove } from '@/shared/lib/storage';

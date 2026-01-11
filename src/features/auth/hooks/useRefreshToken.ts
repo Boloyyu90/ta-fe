@@ -1,16 +1,5 @@
 "use client";
 
-/**
- * USE REFRESH TOKEN HOOK
- *
- * ✅ Handles automatic token refresh when access token expires
- * ✅ Updates auth store with new tokens
- * ✅ Proper error handling (logout on refresh failure)
- *
- * This hook is typically called by the API client interceptor
- * when a 401 Unauthorized response is received.
- */
-
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/features/auth/store/auth.store";
@@ -55,7 +44,7 @@ export const useRefreshToken = () => {
             // Use same storage type as current session (localStorage or sessionStorage)
             // We detect this by checking which storage has the data
             const inLocalStorage = typeof window !== 'undefined' &&
-                                  window.localStorage.getItem('refreshToken');
+                window.localStorage.getItem('refreshToken');
             const rememberMe = !!inLocalStorage;
 
             setAuth(currentUser, tokens, rememberMe);
@@ -65,8 +54,8 @@ export const useRefreshToken = () => {
             // Log user out
             clearAuth();
 
-            // Show error message in Indonesian
-            toast.error("Sesi Anda telah berakhir", {
+            // Session expired toast
+            toast.error("Sesi Anda Telah Berakhir", {
                 description: "Silakan login kembali untuk melanjutkan.",
                 duration: 5000,
             });

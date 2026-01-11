@@ -1,13 +1,5 @@
 "use client";
 
-/**
- * LOGIN FORM COMPONENT - CORRECTED
- *
- * ✅ Uses refactored schemas (loginSchema, LoginFormData)
- * ✅ Correct import paths
- * ✅ Proper type annotations
- */
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

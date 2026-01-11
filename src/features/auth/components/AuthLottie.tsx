@@ -10,31 +10,16 @@ const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 interface AuthLottieProps {
     url: string;
     className?: string;
+    lottieClassName?: string;
 }
 
-export function AuthLottie({ url, className }: AuthLottieProps) {
+export function AuthLottie({ url, className,  lottieClassName }: AuthLottieProps) {
     const [animationData, setAnimationData] = useState<object | null>(null);
-    const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Check prefers-reduced-motion
+    // Fetch Lottie JSON on mount
     useEffect(() => {
-        const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-        setPrefersReducedMotion(mediaQuery.matches);
-
-        const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-        mediaQuery.addEventListener("change", handler);
-        return () => mediaQuery.removeEventListener("change", handler);
-    }, []);
-
-    // Fetch Lottie JSON
-    useEffect(() => {
-        if (prefersReducedMotion) {
-            setIsLoading(false);
-            return;
-        }
-
         const fetchLottie = async () => {
             setIsLoading(true);
             setError(null);
@@ -59,19 +44,14 @@ export function AuthLottie({ url, className }: AuthLottieProps) {
         };
 
         fetchLottie();
-    }, [url, prefersReducedMotion]);
-
-    // Don't render if prefers-reduced-motion
-    if (prefersReducedMotion) {
-        return null;
-    }
+    }, [url]);
 
     // Show fallback during loading or error (for debugging)
     if (isLoading || error || !animationData) {
         return (
             <div
                 className={cn(
-                    "hidden lg:flex items-center justify-center w-full max-w-md min-h-[300px]",
+                    "hidden lg:flex items-center justify-center w-full min-h-[300px]",
                     className
                 )}
             >
@@ -91,7 +71,7 @@ export function AuthLottie({ url, className }: AuthLottieProps) {
     return (
         <div
             className={cn(
-                "hidden lg:flex items-center justify-center w-full max-w-md",
+                "hidden lg:flex items-center justify-center w-full",
                 className
             )}
         >
@@ -99,7 +79,7 @@ export function AuthLottie({ url, className }: AuthLottieProps) {
                 animationData={animationData}
                 loop={true}
                 autoplay={true}
-                className="w-full h-auto max-h-[400px]"
+                className={cn("w-full h-full", lottieClassName)}
             />
         </div>
     );

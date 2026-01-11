@@ -1,17 +1,7 @@
-// src/features/auth/schemas/auth.schemas.ts
-
-/**
- * AUTH VALIDATION SCHEMAS - FIXED
- *
- * ✅ Corrected Zod syntax for all schemas
- * ✅ Matches backend validation rules EXACTLY
- * ✅ Compatible with Zod v3.x
- */
-
 import { z } from 'zod';
 
 // ============================================================================
-// REUSABLE FIELD SCHEMAS (matching backend exactly)
+// REUSABLE FIELD SCHEMAS
 // ============================================================================
 
 /**
@@ -24,11 +14,11 @@ import { z } from 'zod';
  */
 const passwordSchema = z
     .string()
-    .min(1, 'Password is required')
-    .min(8, 'Password must be at least 8 characters')
+    .min(1, 'Password wajib diisi')
+    .min(8, 'Password minimal 8 karakter')
     .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+        'Password harus mengandung huruf besar, huruf kecil, dan angka'
     );
 
 /**
@@ -40,8 +30,8 @@ const passwordSchema = z
  */
 const emailSchema = z
     .string()
-    .min(1, 'Email is required')
-    .email('Invalid email format')
+    .min(1, 'Email wajib diisi')
+    .email('Format email tidak valid')
     .toLowerCase()
     .trim();
 
@@ -54,9 +44,9 @@ const emailSchema = z
  */
 const nameSchema = z
     .string()
-    .min(1, 'Name is required')
-    .min(2, 'Name must be at least 2 characters')
-    .max(100, 'Name must not exceed 100 characters')
+    .min(1, 'Nama lengkap wajib diisi')
+    .min(2, 'Nama minimal 2 karakter')
+    .max(100, 'Nama maksimal 100 karakter')
     .trim();
 
 // ============================================================================
@@ -69,7 +59,7 @@ const nameSchema = z
  */
 export const loginSchema = z.object({
     email: emailSchema,
-    password: z.string().min(1, 'Password is required'),
+    password: z.string().min(1, 'Password wajib diisi'),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;
@@ -97,10 +87,10 @@ export type RegisterFormData = z.infer<typeof registerSchema>;
  */
 export const registerFormSchema = registerSchema
     .extend({
-        confirmPassword: z.string().min(1, 'Please confirm your password'),
+        confirmPassword: z.string().min(1, 'Konfirmasi password wajib diisi'),
     })
     .refine((data) => data.password === data.confirmPassword, {
-        message: "Passwords don't match",
+        message: 'Password tidak cocok',
         path: ['confirmPassword'],
     });
 
@@ -115,7 +105,7 @@ export type RegisterFormWithConfirmData = z.infer<typeof registerFormSchema>;
  * POST /api/v1/auth/refresh
  */
 export const refreshTokenSchema = z.object({
-    refreshToken: z.string().min(1, 'Refresh token is required'),
+    refreshToken: z.string().min(1, 'Refresh token wajib diisi'),
 });
 
 export type RefreshTokenFormData = z.infer<typeof refreshTokenSchema>;
@@ -129,7 +119,7 @@ export type RefreshTokenFormData = z.infer<typeof refreshTokenSchema>;
  * POST /api/v1/auth/logout
  */
 export const logoutSchema = z.object({
-    refreshToken: z.string().min(1, 'Refresh token is required'),
+    refreshToken: z.string().min(1, 'Refresh token wajib diisi'),
 });
 
 export type LogoutFormData = z.infer<typeof logoutSchema>;
@@ -146,19 +136,19 @@ export const checkPasswordStrength = (password: string): string[] => {
     const issues: string[] = [];
 
     if (password.length < 8) {
-        issues.push('At least 8 characters');
+        issues.push('Minimal 8 karakter');
     }
 
     if (!/[A-Z]/.test(password)) {
-        issues.push('One uppercase letter');
+        issues.push('Satu huruf besar');
     }
 
     if (!/[a-z]/.test(password)) {
-        issues.push('One lowercase letter');
+        issues.push('Satu huruf kecil');
     }
 
     if (!/\d/.test(password)) {
-        issues.push('One number');
+        issues.push('Satu angka');
     }
 
     return issues;

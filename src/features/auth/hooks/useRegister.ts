@@ -1,14 +1,3 @@
-// src/features/auth/hooks/useRegister.ts
-
-/**
- * USE REGISTER HOOK - FIXED
- *
- * ✅ Works with unwrapped API responses (just payload)
- * ✅ Auto-login after registration
- * ✅ Role-based navigation
- * ✅ Indonesian error messages
- */
-
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
@@ -82,9 +71,10 @@ export const useRegister = () => {
             // Store auth state in Zustand + localStorage (auto-login)
             setAuth(user, tokens);
 
-            // Show success toast in Indonesian
+            // Enhanced success toast
             toast.success('Akun Berhasil Dibuat!', {
-                description: `Selamat datang, ${user.name}!`,
+                description: `Selamat datang di Prestige Tryout, ${user.name}!`,
+                duration: 4000,
             });
 
             // Navigate based on role
@@ -99,7 +89,7 @@ export const useRegister = () => {
             // Extract user-friendly error message
             const message = extractErrorMessage(error);
 
-            // Show error toast in Indonesian
+            // Enhanced error toast
             toast.error('Pendaftaran Gagal', {
                 description: message,
                 duration: 5000,
