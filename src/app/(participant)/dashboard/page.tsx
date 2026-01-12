@@ -6,6 +6,7 @@ import { useUserExams, useMyResults } from "@/features/exam-sessions/hooks";
 import { useExams } from "@/features/exams/hooks";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { PageHeaderTitle } from '@/shared/components/PageHeaderTitle';
 import {
     StatsCard,
     SectionHeader,
@@ -67,14 +68,12 @@ export default function DashboardPage() {
     return (
         <div className="space-y-8">
             {/* Welcome Section */}
-            <section className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-lg p-6 mx-4 mt-6 md:mx-6">
-                <h1 className="text-2xl md:text-3xl font-bold">
-                    Selamat Datang, {user?.name || "Peserta"}!
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                    Pantau progress ujian dan mulai ujian baru dari dashboard ini.
-                </p>
-            </section>
+            <div className="px-4 pt-6 md:px-6">
+                <PageHeaderTitle
+                    title={`Selamat Datang, ${user?.name || "Peserta"}! 👋`}
+                    subtitle="Kelola sesi tryout, pantau hasil, dan lanjutkan progres persiapan CPNS-mu di sini."
+                />
+            </div>
 
             <div className="container mx-auto px-4 pb-8 space-y-8">
                 {/* Stats Grid */}

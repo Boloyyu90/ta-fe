@@ -1,16 +1,3 @@
-// src/app/(participant)/exams/[id]/page.tsx
-
-/**
- * Exam Detail Page
- *
- * ✅ FEATURES:
- * - Exam details display (title, description, duration, etc.)
- * - Availability status checking
- * - Smart button state for start/resume/retake/view-result
- * - Comprehensive error handling including retake errors
- * - User exam session tracking
- */
-
 'use client';
 
 import { use } from 'react';
@@ -365,7 +352,7 @@ export default function ExamDetailPage({ params }: PageProps) {
                         </div>
                         <div>
                             <p className="text-sm text-muted-foreground">Nilai Kelulusan</p>
-                            <p className="font-semibold">{exam.passingScore ?? 0} Poin</p>
+                            <p className="font-semibold">{exam.passingScore} Poin</p>
                         </div>
                     </CardContent>
                 </Card>

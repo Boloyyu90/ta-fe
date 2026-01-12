@@ -1,9 +1,6 @@
 /**
  * Participant Exams List Page
  *
- * ✅ FIXED:
- * - useExams returns { data, pagination } directly from the hook
- * - No need to unwrap data.data or data.pagination
  */
 
 'use client';
@@ -16,6 +13,7 @@ import {
     formatDuration,
 } from '@/features/exams/types/exams.types';
 import type { ExamPublic } from '@/features/exams/types/exams.types';
+import { PageHeaderTitle } from '@/shared/components/PageHeaderTitle';
 
 // UI Components
 import { Button } from '@/shared/components/ui/button';
@@ -96,16 +94,8 @@ export default function ExamsPage() {
 
     return (
         <div className="container mx-auto py-8 space-y-6">
-                {/* Header */}
-                <div>
-                <h1 className="text-3xl font-bold flex items-center gap-2">
-                    <BookOpen className="h-8 w-8 text-primary" />
-                    Daftar Ujian
-                </h1>
-                <p className="text-muted-foreground">
-                    Pilih ujian yang ingin Anda kerjakan
-                </p>
-            </div>
+            {/* Header */}
+            <PageHeaderTitle title="Paket Saya" />
 
             {/* Search */}
             <Card>

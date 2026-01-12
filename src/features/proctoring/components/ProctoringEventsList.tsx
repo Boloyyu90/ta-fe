@@ -122,7 +122,6 @@ export function ProctoringEventsList({
                                 <TableHead>Waktu</TableHead>
                                 <TableHead>Tipe Event</TableHead>
                                 <TableHead>Tingkat</TableHead>
-                                <TableHead>Keyakinan</TableHead>
                                 {showUserInfo && <TableHead>Pengguna</TableHead>}
                             </TableRow>
                         </TableHeader>
@@ -158,16 +157,6 @@ export function ProctoringEventsList({
                                             >
                                                 {severityInfo.label}
                                             </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            {/* ✅ PHASE 3 FIX: Use metadata.confidence */}
-                                            {confidence !== undefined && confidence !== null ? (
-                                                <span className="font-mono text-sm">
-                                                    {(confidence * 100).toFixed(1)}%
-                                                </span>
-                                            ) : (
-                                                <span className="text-muted-foreground">-</span>
-                                            )}
                                         </TableCell>
                                         {showUserInfo && (
                                             <TableCell>

@@ -78,11 +78,9 @@ export function ResultCard({ result }: ResultCardProps) {
         scoresByType,
     } = result;
 
-    const passingScore = exam.passingScore ?? 0;
-    const isPassed = totalScore !== null && passingScore > 0 && totalScore >= passingScore;
-    const scorePercentage = passingScore > 0
-        ? Math.min(((totalScore ?? 0) / passingScore) * 100, 100)
-        : 0;
+    const passingScore = exam.passingScore;
+    const isPassed = totalScore !== null && totalScore >= passingScore;
+    const scorePercentage = Math.min(((totalScore ?? 0) / passingScore) * 100, 100);
 
     const statusInfo = statusConfig[status] ?? statusConfig.FINISHED;
     const StatusIcon = statusInfo.icon;
@@ -111,7 +109,7 @@ export function ResultCard({ result }: ResultCardProps) {
 
             <CardContent className="space-y-4">
                 {/* Pass/Fail Indicator */}
-                {status === 'FINISHED' && totalScore !== null && passingScore > 0 && (
+                {status === 'FINISHED' && totalScore !== null && (
                     <div className={`flex items-center gap-2 p-3 rounded-lg ${
                         isPassed
                             ? 'bg-green-50 text-green-700 border border-green-200'
@@ -136,15 +134,13 @@ export function ResultCard({ result }: ResultCardProps) {
                     <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Skor</span>
                         <span className="font-semibold">
-                            {totalScore ?? 0} / {passingScore > 0 ? passingScore : '-'}
+                            {totalScore ?? 0} / {passingScore}
                         </span>
                     </div>
-                    {passingScore > 0 && (
-                        <Progress
-                            value={scorePercentage}
-                            className={`h-2 ${isPassed ? '[&>div]:bg-green-500' : '[&>div]:bg-red-500'}`}
-                        />
-                    )}
+                    <Progress
+                        value={scorePercentage}
+                        className={`h-2 ${isPassed ? '[&>div]:bg-green-500' : '[&>div]:bg-red-500'}`}
+                    />
                 </div>
 
                 {/* Stats Grid */}

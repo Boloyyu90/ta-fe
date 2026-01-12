@@ -50,8 +50,7 @@ export interface ResultDetail {
  * - _count.answers (nested count)
  */
 function transformToResultDetail(userExam: UserExam): ResultDetail {
-    // ✅ FIX: Extract passingScore from exam object
-    // Note: passingScore is not in ExamInfoInList contract, but backend may include it
+    // Extract passingScore from exam object (backend now always provides this)
     const passingScore = (userExam.exam as any)?.passingScore ?? 0;
     const totalScore = userExam.totalScore ?? null;
 
@@ -75,7 +74,7 @@ function transformToResultDetail(userExam: UserExam): ResultDetail {
 
     // Calculate passed status with null safety
     let passed: boolean | null = null;
-    if (totalScore !== null && passingScore > 0) {
+    if (totalScore !== null) {
         passed = totalScore >= passingScore;
     }
 
@@ -100,7 +99,7 @@ function transformToResultDetail(userExam: UserExam): ResultDetail {
         duration: duration,
         answeredQuestions: answeredQuestions,
         totalQuestions: totalQuestions,
-        attemptNumber: userExam.attemptNumber ?? 1,  // HIGH-006 FIX: Include attempt number
+        attemptNumber: userExam.attemptNumber,  // Backend always provides this
         passed: passed,
         // scoresByType would need separate computation or backend enhancement
         scoresByType: [],

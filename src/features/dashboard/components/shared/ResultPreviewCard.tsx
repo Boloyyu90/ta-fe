@@ -16,10 +16,9 @@ interface ResultPreviewCardProps {
  * and a button to view details.
  */
 export function ResultPreviewCard({ result }: ResultPreviewCardProps) {
-    const passingScore = result.exam.passingScore ?? 0;
+    const passingScore = result.exam.passingScore;
     const isPassed =
         result.totalScore !== null &&
-        passingScore > 0 &&
         result.totalScore >= passingScore;
 
     return (
@@ -30,31 +29,28 @@ export function ResultPreviewCard({ result }: ResultPreviewCardProps) {
                 </h3>
 
                 {/* Pass/Fail Badge */}
-                {passingScore > 0 && (
-                    <Badge
-                        variant={isPassed ? "default" : "destructive"}
-                        className="mb-3 w-fit"
-                    >
-                        {isPassed ? (
-                            <>
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                Lulus
-                            </>
-                        ) : (
-                            <>
-                                <XCircle className="h-3 w-3 mr-1" />
-                                Tidak Lulus
-                            </>
-                        )}
-                    </Badge>
-                )}
+                <Badge
+                    variant={isPassed ? "default" : "destructive"}
+                    className="mb-3 w-fit"
+                >
+                    {isPassed ? (
+                        <>
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Lulus
+                        </>
+                    ) : (
+                        <>
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Tidak Lulus
+                        </>
+                    )}
+                </Badge>
 
                 <div className="space-y-1 text-sm mb-4">
                     <div className="flex justify-between">
                         <span className="text-muted-foreground">Skor</span>
                         <span className="font-medium">
-                            {result.totalScore ?? 0}
-                            {passingScore > 0 && ` / ${passingScore}`}
+                            {result.totalScore ?? 0} / {passingScore}
                         </span>
                     </div>
                     <div className="flex justify-between">

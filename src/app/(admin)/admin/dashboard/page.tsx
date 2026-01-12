@@ -583,7 +583,6 @@ export default function AdminDashboardPage() {
                                         const passingScore = result.exam?.passingScore ?? 0;
                                         const isPassed =
                                             result.totalScore !== null &&
-                                            passingScore > 0 &&
                                             result.totalScore >= passingScore;
 
                                         return (

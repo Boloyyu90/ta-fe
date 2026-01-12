@@ -13,6 +13,7 @@ import { CheckCircle, XCircle, ArrowLeft, Home } from 'lucide-react';
 import Link from 'next/link';
 import { useExamAnswers } from '@/features/exam-sessions/hooks/useExamAnswers';
 import { AnswerReviewCard } from '@/features/exam-sessions/components/AnswerReviewCard';
+import { PageHeaderTitle } from '@/shared/components/PageHeaderTitle';
 
 export default function ExamReviewPage() {
     const params = useParams();
@@ -66,10 +67,10 @@ export default function ExamReviewPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold">Review Jawaban</h1>
-                    <p className="text-muted-foreground">
-                        {total} soal telah dikerjakan
-                    </p>
+                    <PageHeaderTitle
+                        title="Review Jawaban"
+                        subtitle={`${total} Soal telah dikerjakan`}
+                    />
                 </div>
                 <Button asChild variant="outline">
                     <Link href={`/results/${sessionId}`}>

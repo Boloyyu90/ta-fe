@@ -125,10 +125,8 @@ export default function ResultDetailPage() {
         attemptNumber,  // HIGH-006 FIX: Include attemptNumber
     } = result;
 
-    const passingScore = exam.passingScore ?? 0;
-    const scorePercentage = passingScore > 0
-        ? Math.min(((totalScore ?? 0) / passingScore) * 100, 100)
-        : 0;
+    const passingScore = exam.passingScore;
+    const scorePercentage = Math.min(((totalScore ?? 0) / passingScore) * 100, 100);
 
     const statusInfo = statusConfig[status] ?? statusConfig.FINISHED;
     const StatusIcon = statusInfo.icon;
@@ -144,9 +142,8 @@ export default function ResultDetailPage() {
                     <h1 className="text-2xl font-bold">{exam.title}</h1>
                     <div className="flex items-center gap-2 mt-1">
                         <p className="text-muted-foreground">Hasil Ujian</p>
-                        {/* HIGH-006 FIX: Show attempt number */}
                         <Badge variant="outline" className="text-xs">
-                            Percobaan #{attemptNumber ?? 1}
+                            Percobaan #{attemptNumber}
                         </Badge>
                     </div>
                 </div>
@@ -173,7 +170,7 @@ export default function ResultDetailPage() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         {/* Pass/Fail Indicator */}
-                        {status === 'FINISHED' && passed !== null && passingScore > 0 && (
+                        {status === 'FINISHED' && passed !== null && (
                             <div className={`flex items-center gap-3 p-4 rounded-lg ${
                                 passed
                                     ? 'bg-green-50 text-green-700 border border-green-200'
@@ -210,15 +207,13 @@ export default function ResultDetailPage() {
                                     {totalScore ?? 0}
                                 </span>
                                 <span className="text-muted-foreground">
-                                    / {passingScore > 0 ? passingScore : '-'} (passing score)
+                                    / {passingScore} (passing score)
                                 </span>
                             </div>
-                            {passingScore > 0 && (
-                                <Progress
-                                    value={scorePercentage}
-                                    className={`h-3 ${passed ? '[&>div]:bg-green-500' : '[&>div]:bg-red-500'}`}
-                                />
-                            )}
+                            <Progress
+                                value={scorePercentage}
+                                className={`h-3 ${passed ? '[&>div]:bg-green-500' : '[&>div]:bg-red-500'}`}
+                            />
                         </div>
 
                         {/* Stats */}

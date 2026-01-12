@@ -209,7 +209,7 @@ export function ParticipantNavbar() {
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
-                                variant="ghost"
+                                variant="link"
                                 className="hidden md:flex items-center gap-2 px-2"
                             >
                                 <UserAvatar
@@ -244,7 +244,7 @@ export function ParticipantNavbar() {
                             <DropdownMenuItem
                                 onClick={handleLogout}
                                 disabled={isLoggingOut}
-                                className="text-destructive focus:text-destructive cursor-pointer"
+                                className="focus:bg-destructive text-destructive focus:text-background cursor-pointer"
                             >
                                 {isLoggingOut ? (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

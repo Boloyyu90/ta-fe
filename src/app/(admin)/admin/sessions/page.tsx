@@ -254,9 +254,8 @@ export default function AdminSessionsPage() {
                                                                 <span className="max-w-[200px] truncate block">
                                                                     {session.exam.title}
                                                                 </span>
-                                                                {/* HIGH-006 FIX: Show attempt number */}
                                                                 <Badge variant="outline" className="text-xs mt-1">
-                                                                    Percobaan #{session.attemptNumber ?? 1}
+                                                                    Percobaan #{session.attemptNumber}
                                                                 </Badge>
                                                             </div>
                                                         </div>

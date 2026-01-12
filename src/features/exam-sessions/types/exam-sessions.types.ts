@@ -62,12 +62,14 @@ export interface ExamQuestion {
 /**
  * Exam info as returned in UserExam and ExamResult responses
  * Note: For list responses (GET /exam-sessions), use ExamInfoInList instead
+ *
+ * Updated: passingScore is now REQUIRED - backend always sends it
  */
 export interface ExamInfo {
     id: number;
     title: string;
     description: string | null;
-    passingScore?: number;
+    passingScore: number;       // ✅ REQUIRED - backend always sends this
     durationMinutes?: number;   // Optional for some contexts
     allowRetake?: boolean;
     maxAttempts?: number | null;
@@ -236,6 +238,7 @@ export function normalizeExamResult(apiResult: ExamResultApiResponse): ExamResul
             id: apiResult.examId ?? 0,
             title: apiResult.examTitle ?? 'Unknown Exam',
             description: null,
+            passingScore: 0,  // Fallback - backend should always provide this
         },
         user: apiResult.user ?? {
             id: apiResult.userId ?? 0,

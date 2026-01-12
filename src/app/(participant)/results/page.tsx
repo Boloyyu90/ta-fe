@@ -11,6 +11,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Skeleton } from '@/shared/components/ui/skeleton';
+import { PageHeaderTitle } from '@/shared/components/PageHeaderTitle';
 import { Progress } from '@/shared/components/ui/progress';
 import {
     Table,
@@ -63,13 +64,11 @@ export default function ResultsPage() {
         limit: 10,
     });
 
-    // ✅ FIX: Compute passed count using actual passingScore from each exam
+    // Compute passed count using actual passingScore from each exam
     const passedCount = results?.filter((r: ExamResult) => {
-        const passingScore = r.exam.passingScore ?? 0;
         return r.status === 'FINISHED' &&
                r.totalScore !== null &&
-               passingScore > 0 &&
-               r.totalScore >= passingScore;
+               r.totalScore >= r.exam.passingScore;
     }).length || 0;
 
     // Format date
@@ -99,16 +98,8 @@ export default function ResultsPage() {
 
     return (
         <div className="container mx-auto py-8 space-y-6">
-                {/* Header */}
-                <div>
-                <h1 className="text-3xl font-bold flex items-center gap-2">
-                    <Trophy className="h-8 w-8 text-primary" />
-                    Hasil Ujian
-                </h1>
-                <p className="text-muted-foreground">
-                    Lihat riwayat dan hasil ujian Anda
-                </p>
-            </div>
+            {/* Header */}
+            <PageHeaderTitle title="Hasil" />
 
             {/* Stats Cards - Using backend /me/stats endpoint */}
             <div className="grid gap-4 md:grid-cols-3">
@@ -215,11 +206,9 @@ export default function ResultsPage() {
                                     <TableBody>
                                         {results.map((result: ExamResult) => {
                                             const StatusIcon = statusConfig[result.status]?.icon || AlertCircle;
-                                            // ✅ FIX: Use actual passingScore from exam, not hardcoded 70
-                                            const passingScore = result.exam.passingScore ?? 0;
+                                            const passingScore = result.exam.passingScore;
                                             const isPassed = result.status === 'FINISHED' &&
                                                 result.totalScore !== null &&
-                                                passingScore > 0 &&
                                                 result.totalScore >= passingScore;
 
                                             return (
@@ -233,7 +222,7 @@ export default function ResultsPage() {
                                                                 {result.exam.title}
                                                             </Link>
                                                             <Badge variant="outline" className="text-xs">
-                                                                Percobaan #{result.attemptNumber ?? 1}
+                                                                Percobaan #{result.attemptNumber}
                                                             </Badge>
                                                         </div>
                                                     </TableCell>
@@ -251,20 +240,17 @@ export default function ResultsPage() {
                                                             {/* Score with passing score context */}
                                                             <div className="flex items-center gap-2">
                                                                 <span className={`font-bold text-lg ${
-                                                                    result.status === 'FINISHED' && passingScore > 0
+                                                                    result.status === 'FINISHED'
                                                                         ? (isPassed ? 'text-green-600' : 'text-red-600')
                                                                         : ''
                                                                 }`}>
                                                                     {result.totalScore ?? '-'}
                                                                 </span>
-                                                                {passingScore > 0 && (
-                                                                    <span className="text-sm text-muted-foreground">
-                                                                        / {passingScore}
-                                                                    </span>
-                                                                )}
+                                                                <span className="text-sm text-muted-foreground">
+                                                                    / {passingScore}
+                                                                </span>
                                                             </div>
-                                                            {/* ✅ FIX: Add prominent LULUS/TIDAK LULUS badge like detail page */}
-                                                            {result.status === 'FINISHED' && passingScore > 0 && (
+                                                            {result.status === 'FINISHED' && (
                                                                 <Badge
                                                                     variant={isPassed ? 'default' : 'destructive'}
                                                                     className={`text-xs ${isPassed ? 'bg-green-600 hover:bg-green-700' : ''}`}
