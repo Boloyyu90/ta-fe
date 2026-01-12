@@ -35,7 +35,6 @@ import {
     XCircle,
     AlertTriangle,
     Calendar,
-    ArrowLeft,
 } from 'lucide-react';
 
 // Availability badge config
@@ -96,20 +95,7 @@ export default function ExamsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-muted/30">
-            {/* Back Navigation */}
-            <div className="bg-background border-b border-border">
-                <div className="container mx-auto px-4 py-4">
-                    <Link href="/dashboard">
-                        <Button variant="ghost" size="sm">
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Kembali ke Dashboard
-                        </Button>
-                    </Link>
-                </div>
-            </div>
-
-            <div className="container mx-auto py-8 space-y-6">
+        <div className="container mx-auto py-8 space-y-6">
                 {/* Header */}
                 <div>
                 <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -284,7 +270,6 @@ export default function ExamsPage() {
                     )}
                 </>
             )}
-            </div>
         </div>
     );
 }

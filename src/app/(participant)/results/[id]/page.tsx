@@ -1,7 +1,3 @@
-/**
- * Result Detail Page
- */
-
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -43,19 +39,18 @@ const statusConfig: Record<ExamStatus, {
 export default function ResultDetailPage() {
     const params = useParams();
 
-    // ✅ FIX: Parse and validate sessionId
     // params.id can be string | string[] | undefined
     const rawId = params.id;
     const parsedId = typeof rawId === 'string' ? Number(rawId) : NaN;
     const isValidId = !Number.isNaN(parsedId) && parsedId > 0;
 
-    // ✅ FIX: Use validated number for useResultDetail
+    // Use validated number for useResultDetail
     // useResultDetail accepts number | undefined, so we can pass undefined for invalid IDs
     const sessionId = isValidId ? parsedId : undefined;
 
     const { data: result, isLoading, isError } = useResultDetail(sessionId);
 
-    // ✅ FIX: useProctoringEvents requires number, not number | undefined
+    // useProctoringEvents requires number, not number | undefined
     // Pass the parsed number (or 0 as fallback) and use enabled to control the query
     const { data: eventsResponse } = useProctoringEvents(
         isValidId ? parsedId : 0,  // Pass 0 as fallback (query will be disabled anyway)
@@ -138,7 +133,7 @@ export default function ResultDetailPage() {
     const statusInfo = statusConfig[status] ?? statusConfig.FINISHED;
     const StatusIcon = statusInfo.icon;
 
-    // ✅ FIX: Properly access events from the response
+    // Properly access events from the response
     const events = eventsResponse?.data ?? [];
 
     return (

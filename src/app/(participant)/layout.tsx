@@ -16,6 +16,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks";
+import { ParticipantNavbar } from "@/features/dashboard/components/participant";
 import { Loader2 } from "lucide-react";
 
 export default function ParticipantLayout({
@@ -58,5 +59,10 @@ export default function ParticipantLayout({
     }
 
     // Render children for authenticated participants
-    return <>{children}</>;
+    return (
+        <div className="min-h-screen bg-muted/30">
+            <ParticipantNavbar />
+            <main>{children}</main>
+        </div>
+    );
 }

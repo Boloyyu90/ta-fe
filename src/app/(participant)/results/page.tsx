@@ -1,14 +1,3 @@
-/**
- * Participant Results List Page
- *
- * ✅ FIXED:
- * - useMyResults returns { data, pagination } directly from the hook
- * - Added proper types to avoid implicit any
- * - Stats cards now use backend GET /me/stats endpoint (single source of truth)
- * - Pass/fail uses exam.passingScore (not hardcoded 70)
- * - Added prominent LULUS/TIDAK LULUS badges like detail page
- */
-
 'use client';
 
 import { useState } from 'react';
@@ -42,8 +31,6 @@ import {
     XCircle,
     Clock,
     AlertCircle,
-    Target,
-    ArrowLeft,
 } from 'lucide-react';
 
 // Status configuration
@@ -62,7 +49,7 @@ export default function ResultsPage() {
     // State
     const [page, setPage] = useState(1);
 
-    // ✅ FIX: Use backend stats endpoint for accurate stats
+    // Use backend stats endpoint for accurate stats
     const { data: statsData, isLoading: statsLoading } = useMyStats();
     const stats = statsData?.stats ?? {
         completedExams: 0,
@@ -111,20 +98,7 @@ export default function ResultsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-muted/30">
-            {/* Back Navigation */}
-            <div className="bg-background border-b border-border">
-                <div className="container mx-auto px-4 py-4">
-                    <Link href="/dashboard">
-                        <Button variant="ghost" size="sm">
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Kembali ke Dashboard
-                        </Button>
-                    </Link>
-                </div>
-            </div>
-
-            <div className="container mx-auto py-8 space-y-6">
+        <div className="container mx-auto py-8 space-y-6">
                 {/* Header */}
                 <div>
                 <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -373,7 +347,6 @@ export default function ResultsPage() {
                     )}
                 </CardContent>
             </Card>
-            </div>
         </div>
     );
 }
