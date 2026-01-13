@@ -2,6 +2,8 @@
  * Hook to fetch user's completed exam results
  *
  * Backend: GET /api/v1/results
+ *
+ * @param params.examId - Optional filter by exam ID
  */
 
 import { useQuery } from '@tanstack/react-query';
@@ -27,11 +29,11 @@ export interface UseMyResultsResult {
 }
 
 export function useMyResults(params: UseMyResultsOptions = {}): UseMyResultsResult {
-    const { page = 1, limit = 10, enabled = true } = params;
+    const { page = 1, limit = 10, examId, enabled = true } = params;
 
     const query = useQuery<MyResultsResponseNormalized, Error>({
-        queryKey: ['my-results', { page, limit }],
-        queryFn: () => examSessionsApi.getMyResults({ page, limit }),
+        queryKey: ['my-results', { page, limit, examId }],
+        queryFn: () => examSessionsApi.getMyResults({ page, limit, examId }),
         enabled,
         staleTime: 60 * 1000, // 1 minute
         refetchOnMount: 'always', // Always refetch when page is visited to ensure fresh data

@@ -327,6 +327,7 @@ export interface GetUserExamsParams {
 export interface GetMyResultsParams {
     page?: number;
     limit?: number;
+    examId?: number;  // Filter results by exam ID
 }
 
 // ============================================================================

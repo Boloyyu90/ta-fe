@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { useExamWithAttempts } from '@/features/exams/hooks';
-import { useStartExam } from '@/features/exam-sessions/hooks';
+import { useStartExam, useExamAttempts } from '@/features/exam-sessions/hooks';
+import { AttemptResultCard, EmptyAttemptsPlaceholder } from '@/features/exam-sessions/components';
 import type { ExamAttemptInfo } from '@/features/exams/types/exams.types';
 import { EXAM_SESSION_ERRORS, EXAM_ERRORS, getErrorMessage } from '@/shared/lib/errors';
 import {
@@ -180,6 +181,15 @@ export default function ExamDetailPage({ params }: PageProps) {
 
     // Start exam mutation
     const { startExam, isLoading: isStarting } = useStartExam();
+
+    // Fetch user's attempts for this exam (for results section)
+    const {
+        hasAttempts,
+        firstAttempt,
+        lastAttempt,
+        totalAttempts,
+        isLoading: attemptsLoading,
+    } = useExamAttempts(examId);
 
     // Extract data from response
     const exam = examData?.exam;
@@ -537,6 +547,57 @@ export default function ExamDetailPage({ params }: PageProps) {
                         </Button>
                     )}
             </div>
+
+            {/* ========== HASIL UJIAN SECTION ========== */}
+            <section className="space-y-6 mt-8 pt-8 border-t">
+                <h2 className="text-xl font-bold text-center">
+                    Kerjakan TryOut untuk Mengetahui Kemampuanmu!
+                </h2>
+
+                {attemptsLoading ? (
+                    <div className="space-y-4">
+                        <Skeleton className="h-48 w-full" />
+                        <Skeleton className="h-48 w-full" />
+                    </div>
+                ) : !hasAttempts ? (
+                    /* Kondisi A: Belum ada attempt */
+                    <EmptyAttemptsPlaceholder />
+                ) : (
+                    /* Kondisi B: Ada attempts */
+                    <div className="space-y-6">
+                        {/* Perolehan TryOut Pertama */}
+                        {firstAttempt && (
+                            <AttemptResultCard
+                                title="Perolehan TryOut Pertama"
+                                result={firstAttempt}
+                            />
+                        )}
+
+                        {/* Perolehan TryOut Terakhir (hanya jika > 1 attempt) */}
+                        {lastAttempt && totalAttempts > 1 && (
+                            <AttemptResultCard
+                                title="Perolehan TryOut Terakhir"
+                                result={lastAttempt}
+                            />
+                        )}
+
+                        {/* Button Lihat Selengkapnya */}
+                        <div className="flex justify-end">
+                            <Button asChild className="bg-primary hover:bg-primary/90">
+                                <Link href={`/exams/${examId}/history`}>
+                                    Lihat Selengkapnya
+                                </Link>
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Info Footer */}
+                <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+                    <Info className="h-4 w-4" />
+                    Untuk Peringkat dan Grafik menggunakan nilai percobaan pertama
+                </p>
+            </section>
         </div>
     );
 }

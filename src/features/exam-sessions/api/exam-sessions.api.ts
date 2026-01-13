@@ -137,12 +137,19 @@ export const getExamAnswers = async (sessionId: number): Promise<ExamAnswersResp
  * Get user's exam results
  * GET /api/v1/results
  *
+ * @param params.examId - Optional filter by exam ID
  * @returns MyResultsResponseNormalized = { data: ExamResult[], pagination } (normalized)
  */
 export const getMyResults = async (
     params: GetMyResultsParams = {}
 ): Promise<MyResultsResponseNormalized> => {
-    const response = await apiClient.get<MyResultsResponse>('/results', { params });
+    const response = await apiClient.get<MyResultsResponse>('/results', {
+        params: {
+            page: params.page,
+            limit: params.limit,
+            examId: params.examId,
+        },
+    });
     // Normalize results to handle flat/nested API response
     return {
         data: response.data.data.map(normalizeExamResult),

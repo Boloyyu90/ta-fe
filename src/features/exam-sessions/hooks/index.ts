@@ -29,6 +29,7 @@ export { useSubmitExam } from './useSubmitExam';
 export { useMyResults } from './useMyResults';
 export { useResultDetail } from './useResultDetail';
 export { useUserExams } from './useUserExams';
+export { useExamAttempts } from './useExamAttempts';
 
 // Admin hooks
 export { useAdminSessions } from './useAdminSessions';
