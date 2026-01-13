@@ -148,7 +148,7 @@ export default function DashboardPage() {
                 {/* Available Exams Section */}
                 <section className="space-y-4">
                     <SectionHeader
-                        title="Pilihan Ujian Terbaru"
+                        title="Pilihan Tryout Terbaru"
                         actionLabel="Selengkapnya"
                         actionHref="/exams"
                     />

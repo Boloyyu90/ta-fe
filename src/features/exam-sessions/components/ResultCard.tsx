@@ -1,22 +1,17 @@
-/**
- * Result Card Component
- */
-
 'use client';
 
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
-import { Progress } from '@/shared/components/ui/progress';
 import {
     CheckCircle2,
     XCircle,
     Clock,
-    FileText,
     Trophy,
     AlertTriangle,
-    Play,
+    Eye,
+    Calendar,
 } from 'lucide-react';
 import type { ExamResult, ExamStatus } from '../types/exam-sessions.types';
 
@@ -26,15 +21,14 @@ import type { ExamResult, ExamStatus } from '../types/exam-sessions.types';
 
 export interface ResultCardProps {
     result: ExamResult;
+    /** Format date function - passed from parent to keep component pure */
+    formatDate?: (dateString: string | null) => string;
 }
 
 // ============================================================================
-// STATUS CONFIG (Only valid backend statuses)
+// STATUS CONFIG
 // ============================================================================
 
-/**
- * Status configuration
- */
 const statusConfig: Record<ExamStatus, {
     label: string;
     variant: 'default' | 'secondary' | 'destructive' | 'outline';
@@ -66,7 +60,7 @@ const statusConfig: Record<ExamStatus, {
 // COMPONENT
 // ============================================================================
 
-export function ResultCard({ result }: ResultCardProps) {
+export function ResultCard({ result, formatDate }: ResultCardProps) {
     const {
         id,
         exam,
@@ -74,113 +68,144 @@ export function ResultCard({ result }: ResultCardProps) {
         status,
         answeredQuestions,
         totalQuestions,
-        duration,
-        scoresByType,
+        attemptNumber,
+        submittedAt,
     } = result;
 
     const passingScore = exam.passingScore;
-    const isPassed = totalScore !== null && totalScore >= passingScore;
-    const scorePercentage = Math.min(((totalScore ?? 0) / passingScore) * 100, 100);
-
+    const isPassed = status === 'FINISHED' && totalScore !== null && totalScore >= passingScore;
     const statusInfo = statusConfig[status] ?? statusConfig.FINISHED;
     const StatusIcon = statusInfo.icon;
 
-    // Format duration (seconds to minutes)
-    const formatDuration = (seconds: number | null): string => {
-        if (seconds === null) return '-';
-        const minutes = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${minutes}m ${secs}s`;
+    // Default date formatter
+    const defaultFormatDate = (dateString: string | null) => {
+        if (!dateString) return '-';
+        return new Date(dateString).toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+        });
     };
 
+    const dateFormatter = formatDate ?? defaultFormatDate;
+
     return (
-        <Card className="h-full hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-4">
-                    <CardTitle className="text-lg line-clamp-2">
-                        {exam.title}
-                    </CardTitle>
-                    <Badge variant={statusInfo.variant} className="shrink-0">
-                        <StatusIcon className="h-3 w-3 mr-1" />
-                        {statusInfo.label}
-                    </Badge>
-                </div>
-            </CardHeader>
+        <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+            <div className="flex flex-col md:flex-row">
+                {/* Left Side - Score Display */}
+                <div className={`flex-shrink-0 p-6 flex flex-col items-center justify-center md:w-56 relative`}>
 
-            <CardContent className="space-y-4">
-                {/* Pass/Fail Indicator */}
-                {status === 'FINISHED' && totalScore !== null && (
-                    <div className={`flex items-center gap-2 p-3 rounded-lg ${
-                        isPassed
-                            ? 'bg-green-50 text-green-700 border border-green-200'
-                            : 'bg-red-50 text-red-700 border border-red-200'
-                    }`}>
-                        {isPassed ? (
-                            <>
-                                <Trophy className="h-5 w-5" />
-                                <span className="font-semibold">LULUS</span>
-                            </>
-                        ) : (
-                            <>
-                                <XCircle className="h-5 w-5" />
-                                <span className="font-semibold">TIDAK LULUS</span>
-                            </>
-                        )}
-                    </div>
-                )}
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                        Perolehan Try Out
+                    </p>
+                    <p className="text-sm font-semibold text-primary line-clamp-1 text-center mb-3">
+                        Percobaan #{attemptNumber}
+                    </p>
 
-                {/* Score Display */}
-                <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Skor</span>
-                        <span className="font-semibold">
-                            {totalScore ?? 0} / {passingScore}
-                        </span>
+                    {/* Score */}
+                    <div className="text-center">
+                        <p className={`text-5xl font-black tracking-tight ${
+                            status === 'FINISHED'
+                                ? isPassed
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : 'text-red-600 dark:text-red-400'
+                                : 'text-foreground'
+                        }`}>
+                            {totalScore ?? 0}
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            dari {passingScore} (KKM)
+                        </p>
                     </div>
-                    <Progress
-                        value={scorePercentage}
-                        className={`h-2 ${isPassed ? '[&>div]:bg-green-500' : '[&>div]:bg-red-500'}`}
-                    />
-                </div>
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="space-y-1">
-                        <span className="text-muted-foreground">Soal Dijawab</span>
-                        <p className="font-medium">{answeredQuestions}/{totalQuestions}</p>
-                    </div>
-                    <div className="space-y-1">
-                        <span className="text-muted-foreground">Durasi</span>
-                        <p className="font-medium">{formatDuration(duration)}</p>
-                    </div>
+                    {/* Pass/Fail Badge */}
+                    {status === 'FINISHED' && totalScore !== null && (
+                        <Badge
+                            className={`mt-4 px-4 py-1 text-sm font-bold ${
+                                isPassed
+                                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                                    : 'bg-red-600 hover:bg-red-700 text-white'
+                            }`}
+                        >
+                            {isPassed ? (
+                                <>
+                                    <Trophy className="h-4 w-4 mr-1.5" />
+                                    LULUS
+                                </>
+                            ) : (
+                                <>
+                                    <XCircle className="h-4 w-4 mr-1.5" />
+                                    TIDAK LULUS
+                                </>
+                            )}
+                        </Badge>
+                    )}
                 </div>
 
-                {/* Score by Type (if available) */}
-                {scoresByType && scoresByType.length > 0 && (
-                    <div className="space-y-2 pt-2 border-t">
-                        <span className="text-sm text-muted-foreground">Skor per Kategori</span>
-                        <div className="grid grid-cols-3 gap-2">
-                            {scoresByType.map((st) => (
-                                <div
-                                    key={st.type}
-                                    className="text-center p-2 bg-muted rounded"
-                                >
-                                    <div className="text-xs text-muted-foreground">{st.type}</div>
-                                    <div className="font-semibold">{st.score}/{st.maxScore}</div>
-                                </div>
-                            ))}
+                {/* Right Side - Details */}
+                <div className="flex-1 p-6">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                        <div className="min-w-0 flex-1">
+                            <h3 className="font-bold text-lg line-clamp-2 mb-1">
+                                {exam.title}
+                            </h3>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Calendar className="h-4 w-4" />
+                                <span>{dateFormatter(submittedAt)}</span>
+                            </div>
                         </div>
+                        <Badge variant={statusInfo.variant} className="shrink-0">
+                            <StatusIcon className="h-3 w-3 mr-1" />
+                            {statusInfo.label}
+                        </Badge>
                     </div>
-                )}
 
-                {/* View Details Button */}
-                <Button asChild variant="outline" className="w-full">
-                    <Link href={`/results/${id}`}>
-                        <FileText className="h-4 w-4 mr-2" />
-                        Lihat Detail
-                    </Link>
-                </Button>
-            </CardContent>
+                    {/* Score Details Table */}
+                    <div className="rounded-lg border bg-muted/30 overflow-hidden mb-4">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b bg-muted/50">
+                                    <th className="px-4 py-2 text-left font-medium text-muted-foreground">Keterangan</th>
+                                    <th className="px-4 py-2 text-right font-medium text-muted-foreground">Nilai</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr className="border-b">
+                                    <td className="px-4 py-2.5">Passing Score (KKM)</td>
+                                    <td className="px-4 py-2.5 text-right font-semibold">{passingScore}</td>
+                                </tr>
+                                <tr className="border-b">
+                                    <td className="px-4 py-2.5">Nilai Akhir</td>
+                                    <td className={`px-4 py-2.5 text-right font-bold ${
+                                        status === 'FINISHED'
+                                            ? isPassed
+                                                ? 'text-green-600 dark:text-green-400'
+                                                : 'text-red-600 dark:text-red-400'
+                                            : ''
+                                    }`}>
+                                        {totalScore ?? '-'}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td className="px-4 py-2.5">Soal Dijawab</td>
+                                    <td className="px-4 py-2.5 text-right font-medium">
+                                        {answeredQuestions} / {totalQuestions}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Action Button */}
+                    <Button asChild className="w-full md:w-auto">
+                        <Link href={`/results/${id}`}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            Lihat Detail
+                        </Link>
+                    </Button>
+                </div>
+            </div>
         </Card>
     );
 }

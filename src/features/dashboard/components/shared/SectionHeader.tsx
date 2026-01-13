@@ -11,7 +11,7 @@ interface SectionHeaderProps {
  * SectionHeader Component
  *
  * Displays a section title with an optional action link on the right side.
- * Used for dashboard sections like "Pilihan Ujian Terbaru", "Hasil Terbaru", etc.
+ * Used for dashboard sections like "Pilihan Tryout Terbaru", "Hasil Terbaru", etc.
  */
 export function SectionHeader({ title, actionLabel, actionHref }: SectionHeaderProps) {
     return (

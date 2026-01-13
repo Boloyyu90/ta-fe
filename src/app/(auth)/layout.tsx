@@ -3,11 +3,12 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks";
+import { Navbar } from "@/features/landing/components/Navbar";
 import { Loader2 } from "lucide-react";
 
 export default function AuthLayout({
-                                       children,
-                                   }: {
+    children,
+}: {
     children: React.ReactNode;
 }) {
     const router = useRouter();
@@ -32,12 +33,17 @@ export default function AuthLayout({
         );
     }
 
-    // Single full-screen centered wrapper for all auth pages (supports 2-column layout)
     return (
-        <div className="min-h-screen flex items-center justify-center bg-muted/30 py-8 px-4">
-            <div className="w-full max-w-5xl">
-                {children}
-            </div>
+        <div className="min-h-screen flex flex-col bg-muted/30">
+            {/* Navbar with auth variant */}
+            <Navbar variant="auth" />
+
+            {/* Main content - with padding top for fixed navbar */}
+            <main className="flex-1 flex items-center justify-center pt-16 py-8 px-4">
+                <div className="w-full max-w-5xl">
+                    {children}
+                </div>
+            </main>
         </div>
     );
 }

@@ -4,47 +4,23 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useMyResults } from '@/features/exam-sessions/hooks';
 import { useMyStats } from '@/features/users/hooks';
-import type { ExamResult, ExamStatus } from '@/features/exam-sessions/types/exam-sessions.types';
+import { ResultCard } from '@/features/exam-sessions/components/ResultCard';
+import type { ExamResult } from '@/features/exam-sessions/types/exam-sessions.types';
 
 // UI Components
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
-import { Badge } from '@/shared/components/ui/badge';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { PageHeaderTitle } from '@/shared/components/PageHeaderTitle';
-import { Progress } from '@/shared/components/ui/progress';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/shared/components/ui/table';
 import {
     Trophy,
-    Eye,
     ChevronLeft,
     ChevronRight,
     BookOpen,
     TrendingUp,
     CheckCircle2,
-    XCircle,
-    Clock,
-    AlertCircle,
+    Target,
 } from 'lucide-react';
-
-// Status configuration
-const statusConfig: Record<ExamStatus, {
-    label: string;
-    variant: 'default' | 'secondary' | 'destructive' | 'outline';
-    icon: typeof CheckCircle2;
-}> = {
-    IN_PROGRESS: { label: 'Berlangsung', variant: 'default', icon: Clock },
-    FINISHED: { label: 'Selesai', variant: 'secondary', icon: CheckCircle2 },
-    TIMEOUT: { label: 'Timeout', variant: 'destructive', icon: AlertCircle },
-    CANCELLED: { label: 'Dibatalkan', variant: 'outline', icon: XCircle },
-};
 
 export default function ResultsPage() {
     // State
@@ -83,52 +59,44 @@ export default function ResultsPage() {
         });
     };
 
-    // Format duration
-    const formatDuration = (startedAt: string | null, submittedAt: string | null): string => {
-        if (!startedAt || !submittedAt) return '-';
-        const start = new Date(startedAt);
-        const end = new Date(submittedAt);
-        const diffMs = end.getTime() - start.getTime();
-        const minutes = Math.floor(diffMs / 60000);
-        if (minutes < 60) return `${minutes} menit`;
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        return `${hours}j ${mins}m`;
-    };
-
     return (
         <div className="container mx-auto py-8 space-y-6">
             {/* Header */}
-            <PageHeaderTitle title="Hasil" />
+            <PageHeaderTitle title="Hasil Ujian" />
 
             {/* Stats Cards - Using backend /me/stats endpoint */}
             <div className="grid gap-4 md:grid-cols-3">
-                <Card>
+                <Card className="border-l-4 border-l-primary">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Ujian Selesai</CardTitle>
-                        <BookOpen className="h-4 w-4 text-muted-foreground" />
+                        <div className="h-10 w-10 rounded-full flex items-center justify-center">
+                            <BookOpen className="h-5 w-5 text-primary" />
+                        </div>
                     </CardHeader>
                     <CardContent>
                         {statsLoading ? (
-                            <Skeleton className="h-8 w-16" />
+                            <Skeleton className="h-10 w-20" />
                         ) : (
-                            <div className="text-2xl font-bold">{stats.completedExams}</div>
+                            <div className="text-3xl font-bold">{stats.completedExams}</div>
                         )}
                         <p className="text-xs text-muted-foreground mt-1">
                             Total ujian yang telah diselesaikan
                         </p>
                     </CardContent>
                 </Card>
-                <Card>
+
+                <Card className="border-l-4 border-l-secondary">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Rata-rata Skor</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        <div className="h-10 w-10 rounded-full flex items-center justify-center">
+                            <TrendingUp className="h-5 w-5 text-secondary" />
+                        </div>
                     </CardHeader>
                     <CardContent>
                         {statsLoading ? (
-                            <Skeleton className="h-8 w-16" />
+                            <Skeleton className="h-10 w-20" />
                         ) : (
-                            <div className="text-2xl font-bold">
+                            <div className="text-3xl font-bold">
                                 {stats.averageScore !== null ? stats.averageScore.toFixed(1) : '-'}
                             </div>
                         )}
@@ -137,16 +105,19 @@ export default function ResultsPage() {
                         </p>
                     </CardContent>
                 </Card>
-                <Card className="border-green-200">
+
+                <Card className="border-l-4 border-l-green-500">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-green-600">Lulus</CardTitle>
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <div className="h-10 w-10 rounded-full flex items-center justify-center">
+                            <CheckCircle2 className="h-5 w-5 text-green-500" />
+                        </div>
                     </CardHeader>
                     <CardContent>
                         {isLoading ? (
-                            <Skeleton className="h-8 w-16" />
+                            <Skeleton className="h-10 w-20" />
                         ) : (
-                            <div className="text-2xl font-bold text-green-600">{passedCount}</div>
+                            <div className="text-3xl font-bold text-green-600">{passedCount}</div>
                         )}
                         <p className="text-xs text-muted-foreground mt-1">
                             Dari {results?.length || 0} hasil di halaman ini
@@ -155,159 +126,70 @@ export default function ResultsPage() {
                 </Card>
             </div>
 
-            {/* Results Table */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Riwayat Ujian</CardTitle>
-                    <CardDescription>
-                        {pagination ? `Total ${pagination.total} hasil` : 'Memuat...'}
-                    </CardDescription>
-                </CardHeader>
+            {/* Results Section */}
+            <Card className="py-5">
                 <CardContent>
                     {isLoading ? (
                         <div className="space-y-4">
-                            {[1, 2, 3, 4, 5].map((i) => (
-                                <Skeleton key={i} className="h-16 w-full" />
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="flex flex-col md:flex-row gap-4">
+                                    <Skeleton className="h-48 md:h-40 md:w-56" />
+                                    <div className="flex-1 space-y-4">
+                                        <Skeleton className="h-6 w-3/4" />
+                                        <Skeleton className="h-24 w-full" />
+                                        <Skeleton className="h-10 w-32" />
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     ) : isError ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                            Gagal memuat data. Silakan coba lagi.
+                        <div className="text-center py-12">
+                            <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                                <Target className="h-8 w-8 text-destructive" />
+                            </div>
+                            <h3 className="text-lg font-semibold mb-2">Gagal Memuat Data</h3>
+                            <p className="text-muted-foreground mb-4">
+                                Terjadi kesalahan saat memuat hasil ujian.
+                            </p>
+                            <Button onClick={() => window.location.reload()}>
+                                Coba Lagi
+                            </Button>
                         </div>
                     ) : !results || results.length === 0 ? (
                         <div className="text-center py-12">
-                            <Trophy className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                                <Trophy className="h-8 w-8 text-muted-foreground" />
+                            </div>
                             <h3 className="text-lg font-semibold mb-2">Belum Ada Hasil</h3>
                             <p className="text-muted-foreground mb-4">
-                                Anda belum menyelesaikan ujian apapun
+                                Anda belum menyelesaikan ujian apapun. Mulai ujian pertama Anda sekarang!
                             </p>
                             <Link href="/exams">
                                 <Button>
                                     <BookOpen className="h-4 w-4 mr-2" />
-                                    Lihat Ujian
+                                    Lihat Daftar Ujian
                                 </Button>
                             </Link>
                         </div>
                     ) : (
                         <>
-                            <div className="rounded-md border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Ujian</TableHead>
-                                            <TableHead className="w-[100px]">Status</TableHead>
-                                            <TableHead className="w-[100px]">Skor</TableHead>
-                                            <TableHead className="w-[120px]">Progress</TableHead>
-                                            <TableHead className="w-[100px]">Durasi</TableHead>
-                                            <TableHead className="w-[150px]">Waktu Submit</TableHead>
-                                            <TableHead className="w-[80px]">Aksi</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {results.map((result: ExamResult) => {
-                                            const StatusIcon = statusConfig[result.status]?.icon || AlertCircle;
-                                            const passingScore = result.exam.passingScore;
-                                            const isPassed = result.status === 'FINISHED' &&
-                                                result.totalScore !== null &&
-                                                result.totalScore >= passingScore;
-
-                                            return (
-                                                <TableRow key={result.id}>
-                                                    <TableCell>
-                                                        <div className="space-y-1">
-                                                            <Link
-                                                                href={`/results/${result.id}`}
-                                                                className="font-medium max-w-[200px] truncate block hover:underline hover:text-primary"
-                                                            >
-                                                                {result.exam.title}
-                                                            </Link>
-                                                            <Badge variant="outline" className="text-xs">
-                                                                Percobaan #{result.attemptNumber}
-                                                            </Badge>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge
-                                                            variant={statusConfig[result.status]?.variant || 'outline'}
-                                                            className="flex items-center gap-1 w-fit"
-                                                        >
-                                                            <StatusIcon className="h-3 w-3" />
-                                                            {statusConfig[result.status]?.label || result.status}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="space-y-1">
-                                                            {/* Score with passing score context */}
-                                                            <div className="flex items-center gap-2">
-                                                                <span className={`font-bold text-lg ${
-                                                                    result.status === 'FINISHED'
-                                                                        ? (isPassed ? 'text-green-600' : 'text-red-600')
-                                                                        : ''
-                                                                }`}>
-                                                                    {result.totalScore ?? '-'}
-                                                                </span>
-                                                                <span className="text-sm text-muted-foreground">
-                                                                    / {passingScore}
-                                                                </span>
-                                                            </div>
-                                                            {result.status === 'FINISHED' && (
-                                                                <Badge
-                                                                    variant={isPassed ? 'default' : 'destructive'}
-                                                                    className={`text-xs ${isPassed ? 'bg-green-600 hover:bg-green-700' : ''}`}
-                                                                >
-                                                                    {isPassed ? (
-                                                                        <>
-                                                                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                                                                            LULUS
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <XCircle className="h-3 w-3 mr-1" />
-                                                                            TIDAK LULUS
-                                                                        </>
-                                                                    )}
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-2">
-                                                            <Progress
-                                                                value={result.totalQuestions > 0
-                                                                    ? (result.answeredQuestions / result.totalQuestions) * 100
-                                                                    : 0}
-                                                                className="w-16 h-2"
-                                                            />
-                                                            <span className="text-xs text-muted-foreground">
-                                                                {result.answeredQuestions}/{result.totalQuestions}
-                                                            </span>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-muted-foreground text-sm">
-                                                        {formatDuration(result.startedAt, result.submittedAt)}
-                                                    </TableCell>
-                                                    <TableCell className="text-muted-foreground text-sm">
-                                                        {formatDate(result.submittedAt)}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Link href={`/results/${result.id}`}>
-                                                            <Button variant="ghost" size="icon" aria-label="Lihat detail">
-                                                                <Eye className="h-4 w-4" />
-                                                            </Button>
-                                                        </Link>
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
+                            {/* Results Cards */}
+                            <div className="space-y-4">
+                                {results.map((result: ExamResult) => (
+                                    <ResultCard
+                                        key={result.id}
+                                        result={result}
+                                        formatDate={formatDate}
+                                    />
+                                ))}
                             </div>
 
                             {/* Pagination */}
                             {pagination && pagination.totalPages > 1 && (
-                                <div className="flex items-center justify-between mt-4">
+                                <div className="flex items-center justify-between mt-6 pt-6 border-t">
                                     <p className="text-sm text-muted-foreground">
-                                        Halaman {pagination.page} dari {pagination.totalPages}
+                                        Halaman <span className="font-medium">{pagination.page}</span> dari{' '}
+                                        <span className="font-medium">{pagination.totalPages}</span>
                                     </p>
                                     <div className="flex gap-2">
                                         <Button
@@ -316,7 +198,8 @@ export default function ResultsPage() {
                                             onClick={() => setPage(page - 1)}
                                             disabled={!pagination.hasPrev}
                                         >
-                                            <ChevronLeft className="h-4 w-4" />
+                                            <ChevronLeft className="h-4 w-4 mr-1" />
+                                            Sebelumnya
                                         </Button>
                                         <Button
                                             variant="outline"
@@ -324,7 +207,8 @@ export default function ResultsPage() {
                                             onClick={() => setPage(page + 1)}
                                             disabled={!pagination.hasNext}
                                         >
-                                            <ChevronRight className="h-4 w-4" />
+                                            Selanjutnya
+                                            <ChevronRight className="h-4 w-4 ml-1" />
                                         </Button>
                                     </div>
                                 </div>

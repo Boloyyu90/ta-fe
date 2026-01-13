@@ -15,6 +15,10 @@ import {
     Eye,
     CheckCircle,
     AlertTriangle,
+    Target,
+    Award,
+    BarChart3,
+    Calendar,
 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -45,17 +49,15 @@ export default function ResultDetailPage() {
     const isValidId = !Number.isNaN(parsedId) && parsedId > 0;
 
     // Use validated number for useResultDetail
-    // useResultDetail accepts number | undefined, so we can pass undefined for invalid IDs
     const sessionId = isValidId ? parsedId : undefined;
 
     const { data: result, isLoading, isError } = useResultDetail(sessionId);
 
     // useProctoringEvents requires number, not number | undefined
-    // Pass the parsed number (or 0 as fallback) and use enabled to control the query
     const { data: eventsResponse } = useProctoringEvents(
-        isValidId ? parsedId : 0,  // Pass 0 as fallback (query will be disabled anyway)
-        undefined,                  // No additional params
-        isValidId                   // enabled: only run query if ID is valid
+        isValidId ? parsedId : 0,
+        undefined,
+        isValidId
     );
 
     // Handle invalid ID early
@@ -63,8 +65,11 @@ export default function ResultDetailPage() {
         return (
             <div className="container mx-auto py-8">
                 <Card>
-                    <CardContent className="py-8 text-center">
-                        <AlertTriangle className="h-12 w-12 mx-auto text-destructive mb-4" />
+                    <CardContent className="py-12 text-center">
+                        <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                            <AlertTriangle className="h-8 w-8 text-destructive" />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2">ID Tidak Valid</h3>
                         <p className="text-muted-foreground mb-4">
                             ID hasil ujian tidak valid.
                         </p>
@@ -84,9 +89,9 @@ export default function ResultDetailPage() {
         return (
             <div className="container mx-auto py-8 space-y-6">
                 <Skeleton className="h-10 w-64" />
-                <div className="grid gap-6 md:grid-cols-2">
-                    <Skeleton className="h-64" />
-                    <Skeleton className="h-64" />
+                <div className="grid gap-6 lg:grid-cols-5">
+                    <Skeleton className="h-80 lg:col-span-2" />
+                    <Skeleton className="h-80 lg:col-span-3" />
                 </div>
             </div>
         );
@@ -96,11 +101,15 @@ export default function ResultDetailPage() {
         return (
             <div className="container mx-auto py-8">
                 <Card>
-                    <CardContent className="py-8 text-center">
-                        <p className="text-muted-foreground">
+                    <CardContent className="py-12 text-center">
+                        <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                            <Target className="h-8 w-8 text-destructive" />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2">Gagal Memuat Data</h3>
+                        <p className="text-muted-foreground mb-4">
                             Gagal memuat hasil ujian. Silakan coba lagi.
                         </p>
-                        <Button asChild className="mt-4">
+                        <Button asChild>
                             <Link href="/results">
                                 <ArrowLeft className="h-4 w-4 mr-2" />
                                 Kembali ke Daftar Hasil
@@ -122,7 +131,7 @@ export default function ResultDetailPage() {
         submittedAt,
         passed,
         scoresByType,
-        attemptNumber,  // HIGH-006 FIX: Include attemptNumber
+        attemptNumber,
     } = result;
 
     const passingScore = exam.passingScore;
@@ -137,13 +146,16 @@ export default function ResultDetailPage() {
     return (
         <div className="container mx-auto py-8 space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold">{exam.title}</h1>
-                    <div className="flex items-center gap-2 mt-1">
-                        <p className="text-muted-foreground">Hasil Ujian</p>
+                    <div className="flex items-center gap-3 mt-2">
                         <Badge variant="outline" className="text-xs">
                             Percobaan #{attemptNumber}
+                        </Badge>
+                        <Badge variant={statusInfo.variant}>
+                            <StatusIcon className="h-3 w-3 mr-1" />
+                            {statusInfo.label}
                         </Badge>
                     </div>
                 </div>
@@ -156,139 +168,207 @@ export default function ResultDetailPage() {
             </div>
 
             {/* Main Content Grid */}
-            <div className="grid gap-6 md:grid-cols-2">
-                {/* Score Card */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                            <span>Hasil</span>
-                            <Badge variant={statusInfo.variant}>
-                                <StatusIcon className="h-3 w-3 mr-1" />
-                                {statusInfo.label}
-                            </Badge>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
+            <div className="grid gap-6 lg:grid-cols-5">
+                {/* Left Column - Score Card */}
+                <Card className="lg:col-span-2 overflow-hidden">
+                    <div className={`p-6 ${
+                        status === 'FINISHED' && passed !== null
+                            ? passed
+                                ? 'bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-950/30 dark:to-emerald-900/20'
+                                : 'bg-gradient-to-br from-red-50 to-rose-100 dark:from-red-950/30 dark:to-rose-900/20'
+                            : 'bg-gradient-to-br from-muted/30 to-muted/50'
+                    }`}>
                         {/* Pass/Fail Indicator */}
                         {status === 'FINISHED' && passed !== null && (
-                            <div className={`flex items-center gap-3 p-4 rounded-lg ${
+                            <div className={`flex items-center gap-4 p-4 rounded-xl mb-6 ${
                                 passed
-                                    ? 'bg-green-50 text-green-700 border border-green-200'
-                                    : 'bg-red-50 text-red-700 border border-red-200'
+                                    ? 'bg-green-500/10 border-2 border-green-500/20'
+                                    : 'bg-red-500/10 border-2 border-red-500/20'
                             }`}>
-                                {passed ? (
-                                    <>
-                                        <Trophy className="h-8 w-8" />
-                                        <div>
-                                            <p className="font-bold text-lg">LULUS</p>
-                                            <p className="text-sm opacity-80">
-                                                Selamat! Anda berhasil mencapai passing score.
-                                            </p>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <XCircle className="h-8 w-8" />
-                                        <div>
-                                            <p className="font-bold text-lg">TIDAK LULUS</p>
-                                            <p className="text-sm opacity-80">
-                                                Anda belum mencapai passing score.
-                                            </p>
-                                        </div>
-                                    </>
-                                )}
+                                <div className={`h-14 w-14 rounded-full flex items-center justify-center ${
+                                    passed ? 'bg-green-500' : 'bg-red-500'
+                                }`}>
+                                    {passed ? (
+                                        <Trophy className="h-7 w-7 text-white" />
+                                    ) : (
+                                        <XCircle className="h-7 w-7 text-white" />
+                                    )}
+                                </div>
+                                <div>
+                                    <p className={`font-bold text-xl ${
+                                        passed ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'
+                                    }`}>
+                                        {passed ? 'LULUS' : 'TIDAK LULUS'}
+                                    </p>
+                                    <p className={`text-sm ${
+                                        passed ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'
+                                    }`}>
+                                        {passed
+                                            ? 'Selamat! Anda berhasil mencapai passing score.'
+                                            : 'Anda belum mencapai passing score.'}
+                                    </p>
+                                </div>
                             </div>
                         )}
 
                         {/* Score Display */}
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-end">
-                                <span className="text-4xl font-bold">
+                        <div className="text-center mb-6">
+                            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                                Perolehan Nilai
+                            </p>
+                            <div className="flex items-baseline justify-center gap-2">
+                                <span className={`text-6xl font-black tracking-tight ${
+                                    status === 'FINISHED' && passed !== null
+                                        ? passed
+                                            ? 'text-green-600 dark:text-green-400'
+                                            : 'text-red-600 dark:text-red-400'
+                                        : 'text-foreground'
+                                }`}>
                                     {totalScore ?? 0}
                                 </span>
-                                <span className="text-muted-foreground">
-                                    / {passingScore} (passing score)
+                                <span className="text-2xl text-muted-foreground font-medium">
+                                    / {passingScore}
                                 </span>
                             </div>
-                            <Progress
-                                value={scorePercentage}
-                                className={`h-3 ${passed ? '[&>div]:bg-green-500' : '[&>div]:bg-red-500'}`}
-                            />
+                            <p className="text-sm text-muted-foreground mt-1">(passing score)</p>
                         </div>
 
-                        {/* Stats */}
-                        <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                            <div>
-                                <p className="text-sm text-muted-foreground">Soal Dijawab</p>
-                                <p className="text-xl font-semibold">
-                                    {answeredQuestions}/{totalQuestions}
+                        {/* Progress Bar */}
+                        <div className="mb-6">
+                            <Progress
+                                value={scorePercentage}
+                                className={`h-4 rounded-full ${
+                                    passed
+                                        ? '[&>div]:bg-gradient-to-r [&>div]:from-green-500 [&>div]:to-emerald-500'
+                                        : '[&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-rose-500'
+                                }`}
+                            />
+                            <p className="text-center text-sm text-muted-foreground mt-2">
+                                {scorePercentage.toFixed(0)}% dari passing score
+                            </p>
+                        </div>
+
+                        {/* Stats Grid */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="text-center p-4 bg-background/50 rounded-xl">
+                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+                                    <FileText className="h-5 w-5 text-primary" />
+                                </div>
+                                <p className="text-sm text-muted-foreground mb-1">Soal Dijawab</p>
+                                <p className="text-xl font-bold">
+                                    {answeredQuestions}<span className="text-base font-normal text-muted-foreground">/{totalQuestions}</span>
                                 </p>
                             </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground">Akurasi</p>
-                                <p className="text-xl font-semibold">
+                            <div className="text-center p-4 bg-background/50 rounded-xl">
+                                <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-2">
+                                    <BarChart3 className="h-5 w-5 text-blue-500" />
+                                </div>
+                                <p className="text-sm text-muted-foreground mb-1">Akurasi</p>
+                                <p className="text-xl font-bold">
                                     {totalQuestions > 0
                                         ? Math.round((answeredQuestions / totalQuestions) * 100)
                                         : 0}%
                                 </p>
                             </div>
                         </div>
-                    </CardContent>
+                    </div>
                 </Card>
 
-                {/* Details Card */}
-                <Card>
+                {/* Right Column - Details */}
+                <Card className="lg:col-span-3">
                     <CardHeader>
-                        <CardTitle>Detail</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                            <Award className="h-5 w-5 text-primary" />
+                            Detail Hasil
+                        </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-6">
                         {/* Time Info */}
-                        {startedAt && (
-                            <div className="flex items-center gap-3">
-                                <Clock className="h-5 w-5 text-muted-foreground" />
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Dimulai</p>
-                                    <p className="font-medium">
-                                        {format(new Date(startedAt), 'PPpp', { locale: localeId })}
-                                    </p>
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            {startedAt && (
+                                <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg">
+                                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                        <Clock className="h-5 w-5 text-primary" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Waktu Mulai</p>
+                                        <p className="font-medium">
+                                            {format(new Date(startedAt), 'PPpp', { locale: localeId })}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        {submittedAt && (
-                            <div className="flex items-center gap-3">
-                                <FileText className="h-5 w-5 text-muted-foreground" />
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Selesai</p>
-                                    <p className="font-medium">
-                                        {format(new Date(submittedAt), 'PPpp', { locale: localeId })}
-                                    </p>
+                            {submittedAt && (
+                                <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg">
+                                    <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                                        <Calendar className="h-5 w-5 text-green-500" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Waktu Selesai</p>
+                                        <p className="font-medium">
+                                            {format(new Date(submittedAt), 'PPpp', { locale: localeId })}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
 
-                        {/* Score by Type */}
+                        {/* Score by Type Table */}
                         {scoresByType && scoresByType.length > 0 && (
-                            <div className="pt-4 border-t">
-                                <p className="text-sm text-muted-foreground mb-3">
+                            <div>
+                                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                    <Target className="h-4 w-4 text-primary" />
                                     Skor per Kategori
-                                </p>
-                                <div className="space-y-2">
-                                    {scoresByType.map((st) => (
-                                        <div key={st.type} className="flex justify-between items-center">
-                                            <span className="font-medium">{st.type}</span>
-                                            <span className="text-muted-foreground">
-                                                {st.score}/{st.maxScore}
-                                            </span>
-                                        </div>
-                                    ))}
+                                </h4>
+                                <div className="rounded-lg border overflow-hidden">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="bg-muted/50">
+                                                <th className="px-4 py-3 text-left font-medium">Kategori</th>
+                                                <th className="px-4 py-3 text-center font-medium">Benar</th>
+                                                <th className="px-4 py-3 text-center font-medium">Total</th>
+                                                <th className="px-4 py-3 text-right font-medium">Skor</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {scoresByType.map((st, index) => (
+                                                <tr key={st.type} className={index < scoresByType.length - 1 ? 'border-b' : ''}>
+                                                    <td className="px-4 py-3 font-medium">{st.type}</td>
+                                                    <td className="px-4 py-3 text-center text-green-600 dark:text-green-400">
+                                                        {st.correctAnswers}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center text-muted-foreground">
+                                                        {st.totalQuestions}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right font-semibold">
+                                                        {st.score} / {st.maxScore}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr className="bg-muted/30 font-semibold">
+                                                <td className="px-4 py-3">Total</td>
+                                                <td className="px-4 py-3 text-center text-green-600 dark:text-green-400">
+                                                    {scoresByType.reduce((sum, st) => sum + st.correctAnswers, 0)}
+                                                </td>
+                                                <td className="px-4 py-3 text-center text-muted-foreground">
+                                                    {scoresByType.reduce((sum, st) => sum + st.totalQuestions, 0)}
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    {totalScore ?? 0} / {scoresByType.reduce((sum, st) => sum + st.maxScore, 0)}
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
                                 </div>
                             </div>
                         )}
 
-                        {/* Actions */}
+                        {/* Review Button */}
                         <div className="pt-4 border-t">
-                            <Button asChild className="w-full">
+                            <Button asChild className="w-full sm:w-auto" size="lg">
                                 <Link href={`/exam-sessions/${sessionId}/review`}>
                                     <Eye className="h-4 w-4 mr-2" />
                                     Review Jawaban

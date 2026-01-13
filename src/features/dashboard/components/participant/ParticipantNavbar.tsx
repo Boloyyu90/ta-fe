@@ -31,12 +31,15 @@ import {
     User,
     Loader2,
     ChevronDown,
+    ClipboardList,
 } from "lucide-react";
 
 // Navigation items for participant dashboard
 const NAV_ITEMS = [
     { href: "/dashboard", label: "Beranda", icon: Home },
-    { href: "/exams", label: "Pilihan Ujian", icon: BookOpen },
+    { href: "/exams", label: "Pilihan Tryout", icon: BookOpen },
+    // Added navigation item for exam sessions list page
+    { href: "/exam-sessions", label: "Sesi Ujian Saya", icon: ClipboardList },
     { href: "/results", label: "Hasil", icon: Trophy },
 ];
 
@@ -74,13 +77,13 @@ function UserAvatar({ name, email }: { name?: string; email?: string }) {
  * Navigation link component with active state
  */
 function NavLink({
-    href,
-    label,
-    icon: Icon,
-    isActive,
-    onClick,
-    className,
-}: {
+                     href,
+                     label,
+                     icon: Icon,
+                     isActive,
+                     onClick,
+                     className,
+                 }: {
     href: string;
     label: string;
     icon: typeof Home;
@@ -110,12 +113,12 @@ function NavLink({
  * Mobile navigation link
  */
 function MobileNavLink({
-    href,
-    label,
-    icon: Icon,
-    isActive,
-    onClick,
-}: {
+                           href,
+                           label,
+                           icon: Icon,
+                           isActive,
+                           onClick,
+                       }: {
     href: string;
     label: string;
     icon: typeof Home;
