@@ -2,6 +2,7 @@
 
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from "next/image";
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { useExamWithAttempts } from '@/features/exams/hooks';
@@ -241,15 +242,24 @@ export default function ExamDetailPage({ params }: PageProps) {
     // Loading state
     if (isLoading) {
         return (
-            <div className="container mx-auto py-8 max-w-4xl space-y-6">
-                <Skeleton className="h-10 w-64" />
-                <div className="grid gap-4 md:grid-cols-3">
-                    <Skeleton className="h-24" />
-                    <Skeleton className="h-24" />
-                    <Skeleton className="h-24" />
+            <div className="container mx-auto py-8 max-w-6xl space-y-8">
+                <Skeleton className="h-8 w-24" />
+                <div className="space-y-6">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-10 w-96" />
+                    <Skeleton className="h-6 w-32" />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <Skeleton className="h-48" />
+                            <Skeleton className="h-32" />
+                        </div>
+                        <div className="flex flex-col items-center space-y-6">
+                            <Skeleton className="w-full max-w-md aspect-[4/3] rounded-2xl" />
+                            <Skeleton className="h-12 w-full max-w-md rounded-full" />
+                        </div>
+                    </div>
                 </div>
-                <Skeleton className="h-48" />
-                <Skeleton className="h-32" />
+                <Skeleton className="h-64" />
             </div>
         );
     }
@@ -300,7 +310,7 @@ export default function ExamDetailPage({ params }: PageProps) {
     };
 
     return (
-        <div className="container mx-auto py-8 max-w-4xl space-y-6">
+        <div className="container mx-auto py-8 max-w-6xl space-y-8">
             {/* Back Button */}
             <Link href="/exams">
                 <Button variant="ghost" size="sm">
@@ -309,239 +319,250 @@ export default function ExamDetailPage({ params }: PageProps) {
                 </Button>
             </Link>
 
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4">
-                <div className="space-y-2">
-                    <h1 className="text-3xl font-bold">{exam.title}</h1>
-                    <div className="flex items-center gap-2">
-                        <Badge
-                            variant={availability === 'available' ? 'default' : 'secondary'}
-                        >
-                            <AvailIcon className="h-3 w-3 mr-1" />
-                            {availInfo.label}
-                        </Badge>
-                        {buttonState.attemptInfo && (
-                            <Badge variant="outline">{buttonState.attemptInfo}</Badge>
+            {/* ========== TOP HERO/DETAIL SECTION ========== */}
+            <div className="space-y-6">
+                {/* Breadcrumb */}
+                <p className="text-sm text-muted-foreground">
+                    CASN / Tryout / {exam.title}
+                </p>
+
+                {/* Title */}
+                <h1 className="text-3xl font-bold">{exam.title}</h1>
+
+                {/* Status Badges */}
+                <div className="flex items-center gap-2">
+                    <Badge
+                        variant={availability === 'available' ? 'default' : 'secondary'}
+                    >
+                        <AvailIcon className="h-3 w-3 mr-1" />
+                        {availInfo.label}
+                    </Badge>
+                    {buttonState.attemptInfo && (
+                        <Badge variant="outline">{buttonState.attemptInfo}</Badge>
+                    )}
+                </div>
+
+                {/* Description (if available) */}
+                {exam.description && (
+                    <p className="text-muted-foreground max-w-2xl">
+                        {exam.description}
+                    </p>
+                )}
+
+                {/* 2-Column Layout: Details (left) + Asset & CTA (right) */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Left Column: Detail Paket + Passing Grade */}
+                    <div className="space-y-6">
+                        {/* Detail Paket Card */}
+                        <Card>
+                            <CardHeader className="pb-4">
+                                <CardTitle className="text-lg">Detail Paket</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-primary/10">
+                                        <FileText className="h-5 w-5 text-primary" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Nama Paket</p>
+                                        <p className="font-semibold">{exam.title}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-secondary/10">
+                                        <FileText className="h-5 w-5 text-secondary" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Jumlah Soal</p>
+                                        <p className="font-semibold">{questionCount} Soal</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-orange-500/10">
+                                        <Clock className="h-5 w-5 text-orange-500" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Waktu Pengerjaan</p>
+                                        <p className="font-semibold">{formatDuration(exam.durationMinutes)}</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Passing Grade Card */}
+                        <Card>
+                            <CardHeader className="pb-4">
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Target className="h-5 w-5" />
+                                    Passing Grade
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-wrap gap-2">
+                                    <Badge variant="outline" className="px-4 py-2 text-sm">
+                                        TWK: 65
+                                    </Badge>
+                                    <Badge variant="outline" className="px-4 py-2 text-sm">
+                                        TIU: 80
+                                    </Badge>
+                                    <Badge variant="outline" className="px-4 py-2 text-sm">
+                                        TKP: 166
+                                    </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-3">
+                                    Nilai minimum: {exam.passingScore} Poin
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        {/* Schedule Info */}
+                        {(exam.startTime || exam.endTime) && (
+                            <Card>
+                                <CardHeader className="pb-4">
+                                    <CardTitle className="text-lg flex items-center gap-2">
+                                        <Calendar className="h-5 w-5" />
+                                        Jadwal Ujian
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    {exam.startTime && (
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <span className="text-muted-foreground">Mulai:</span>
+                                            <span>{formatDateTime(exam.startTime)}</span>
+                                        </div>
+                                    )}
+                                    {exam.endTime && (
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <span className="text-muted-foreground">Berakhir:</span>
+                                            <span>{formatDateTime(exam.endTime)}</span>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Retake Info */}
+                        {exam.allowRetake && (
+                            <Alert>
+                                <Info className="h-4 w-4" />
+                                <AlertTitle>Pengulangan Diizinkan</AlertTitle>
+                                <AlertDescription>
+                                    {exam.maxAttempts
+                                        ? `Anda dapat mengulang ujian ini hingga ${exam.maxAttempts} kali percobaan.`
+                                        : 'Anda dapat mengulang ujian ini tanpa batas percobaan.'}
+                                </AlertDescription>
+                            </Alert>
                         )}
                     </div>
-                </div>
-            </div>
 
-            {/* Stats Cards */}
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardContent className="p-4 flex items-center gap-3">
-                        <div className="p-2 rounded-lg">
-                            <Clock className="h-5 w-5 text-primary" />
+                    {/* Right Column: Asset Image + Action Button */}
+                    <div className="flex flex-col items-center space-y-6">
+                        {/* Asset Image */}
+                        <div className="relative w-full max-w-md aspect-[3/2] overflow-hidden">
+                            <Image
+                                src="/images/mockups/exam-detail.svg"
+                                alt="Mockup detail ujian"
+                                fill
+                                className="object-contain p-2"
+                                priority
+                            />
                         </div>
-                        <div>
-                            <p className="text-sm text-muted-foreground">Durasi</p>
-                            <p className="font-semibold">{formatDuration(exam.durationMinutes)}</p>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-4 flex items-center gap-3">
-                        <div className="p-2 rounded-lg">
-                            <FileText className="h-5 w-5 text-secondary" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-muted-foreground">Jumlah Soal</p>
-                            <p className="font-semibold">{questionCount} Soal</p>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-4 flex items-center gap-3">
-                        <div className="p-2 rounded-lg">
-                            <Target className="h-5 w-5 text-tertiary" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-muted-foreground">Nilai Kelulusan</p>
-                            <p className="font-semibold">{exam.passingScore} Poin</p>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
 
-            {/* Description */}
-            {exam.description && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">Deskripsi Ujian</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground whitespace-pre-wrap">
-                            {exam.description}
-                        </p>
-                    </CardContent>
-                </Card>
-            )}
 
-            {/* Schedule Info */}
-            {(exam.startTime || exam.endTime) && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                            <Calendar className="h-5 w-5" />
-                            Jadwal Ujian
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        {exam.startTime && (
-                            <div className="flex items-center gap-2 text-sm">
-                                <span className="text-muted-foreground">Mulai:</span>
-                                <span>{formatDateTime(exam.startTime)}</span>
-                            </div>
-                        )}
-                        {exam.endTime && (
-                            <div className="flex items-center gap-2 text-sm">
-                                <span className="text-muted-foreground">Berakhir:</span>
-                                <span>{formatDateTime(exam.endTime)}</span>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
-
-            {/* Retake Info */}
-            {exam.allowRetake && (
-                <Alert>
-                    <Info className="h-4 w-4" />
-                    <AlertTitle>Pengulangan Diizinkan</AlertTitle>
-                    <AlertDescription>
-                        {exam.maxAttempts
-                            ? `Anda dapat mengulang ujian ini hingga ${exam.maxAttempts} kali percobaan.`
-                            : 'Anda dapat mengulang ujian ini tanpa batas percobaan.'}
-                    </AlertDescription>
-                </Alert>
-            )}
-
-            {/* Rules & Requirements */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <Info className="h-5 w-5" />
-                        Peraturan Ujian
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                        <li className="flex items-start gap-2">
-                            <CheckCircle className="h-4 w-4 mt-0.5 text-green-500 shrink-0" />
-                            Pastikan koneksi internet Anda stabil selama ujian berlangsung.
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <Camera className="h-4 w-4 mt-0.5 text-blue-500 shrink-0" />
-                            Webcam akan aktif untuk proctoring selama ujian.
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <Clock className="h-4 w-4 mt-0.5 text-orange-500 shrink-0" />
-                            Timer akan berjalan segera setelah ujian dimulai.
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <AlertTriangle className="h-4 w-4 mt-0.5 text-yellow-500 shrink-0" />
-                            Ujian akan otomatis dikumpulkan jika waktu habis.
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <XCircle className="h-4 w-4 mt-0.5 text-red-500 shrink-0" />
-                            Jangan meninggalkan halaman ujian atau membuka tab lain.
-                        </li>
-                    </ul>
-                </CardContent>
-            </Card>
-
-            {/* Action Button */}
-            <div className="flex justify-center">
-                {/* View Result Action */}
-                {buttonState.action === 'view-result' && (
-                    <Button
-                        size="lg"
-                        onClick={() => handleViewResult(buttonState.latestAttemptId)}
-                        className="min-w-[200px]"
-                    >
-                        <Eye className="h-5 w-5 mr-2" />
-                        Lihat Hasil
-                    </Button>
-                )}
-
-                {/* Disabled Action (Max Attempts Reached) */}
-                {buttonState.action === 'disabled' && (
-                    <Button size="lg" disabled className="min-w-[200px]">
-                        <XCircle className="h-5 w-5 mr-2" />
-                        {buttonState.label}
-                    </Button>
-                )}
-
-                {/* Start / Retake Action */}
-                {(buttonState.action === 'start' || buttonState.action === 'retake') &&
-                    availInfo.canStart && (
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
+                        {/* Action Button - Moved to right column */}
+                        <div className="w-full max-w-md">
+                            {/* View Result Action */}
+                            {buttonState.action === 'view-result' && (
                                 <Button
                                     size="lg"
-                                    disabled={isStarting}
-                                    className="min-w-[200px]"
+                                    onClick={() => handleViewResult(buttonState.latestAttemptId)}
+                                    className="w-full rounded-full"
                                 >
-                                    {isStarting ? (
-                                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                                    ) : (
-                                        <ButtonIcon className="h-5 w-5 mr-2" />
-                                    )}
+                                    <Eye className="h-5 w-5 mr-2" />
+                                    Lihat Hasil
+                                </Button>
+                            )}
+
+                            {/* Disabled Action (Max Attempts Reached) */}
+                            {buttonState.action === 'disabled' && (
+                                <Button size="lg" disabled className="w-full rounded-full">
+                                    <XCircle className="h-5 w-5 mr-2" />
                                     {buttonState.label}
                                 </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                        {buttonState.action === 'retake'
-                                            ? 'Mulai Ujian Ulang?'
-                                            : 'Mulai Ujian?'}
-                                    </AlertDialogTitle>
-                                    <AlertDialogDescription asChild>
-                                        <div className="space-y-2">
-                                            <p>
-                                                Anda akan memulai ujian &quot;{exam.title}&quot;.
-                                                {buttonState.attemptInfo && (
-                                                    <span className="font-medium">
-                                                        {' '}
-                                                        ({buttonState.attemptInfo})
-                                                    </span>
-                                                )}
-                                            </p>
-                                            <p>
-                                                Pastikan Anda sudah siap karena timer akan berjalan
-                                                segera setelah ujian dimulai.
-                                            </p>
-                                        </div>
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Batal</AlertDialogCancel>
-                                    <AlertDialogAction
-                                        onClick={handleStartExam}
-                                        disabled={isStarting}
-                                    >
-                                        {isStarting ? (
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        ) : (
-                                            <Play className="h-4 w-4 mr-2" />
-                                        )}
-                                        Mulai Sekarang
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    )}
+                            )}
 
-                {/* Unavailable State */}
-                {(buttonState.action === 'start' || buttonState.action === 'retake') &&
-                    !availInfo.canStart && (
-                        <Button size="lg" disabled className="min-w-[200px]">
-                            <AvailIcon className="h-5 w-5 mr-2" />
-                            {availInfo.label}
-                        </Button>
-                    )}
+                            {/* Start / Retake Action */}
+                            {(buttonState.action === 'start' || buttonState.action === 'retake') &&
+                                availInfo.canStart && (
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button
+                                                size="lg"
+                                                disabled={isStarting}
+                                                className="w-full rounded-full"
+                                            >
+                                                {isStarting ? (
+                                                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                                ) : (
+                                                    <ButtonIcon className="h-5 w-5 mr-2" />
+                                                )}
+                                                {buttonState.label}
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>
+                                                    {buttonState.action === 'retake'
+                                                        ? 'Mulai Ujian Ulang?'
+                                                        : 'Mulai Ujian?'}
+                                                </AlertDialogTitle>
+                                                <AlertDialogDescription asChild>
+                                                    <div className="space-y-2">
+                                                        <p>
+                                                            Anda akan memulai ujian &quot;{exam.title}&quot;.
+                                                            {buttonState.attemptInfo && (
+                                                                <span className="font-medium">
+                                                                    {' '}
+                                                                    ({buttonState.attemptInfo})
+                                                                </span>
+                                                            )}
+                                                        </p>
+                                                        <p>
+                                                            Pastikan Anda sudah siap karena timer akan berjalan
+                                                            segera setelah ujian dimulai.
+                                                        </p>
+                                                    </div>
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Batal</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    onClick={handleStartExam}
+                                                    disabled={isStarting}
+                                                >
+                                                    {isStarting ? (
+                                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                    ) : (
+                                                        <Play className="h-4 w-4 mr-2" />
+                                                    )}
+                                                    Mulai Sekarang
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                )}
+
+                            {/* Unavailable State */}
+                            {(buttonState.action === 'start' || buttonState.action === 'retake') &&
+                                !availInfo.canStart && (
+                                    <Button size="lg" disabled className="w-full rounded-full">
+                                        <AvailIcon className="h-5 w-5 mr-2" />
+                                        {availInfo.label}
+                                    </Button>
+                                )}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* ========== HASIL UJIAN SECTION ========== */}
