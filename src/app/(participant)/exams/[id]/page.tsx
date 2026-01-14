@@ -343,11 +343,29 @@ export default function ExamDetailPage({ params }: PageProps) {
                 </div>
 
                 {/* Description (if available) */}
-                {exam.description && (
-                    <p className="text-muted-foreground max-w-2xl">
-                        {exam.description}
-                    </p>
-                )}
+                {/* Description (derived from backend policy to avoid mismatch) */}
+                {(() => {
+                    const attemptText = exam.allowRetake
+                        ? (exam.maxAttempts
+                            ? `Tryout CPNS dengan maksimal ${exam.maxAttempts} percobaan. Gunakan kesempatan dengan bijak!`
+                            : 'Tryout CPNS dengan percobaan tanpa batas. Gunakan kesempatan dengan bijak!')
+                        : 'Tryout CPNS tanpa pengulangan. Cocok untuk evaluasi kesiapan ujian.';
+
+                    // Optional: kalau kamu tetap mau tampilkan deskripsi dari backend,
+                    // tampilkan hanya jika tidak mengandung info "maksimal X percobaan"
+                    const hasAttemptMention =
+                        !!exam.description && /maksimal\s+\d+\s+(kali\s+)?percobaan/i.test(exam.description);
+
+                    const heroText = !exam.description
+                        ? attemptText
+                        : (hasAttemptMention ? attemptText : exam.description);
+
+                    return (
+                        <p className="text-muted-foreground max-w-2xl">
+                            {heroText}
+                        </p>
+                    );
+                })()}
 
                 {/* 2-Column Layout: Details (left) + Asset & CTA (right) */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -439,19 +457,6 @@ export default function ExamDetailPage({ params }: PageProps) {
                                     )}
                                 </CardContent>
                             </Card>
-                        )}
-
-                        {/* Retake Info */}
-                        {exam.allowRetake && (
-                            <Alert>
-                                <Info className="h-4 w-4" />
-                                <AlertTitle>Pengulangan Diizinkan</AlertTitle>
-                                <AlertDescription>
-                                    {exam.maxAttempts
-                                        ? `Anda dapat mengulang ujian ini hingga ${exam.maxAttempts} kali percobaan.`
-                                        : 'Anda dapat mengulang ujian ini tanpa batas percobaan.'}
-                                </AlertDescription>
-                            </Alert>
                         )}
                     </div>
 
