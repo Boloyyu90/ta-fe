@@ -23,7 +23,7 @@ interface ExamHeaderProps {
 function DefaultLogo() {
     return (
         <Image
-            src="./images/logo/logo-prestige.svg"
+            src="/images/logo/logo-prestige.svg"
             alt="Logo Prestige"
             width={40}
             height={40}

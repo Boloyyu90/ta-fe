@@ -101,10 +101,10 @@ export function PageHeaderTitle({ title, subtitle, className }: PageHeaderTitleP
                 )}
             />
 
-            {/* Layer 2: Tertiary circle (yellow #F0E144) - smaller, in front */}
+            {/* Layer 2: Tertiary circle (yellow) - smaller, in front */}
             <div
                 className={cn(
-                    "absolute rounded-full",
+                    "absolute rounded-full bg-tertiary",
                     // Positioning: more to the left than secondary
                     "left-[-80px] sm:left-[-90px] md:left-[-100px]",
                     "top-1/2 -translate-y-1/2",
@@ -117,7 +117,6 @@ export function PageHeaderTitle({ title, subtitle, className }: PageHeaderTitleP
                     // Flex to position flower icon
                     "flex items-center justify-center"
                 )}
-                style={{ backgroundColor: "#F0E144" }}
             >
                 {/* Flower icon positioned toward visible area */}
                 <FlowerIcon

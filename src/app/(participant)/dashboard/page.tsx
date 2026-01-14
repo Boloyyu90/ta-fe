@@ -148,7 +148,7 @@ export default function DashboardPage() {
                 {/* Available Exams Section */}
                 <section className="space-y-4">
                     <SectionHeader
-                        title="Pilihan Tryout Terbaru"
+                        title="Pilihan Tryout Anda"
                         actionLabel="Selengkapnya"
                         actionHref="/exams"
                     />
@@ -198,26 +198,6 @@ export default function DashboardPage() {
                         </div>
                     </section>
                 )}
-
-                {/* Proctoring Notice */}
-                <section>
-                    <Card className="bg-primary/5 border-primary/20">
-                        <CardContent className="flex items-center gap-4 py-6">
-                            <Camera className="h-10 w-10 text-primary flex-shrink-0" />
-                            <div>
-                                <h3 className="font-semibold">
-                                    Fitur Proctoring Aktif
-                                </h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Ujian menggunakan deteksi wajah YOLO untuk
-                                    memastikan integritas ujian. Pastikan kamera
-                                    Anda aktif dan wajah terlihat jelas saat
-                                    mengerjakan ujian.
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </section>
             </div>
         </div>
     );

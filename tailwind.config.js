@@ -36,6 +36,11 @@ module.exports = {
                     DEFAULT: "hsl(var(--secondary))",
                     foreground: "hsl(var(--secondary-foreground))",
                 },
+                // NEW: Tertiary color (Yellow #F0E144)
+                tertiary: {
+                    DEFAULT: "hsl(var(--tertiary))",
+                    foreground: "hsl(var(--tertiary-foreground))",
+                },
                 accent: {
                     DEFAULT: "hsl(var(--accent))",
                     foreground: "hsl(var(--accent-foreground))",

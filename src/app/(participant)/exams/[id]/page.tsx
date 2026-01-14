@@ -60,21 +60,18 @@ const availabilityConfig = {
         label: 'Tersedia',
         description: 'Ujian ini siap untuk dikerjakan',
         icon: CheckCircle,
-        color: 'text-green-600',
         canStart: true,
     },
     upcoming: {
         label: 'Segera',
         description: 'Ujian ini belum dimulai',
         icon: Clock,
-        color: 'text-blue-600',
         canStart: false,
     },
     ended: {
         label: 'Berakhir',
         description: 'Waktu pengerjaan ujian telah habis',
         icon: XCircle,
-        color: 'text-gray-500',
         canStart: false,
     },
     'no-questions': {
@@ -319,7 +316,6 @@ export default function ExamDetailPage({ params }: PageProps) {
                     <div className="flex items-center gap-2">
                         <Badge
                             variant={availability === 'available' ? 'default' : 'secondary'}
-                            className={availInfo.color}
                         >
                             <AvailIcon className="h-3 w-3 mr-1" />
                             {availInfo.label}
@@ -335,8 +331,8 @@ export default function ExamDetailPage({ params }: PageProps) {
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardContent className="p-4 flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                            <Clock className="h-5 w-5 text-blue-600" />
+                        <div className="p-2 rounded-lg">
+                            <Clock className="h-5 w-5 text-primary" />
                         </div>
                         <div>
                             <p className="text-sm text-muted-foreground">Durasi</p>
@@ -346,8 +342,8 @@ export default function ExamDetailPage({ params }: PageProps) {
                 </Card>
                 <Card>
                     <CardContent className="p-4 flex items-center gap-3">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                            <FileText className="h-5 w-5 text-green-600" />
+                        <div className="p-2 rounded-lg">
+                            <FileText className="h-5 w-5 text-secondary" />
                         </div>
                         <div>
                             <p className="text-sm text-muted-foreground">Jumlah Soal</p>
@@ -357,8 +353,8 @@ export default function ExamDetailPage({ params }: PageProps) {
                 </Card>
                 <Card>
                     <CardContent className="p-4 flex items-center gap-3">
-                        <div className="p-2 bg-purple-100 rounded-lg">
-                            <Target className="h-5 w-5 text-purple-600" />
+                        <div className="p-2 rounded-lg">
+                            <Target className="h-5 w-5 text-tertiary" />
                         </div>
                         <div>
                             <p className="text-sm text-muted-foreground">Nilai Kelulusan</p>
