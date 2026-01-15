@@ -465,7 +465,7 @@ export default function ExamDetailPage({ params }: PageProps) {
                         {/* Asset Image */}
                         <div className="relative w-full max-w-md aspect-[3/2] overflow-hidden">
                             <Image
-                                src="/images/mockups/exam-detail.svg"
+                                src="/images/mockups/exam-detail.webp"
                                 alt="Mockup detail ujian"
                                 fill
                                 className="object-contain p-2"
