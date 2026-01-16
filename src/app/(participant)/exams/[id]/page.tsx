@@ -10,6 +10,8 @@ import { useStartExam, useExamAttempts } from '@/features/exam-sessions/hooks';
 import { AttemptResultCard, EmptyAttemptsPlaceholder } from '@/features/exam-sessions/components';
 import type { ExamAttemptInfo } from '@/features/exams/types/exams.types';
 import { EXAM_SESSION_ERRORS, EXAM_ERRORS, getErrorMessage } from '@/shared/lib/errors';
+import { useCpnsCategoriesWithFallback } from '@/shared/hooks/useCpnsConfig';
+import { BackButton } from '@/shared/components/BackButton';
 import {
     isExamAvailable,
     getExamAvailabilityStatus,
@@ -22,7 +24,6 @@ import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Skeleton } from '@/shared/components/ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '@/shared/components/ui/alert';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -189,6 +190,9 @@ export default function ExamDetailPage({ params }: PageProps) {
         isLoading: attemptsLoading,
     } = useExamAttempts(examId);
 
+    // Fetch CPNS config with fallback to constants
+    const { categories: cpnsCategories } = useCpnsCategoriesWithFallback();
+
     // Extract data from response
     const exam = examData?.exam;
     const attemptsCount = examData?.attemptsCount ?? 0;
@@ -311,20 +315,11 @@ export default function ExamDetailPage({ params }: PageProps) {
 
     return (
         <div className="container mx-auto py-8 max-w-6xl space-y-8">
-            {/* Back Button */}
-            <Link href="/exams">
-                <Button variant="ghost" size="sm">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Kembali
-                </Button>
-            </Link>
+            <BackButton href="/exams" />
 
             {/* ========== TOP HERO/DETAIL SECTION ========== */}
             <div className="space-y-6">
-                {/* Breadcrumb */}
-                <p className="text-sm text-muted-foreground">
-                    CASN / Tryout / {exam.title}
-                </p>
+
 
                 {/* Title */}
                 <h1 className="text-3xl font-bold">{exam.title}</h1>
@@ -416,16 +411,16 @@ export default function ExamDetailPage({ params }: PageProps) {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="flex flex-wrap gap-2">
-                                    <Badge variant="outline" className="px-4 py-2 text-sm">
-                                        TWK: 65
-                                    </Badge>
-                                    <Badge variant="outline" className="px-4 py-2 text-sm">
-                                        TIU: 80
-                                    </Badge>
-                                    <Badge variant="outline" className="px-4 py-2 text-sm">
-                                        TKP: 166
-                                    </Badge>
+                                <div className="flex flex-col gap-2">
+                                    {cpnsCategories.map((cat) => (
+                                        <Badge
+                                            key={cat.type}
+                                            variant="secondary"
+                                            className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 px-4 py-2 w-fit"
+                                        >
+                                            {cat.label}: <span className="font-bold ml-1">{cat.passing}</span>
+                                        </Badge>
+                                    ))}
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-3">
                                     Nilai minimum: {exam.passingScore} Poin
@@ -500,7 +495,7 @@ export default function ExamDetailPage({ params }: PageProps) {
                             {(buttonState.action === 'start' || buttonState.action === 'retake') &&
                                 availInfo.canStart && (
                                     <AlertDialog>
-                                        <AlertDialogTrigger asChild>
+                        `                <AlertDialogTrigger asChild>
                                             <Button
                                                 size="lg"
                                                 disabled={isStarting}

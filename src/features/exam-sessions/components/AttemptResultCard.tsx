@@ -6,13 +6,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { Eye, Trophy, XCircle } from 'lucide-react';
 import type { ExamResult } from '../types/exam-sessions.types';
-
-// Passing grades per kategori CPNS (standard values)
-const PASSING_GRADES = {
-    TWK: 65,
-    TIU: 80,
-    TKP: 166,
-} as const;
+import { useCpnsCategoriesWithFallback } from '@/shared/hooks/useCpnsConfig';
 
 interface AttemptResultCardProps {
     title: string;
@@ -27,6 +21,9 @@ export function AttemptResultCard({
 }: AttemptResultCardProps) {
     const passingScore = result.exam.passingScore;
     const isPassed = result.totalScore !== null && result.totalScore >= passingScore;
+
+    // Get CPNS categories for fallback display
+    const { categories: cpnsCategories } = useCpnsCategoriesWithFallback();
 
     return (
         <Card className="overflow-hidden">
@@ -92,53 +89,34 @@ export function AttemptResultCard({
                             </thead>
                             <tbody>
                                 {result.scoresByType && result.scoresByType.length > 0 ? (
-                                    result.scoresByType.map((st) => {
-                                        const categoryPassing =
-                                            PASSING_GRADES[st.type as keyof typeof PASSING_GRADES] ?? 0;
-                                        const isTypePassed = st.score >= categoryPassing;
-                                        return (
-                                            <tr key={st.type} className="border-b last:border-0">
-                                                <td className="py-3 px-3">
-                                                    <Badge variant="secondary" className="font-medium">
-                                                        {st.type}
-                                                    </Badge>
-                                                </td>
-                                                <td className="py-3 px-3 text-center">{categoryPassing}</td>
-                                                <td
-                                                    className={`py-3 px-3 text-center font-bold ${
-                                                        isTypePassed ? 'text-green-600' : 'text-red-500'
-                                                    }`}
-                                                >
-                                                    {st.score}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
+                                    result.scoresByType.map((st) => (
+                                        <tr key={st.type} className="border-b last:border-0">
+                                            <td className="py-3 px-3">
+                                                <Badge variant="secondary" className="font-medium">
+                                                    {st.type}
+                                                </Badge>
+                                            </td>
+                                            <td className="py-3 px-3 text-center">{st.passingGrade}</td>
+                                            <td
+                                                className={`py-3 px-3 text-center font-bold ${
+                                                    st.isPassing ? 'text-green-600' : 'text-red-500'
+                                                }`}
+                                            >
+                                                {st.score}
+                                            </td>
+                                        </tr>
+                                    ))
                                 ) : (
-                                    // Fallback jika scoresByType kosong
-                                    <>
-                                        <tr className="border-b">
+                                    // Fallback jika scoresByType kosong (uses CPNS config from backend)
+                                    cpnsCategories.map((cat, index) => (
+                                        <tr key={cat.type} className={index < cpnsCategories.length - 1 ? 'border-b' : ''}>
                                             <td className="py-3 px-3">
-                                                <Badge variant="secondary">TWK</Badge>
+                                                <Badge variant="secondary">{cat.short}</Badge>
                                             </td>
-                                            <td className="py-3 px-3 text-center">65</td>
+                                            <td className="py-3 px-3 text-center">{cat.passing}</td>
                                             <td className="py-3 px-3 text-center text-muted-foreground">-</td>
                                         </tr>
-                                        <tr className="border-b">
-                                            <td className="py-3 px-3">
-                                                <Badge variant="secondary">TIU</Badge>
-                                            </td>
-                                            <td className="py-3 px-3 text-center">80</td>
-                                            <td className="py-3 px-3 text-center text-muted-foreground">-</td>
-                                        </tr>
-                                        <tr>
-                                            <td className="py-3 px-3">
-                                                <Badge variant="secondary">TKP</Badge>
-                                            </td>
-                                            <td className="py-3 px-3 text-center">166</td>
-                                            <td className="py-3 px-3 text-center text-muted-foreground">-</td>
-                                        </tr>
-                                    </>
+                                    ))
                                 )}
                             </tbody>
                         </table>

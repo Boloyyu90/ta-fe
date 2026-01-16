@@ -24,6 +24,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { useResultDetail } from '@/features/exam-sessions/hooks/useResultDetail';
+import { BackButton } from '@/shared/components/BackButton';
 import { useProctoringEvents } from '@/features/proctoring/hooks/useProctoringEvents';
 import { ProctoringEventsList } from '@/features/proctoring/components/ProctoringEventsList';
 import type { ExamStatus } from '@/shared/types/enum.types';
@@ -145,26 +146,20 @@ export default function ResultDetailPage() {
 
     return (
         <div className="container mx-auto py-8 space-y-6">
+            <BackButton href="/results" />
+
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold">{exam.title}</h1>
-                    <div className="flex items-center gap-3 mt-2">
-                        <Badge variant="outline" className="text-xs">
-                            Percobaan #{attemptNumber}
-                        </Badge>
-                        <Badge variant={statusInfo.variant}>
-                            <StatusIcon className="h-3 w-3 mr-1" />
-                            {statusInfo.label}
-                        </Badge>
-                    </div>
+            <div>
+                <h1 className="text-2xl font-bold">{exam.title}</h1>
+                <div className="flex items-center gap-3 mt-2">
+                    <Badge variant="outline" className="text-xs">
+                        Percobaan #{attemptNumber}
+                    </Badge>
+                    <Badge variant={statusInfo.variant}>
+                        <StatusIcon className="h-3 w-3 mr-1" />
+                        {statusInfo.label}
+                    </Badge>
                 </div>
-                <Button asChild variant="outline">
-                    <Link href="/results">
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Kembali
-                    </Link>
-                </Button>
             </div>
 
             {/* Main Content Grid */}
@@ -326,6 +321,7 @@ export default function ResultDetailPage() {
                                         <thead>
                                             <tr className="bg-muted/50">
                                                 <th className="px-4 py-3 text-left font-medium">Kategori</th>
+                                                <th className="px-4 py-3 text-center font-medium">Passing Grade</th>
                                                 <th className="px-4 py-3 text-center font-medium">Benar</th>
                                                 <th className="px-4 py-3 text-center font-medium">Total</th>
                                                 <th className="px-4 py-3 text-right font-medium">Skor</th>
@@ -335,13 +331,20 @@ export default function ResultDetailPage() {
                                             {scoresByType.map((st, index) => (
                                                 <tr key={st.type} className={index < scoresByType.length - 1 ? 'border-b' : ''}>
                                                     <td className="px-4 py-3 font-medium">{st.type}</td>
+                                                    <td className="px-4 py-3 text-center text-muted-foreground">
+                                                        {st.passingGrade}
+                                                    </td>
                                                     <td className="px-4 py-3 text-center text-green-600 dark:text-green-400">
                                                         {st.correctAnswers}
                                                     </td>
                                                     <td className="px-4 py-3 text-center text-muted-foreground">
                                                         {st.totalQuestions}
                                                     </td>
-                                                    <td className="px-4 py-3 text-right font-semibold">
+                                                    <td className={`px-4 py-3 text-right font-semibold ${
+                                                        st.isPassing
+                                                            ? 'text-green-600 dark:text-green-400'
+                                                            : 'text-red-600 dark:text-red-400'
+                                                    }`}>
                                                         {st.score} / {st.maxScore}
                                                     </td>
                                                 </tr>
@@ -350,6 +353,7 @@ export default function ResultDetailPage() {
                                         <tfoot>
                                             <tr className="bg-muted/30 font-semibold">
                                                 <td className="px-4 py-3">Total</td>
+                                                <td className="px-4 py-3 text-center text-muted-foreground">-</td>
                                                 <td className="px-4 py-3 text-center text-green-600 dark:text-green-400">
                                                     {scoresByType.reduce((sum, st) => sum + st.correctAnswers, 0)}
                                                 </td>

@@ -153,6 +153,9 @@ export interface UserExamSession {
 
 /**
  * Score breakdown by question type
+ *
+ * passingGrade and isPassing are provided by backend to avoid
+ * frontend calculation of passing status.
  */
 export interface ScoreByType {
     type: QuestionType;
@@ -160,6 +163,8 @@ export interface ScoreByType {
     maxScore: number;
     correctAnswers: number;
     totalQuestions: number;
+    passingGrade: number;  // Passing grade for this question type (from backend config)
+    isPassing: boolean;    // Whether score meets passing grade (calculated by backend)
 }
 
 /**

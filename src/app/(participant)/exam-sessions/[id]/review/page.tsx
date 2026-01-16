@@ -9,11 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { Skeleton } from '@/shared/components/ui/skeleton';
-import { CheckCircle, XCircle, ArrowLeft, Home } from 'lucide-react';
+import { CheckCircle, XCircle, Home } from 'lucide-react';
 import Link from 'next/link';
 import { useExamAnswers } from '@/features/exam-sessions/hooks/useExamAnswers';
 import { AnswerReviewCard } from '@/features/exam-sessions/components/AnswerReviewCard';
 import { PageHeaderTitle } from '@/shared/components/PageHeaderTitle';
+import { BackButton } from '@/shared/components/BackButton';
 
 export default function ExamReviewPage() {
     const params = useParams();
@@ -64,21 +65,13 @@ export default function ExamReviewPage() {
 
     return (
         <div className="container mx-auto py-8 space-y-6">
+            <BackButton href={`/results/${sessionId}`} label="Kembali ke Hasil" />
+
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <PageHeaderTitle
-                        title="Review Jawaban"
-                        subtitle={`${total} Soal telah dikerjakan`}
-                    />
-                </div>
-                <Button asChild variant="outline">
-                    <Link href={`/results/${sessionId}`}>
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Lihat Hasil
-                    </Link>
-                </Button>
-            </div>
+            <PageHeaderTitle
+                title="Review Jawaban"
+                subtitle={`${total} Soal telah dikerjakan`}
+            />
 
             {/* Summary Stats */}
             <Card>

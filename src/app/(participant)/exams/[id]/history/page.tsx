@@ -8,7 +8,8 @@ import { AttemptResultCard } from '@/features/exam-sessions/components';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Skeleton } from '@/shared/components/ui/skeleton';
-import { ArrowLeft, Search, Filter, FileX } from 'lucide-react';
+import { BackButton } from '@/shared/components/BackButton';
+import { Search, Filter, FileX } from 'lucide-react';
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -25,6 +26,7 @@ export default function ExamHistoryPage({ params }: PageProps) {
 
     return (
         <div className="container mx-auto py-8 max-w-4xl space-y-6">
+            <BackButton href={`/exams/${examId}`} />
 
             {/* Header Banner */}
             <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-lg p-6">

@@ -52,9 +52,8 @@ import {
     CheckCircle,
     XCircle,
     Calendar,
-    ArrowLeft,
 } from 'lucide-react';
-import Link from 'next/link';
+import { BackButton } from '@/shared/components/BackButton';
 
 // ============================================================================
 // EDIT NAME DIALOG
@@ -328,19 +327,8 @@ export default function ProfilePage() {
 
     return (
         <div className="min-h-screen bg-muted/30">
-            {/* Back Navigation */}
-            <div className="bg-background border-b border-border">
-                <div className="container mx-auto px-4 py-4">
-                    <Link href="/dashboard">
-                        <Button variant="ghost" size="sm">
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Kembali ke Dashboard
-                        </Button>
-                    </Link>
-                </div>
-            </div>
-
             <div className="container mx-auto py-8 space-y-6">
+                <BackButton href="/dashboard" />
                 {/* Header */}
                 <div>
                 <h1 className="text-3xl font-bold">Profil Saya</h1>

@@ -38,6 +38,8 @@ export interface ResultDetail {
         maxScore: number;
         correctAnswers: number;
         totalQuestions: number;
+        passingGrade: number;  // Passing grade for this question type (from backend)
+        isPassing: boolean;    // Whether score meets passing grade (calculated by backend)
     }>;
 }
 
