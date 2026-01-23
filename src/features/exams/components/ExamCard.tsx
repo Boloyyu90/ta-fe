@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import type { Exam, ExamPublic } from '../types/exams.types';
 import { isExamAvailable, getExamAvailabilityStatus, formatDuration } from '../types/exams.types';
+import { PriceBadge } from '@/features/transactions';
 
 // ============================================================================
 // PROPS
@@ -82,10 +83,13 @@ export function ExamCard({ exam, showActions = true }: ExamCardProps) {
                     <CardTitle className="text-lg line-clamp-2">
                         {exam.title}
                     </CardTitle>
-                    <Badge variant={availInfo.variant} className="shrink-0">
-                        <AvailIcon className={`h-3 w-3 mr-1 ${availInfo.color}`} />
-                        {availInfo.label}
-                    </Badge>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant={availInfo.variant}>
+                            <AvailIcon className={`h-3 w-3 mr-1 ${availInfo.color}`} />
+                            {availInfo.label}
+                        </Badge>
+                        <PriceBadge price={exam.price} />
+                    </div>
                 </div>
             </CardHeader>
 

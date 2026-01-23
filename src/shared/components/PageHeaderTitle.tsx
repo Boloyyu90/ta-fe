@@ -155,7 +155,7 @@ export function PageHeaderTitle({ title, subtitle, className }: PageHeaderTitleP
                 {subtitle && (
                     <p
                         className={cn(
-                            "text-white/80",
+                            "text-white/90",
                             "text-sm sm:text-base md:text-lg",
                             "font-normal"
                         )}

@@ -95,7 +95,7 @@ export default function ExamsPage() {
     return (
         <div className="container mx-auto py-8 space-y-6">
             {/* Header */}
-            <PageHeaderTitle title="Paket Saya" />
+            <PageHeaderTitle title="Pilihan Paket" />
 
             {/* Search */}
             <Card>

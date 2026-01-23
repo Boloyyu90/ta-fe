@@ -34,6 +34,7 @@ export interface Exam {
     endTime: string | null;
     allowRetake: boolean;           // Whether users can retake this exam
     maxAttempts: number | null;     // Maximum attempts (null = unlimited when retakes enabled)
+    price: number | null;           // Price for paid exams (null = free)
     createdBy: number;
     createdAt: string;
     updatedAt: string;
@@ -72,6 +73,7 @@ export interface ExamPublic {
     endTime: string | null;
     allowRetake: boolean;           // Whether users can retake this exam
     maxAttempts: number | null;     // Maximum attempts (null = unlimited when retakes enabled)
+    price: number | null;           // Price for paid exams (null = free)
     createdAt: string;
     _count: {
         examQuestions: number;

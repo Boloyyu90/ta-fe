@@ -10,6 +10,13 @@ import { useStartExam, useExamAttempts } from '@/features/exam-sessions/hooks';
 import { AttemptResultCard, EmptyAttemptsPlaceholder } from '@/features/exam-sessions/components';
 import type { ExamAttemptInfo } from '@/features/exams/types/exams.types';
 import { EXAM_SESSION_ERRORS, EXAM_ERRORS, getErrorMessage } from '@/shared/lib/errors';
+import {
+    useCheckExamAccess,
+    useCreateTransaction,
+    PriceBadge,
+    formatPrice,
+    type ExamAccessResponse,
+} from '@/features/transactions';
 import { useCpnsCategoriesWithFallback } from '@/shared/hooks/useCpnsConfig';
 import { BackButton } from '@/shared/components/BackButton';
 import {
@@ -50,6 +57,9 @@ import {
     Loader2,
     RotateCcw,
     Eye,
+    CreditCard,
+    ClipboardList,
+    Tag,
 } from 'lucide-react';
 
 interface PageProps {
@@ -90,19 +100,54 @@ const availabilityConfig = {
  *
  * Uses attemptsCount and latestAttempt from GET /exams/:id response
  * which are already filtered to THIS exam only (no pollution from other exams)
+ *
+ * MODIFIED: Added accessData parameter for payment consideration
  */
 function getExamButtonState(
     exam: Exam,
     attemptsCount: number,
-    latestAttempt?: ExamAttemptInfo | null
+    latestAttempt?: ExamAttemptInfo | null,
+    accessData?: ExamAccessResponse | null,
 ): {
     label: string;
-    action: 'start' | 'retake' | 'view-result' | 'disabled';
+    action: 'start' | 'retake' | 'view-result' | 'disabled' | 'payment-required' | 'payment-pending';
     disabled: boolean;
     icon: typeof Play;
     latestAttemptId?: number;
     attemptInfo?: string;
 } {
+    // NEW: Check payment status for paid exams
+    if (exam.price && exam.price > 0) {
+        // Still loading access check
+        if (!accessData) {
+            return {
+                label: 'Memeriksa...',
+                action: 'disabled',
+                disabled: true,
+                icon: Clock,
+            };
+        }
+
+        // No access yet - need to pay
+        if (!accessData.hasAccess) {
+            if (accessData.reason === 'pending') {
+                return {
+                    label: 'Lanjutkan Pembayaran',
+                    action: 'payment-pending',
+                    disabled: false,
+                    icon: Clock,
+                };
+            }
+            return {
+                label: `Beli ${formatPrice(exam.price)}`,
+                action: 'payment-required',
+                disabled: false,
+                icon: CreditCard,
+            };
+        }
+        // Has access - continue to normal flow
+    }
+
     // No attempts yet - first attempt
     if (attemptsCount === 0 || !latestAttempt) {
         return {
@@ -197,6 +242,30 @@ export default function ExamDetailPage({ params }: PageProps) {
     const exam = examData?.exam;
     const attemptsCount = examData?.attemptsCount ?? 0;
     const latestAttempt = examData?.latestAttempt;
+
+    // NEW: Check payment access for paid exams
+    const { data: accessData, isLoading: isCheckingAccess } = useCheckExamAccess(examId, {
+        enabled: !!exam?.price, // Only check if exam has price
+    });
+
+    // NEW: Payment mutation
+    const { createTransaction, isPending: isProcessingPayment } = useCreateTransaction({
+        onPaymentSuccess: () => {
+            toast.success('Pembayaran berhasil!', {
+                description: 'Anda sekarang dapat memulai ujian.',
+            });
+        },
+        onPaymentPending: () => {
+            toast.info('Pembayaran tertunda', {
+                description: 'Silakan selesaikan pembayaran Anda.',
+            });
+        },
+        onPaymentError: () => {
+            toast.error('Pembayaran gagal', {
+                description: 'Silakan coba lagi.',
+            });
+        },
+    });
 
     // Handle start/resume exam
     const handleStartExam = () => {
@@ -298,7 +367,8 @@ export default function ExamDetailPage({ params }: PageProps) {
     const questionCount = exam._count?.examQuestions ?? 0;
 
     // Get smart button state using attempts data from backend
-    const buttonState = getExamButtonState(exam, attemptsCount, latestAttempt);
+    // MODIFIED: Added accessData parameter for payment consideration
+    const buttonState = getExamButtonState(exam, attemptsCount, latestAttempt, accessData);
     const ButtonIcon = buttonState.icon;
 
     // Format dates
@@ -325,7 +395,7 @@ export default function ExamDetailPage({ params }: PageProps) {
                 <h1 className="text-3xl font-bold">{exam.title}</h1>
 
                 {/* Status Badges */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                     <Badge
                         variant={availability === 'available' ? 'default' : 'secondary'}
                     >
@@ -369,30 +439,35 @@ export default function ExamDetailPage({ params }: PageProps) {
                         {/* Detail Paket Card */}
                         <Card>
                             <CardHeader className="pb-4">
-                                <CardTitle className="text-lg">Detail Paket</CardTitle>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <ClipboardList className="h-5 w-5" />
+                                    Detail Paket
+                                </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 rounded-lg bg-primary/10">
-                                        <FileText className="h-5 w-5 text-primary" />
+                                    <div className="p-2 rounded-lg flex items-center justify-center">
+                                        <div className="h-2.5 w-2.5 rounded-full bg-primary" />
                                     </div>
                                     <div>
                                         <p className="text-sm text-muted-foreground">Nama Paket</p>
                                         <p className="font-semibold">{exam.title}</p>
                                     </div>
                                 </div>
+
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 rounded-lg bg-secondary/10">
-                                        <FileText className="h-5 w-5 text-secondary" />
+                                    <div className="p-2 rounded-lg flex items-center justify-center">
+                                        <div className="h-2.5 w-2.5 rounded-full bg-secondary" />
                                     </div>
                                     <div>
                                         <p className="text-sm text-muted-foreground">Jumlah Soal</p>
                                         <p className="font-semibold">{questionCount} Soal</p>
                                     </div>
                                 </div>
+
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 rounded-lg bg-orange-500/10">
-                                        <Clock className="h-5 w-5 text-orange-500" />
+                                    <div className="p-2 rounded-lg flex items-center justify-center">
+                                        <div className="h-2.5 w-2.5 rounded-full bg-orange-500" />
                                     </div>
                                     <div>
                                         <p className="text-sm text-muted-foreground">Waktu Pengerjaan</p>
@@ -400,6 +475,7 @@ export default function ExamDetailPage({ params }: PageProps) {
                                     </div>
                                 </div>
                             </CardContent>
+
                         </Card>
 
                         {/* Passing Grade Card */}
@@ -471,6 +547,41 @@ export default function ExamDetailPage({ params }: PageProps) {
 
                         {/* Action Button - Moved to right column */}
                         <div className="w-full max-w-md">
+                            {/* Payment Required Action */}
+                            {buttonState.action === 'payment-required' && (
+                                <Button
+                                    size="lg"
+                                    onClick={() => createTransaction(examId)}
+                                    disabled={isProcessingPayment}
+                                    className="w-full rounded-full"
+                                >
+                                    {isProcessingPayment ? (
+                                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                    ) : (
+                                        <CreditCard className="h-5 w-5 mr-2" />
+                                    )}
+                                    {isProcessingPayment ? 'Memproses...' : buttonState.label}
+                                </Button>
+                            )}
+
+                            {/* Payment Pending Action */}
+                            {buttonState.action === 'payment-pending' && (
+                                <Button
+                                    size="lg"
+                                    variant="outline"
+                                    onClick={() => createTransaction(examId)}
+                                    disabled={isProcessingPayment}
+                                    className="w-full rounded-full"
+                                >
+                                    {isProcessingPayment ? (
+                                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                    ) : (
+                                        <Clock className="h-5 w-5 mr-2" />
+                                    )}
+                                    Lanjutkan Pembayaran
+                                </Button>
+                            )}
+
                             {/* View Result Action */}
                             {buttonState.action === 'view-result' && (
                                 <Button
@@ -495,7 +606,7 @@ export default function ExamDetailPage({ params }: PageProps) {
                             {(buttonState.action === 'start' || buttonState.action === 'retake') &&
                                 availInfo.canStart && (
                                     <AlertDialog>
-                        `                <AlertDialogTrigger asChild>
+                                        <AlertDialogTrigger asChild>
                                             <Button
                                                 size="lg"
                                                 disabled={isStarting}

@@ -66,14 +66,14 @@ export default function DashboardPage() {
     const availableExams: ExamPublic[] = availableExamsData ?? [];
 
     return (
-        <div className="space-y-8">
+        <div className="container mx-auto py-8 space-y-6">
             {/* Welcome Section */}
-            <div className="px-4 pt-6 md:px-6">
+
                 <PageHeaderTitle
                     title={`Selamat Datang, ${user?.name || "Peserta"}! 👋`}
                     subtitle="Kelola sesi tryout, pantau hasil, dan lanjutkan progres persiapan CPNS-mu di sini."
                 />
-            </div>
+
 
             <div className="container mx-auto px-4 pb-8 space-y-8">
                 {/* Stats Grid */}
