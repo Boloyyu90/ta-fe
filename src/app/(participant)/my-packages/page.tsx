@@ -4,9 +4,7 @@
  * My Packages Page (Paket Saya)
  *
  * Menampilkan paket ujian yang sudah dibeli (status PAID).
- * User bisa langsung memulai ujian dari halaman ini.
- *
- * TODO: Connect to useMyPackages hook when transaction feature is ready
+ * User bisa langsung ke halaman detail untuk mulai ujian.
  */
 
 import { useState } from 'react';
@@ -28,12 +26,16 @@ import { Badge } from '@/shared/components/ui/badge';
 import { PageHeaderTitle } from '@/shared/components/PageHeaderTitle';
 
 // ============================================================================
-// TYPES (akan dipindah ke features/transactions setelah diimplementasi)
+// TYPES (sesuaikan dengan backend Transaction response)
 // ============================================================================
 
 interface PurchasedPackage {
     id: number;
+    orderId: string;
     examId: number;
+    amount: number;
+    status: 'PAID';
+    paymentType: string | null;
     paidAt: string;
     exam: {
         id: number;
@@ -52,20 +54,18 @@ interface PurchasedPackage {
 // ============================================================================
 
 export default function MyPackagesPage() {
-    const [searchQuery, setSearchQuery] = useState('');
-    const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
 
     // TODO: Replace with actual hook when ready
-    // import { useMyPackages } from '@/features/transactions/hooks';
-    // const { data, isLoading } = useMyPackages();
+    // import { useMyPaidPackages } from '@/features/transactions/hooks';
+    // const { data: packages, isLoading } = useMyPaidPackages();
 
     const isLoading = false;
     const packages: PurchasedPackage[] = []; // Will be populated from API
 
     // Filter packages by search query
     const filteredPackages = packages.filter((pkg) =>
-        pkg.exam.title.toLowerCase().includes(searchQuery.toLowerCase())
+        pkg.exam.title.toLowerCase().includes(search.toLowerCase())
     );
 
     return (
@@ -78,12 +78,9 @@ export default function MyPackagesPage() {
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Cari ujian..."
+                            placeholder="Cari paket..."
                             value={search}
-                            onChange={(e) => {
-                                setSearch(e.target.value);
-                                setPage(1);
-                            }}
+                            onChange={(e) => setSearch(e.target.value)}
                             className="pl-10"
                         />
                     </div>
@@ -119,15 +116,15 @@ export default function MyPackagesPage() {
                             <PackageX className="h-10 w-10 text-muted-foreground" />
                         </div>
                         <h3 className="font-semibold text-xl mb-2">
-                            {searchQuery ? 'Tidak Ditemukan' : 'Belum Ada Paket'}
+                            {search ? 'Tidak Ditemukan' : 'Belum Ada Paket'}
                         </h3>
                         <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                            {searchQuery
-                                ? `Tidak ada paket yang cocok dengan "${searchQuery}"`
+                            {search
+                                ? `Tidak ada paket yang cocok dengan "${search}"`
                                 : 'Anda belum membeli paket ujian. Jelajahi pilihan paket yang tersedia untuk memulai persiapan CPNS Anda.'
                             }
                         </p>
-                        {!searchQuery && (
+                        {!search && (
                             <Button asChild size="lg">
                                 <Link href="/exams">
                                     Lihat Pilihan Paket
@@ -155,10 +152,10 @@ export default function MyPackagesPage() {
                                 <CardDescription className="flex items-center gap-1 mt-1">
                                     <Calendar className="h-3 w-3" />
                                     Dibeli {new Date(pkg.paidAt).toLocaleDateString('id-ID', {
-                                        day: 'numeric',
-                                        month: 'short',
-                                        year: 'numeric',
-                                    })}
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric',
+                                })}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="flex-1 flex flex-col pt-0">
@@ -174,7 +171,7 @@ export default function MyPackagesPage() {
                                     </span>
                                 </div>
 
-                                {/* Action Button */}
+                                {/* Action Button - Links to /exams/[id] */}
                                 <div className="mt-auto">
                                     <Button asChild className="w-full">
                                         <Link href={`/exams/${pkg.exam.id}`}>
