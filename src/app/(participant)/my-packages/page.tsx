@@ -10,7 +10,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import {
-    PackageCheck,
     Play,
     Clock,
     FileText,
@@ -24,44 +23,13 @@ import { Input } from '@/shared/components/ui/input';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { Badge } from '@/shared/components/ui/badge';
 import { PageHeaderTitle } from '@/shared/components/PageHeaderTitle';
-
-// ============================================================================
-// TYPES (sesuaikan dengan backend Transaction response)
-// ============================================================================
-
-interface PurchasedPackage {
-    id: number;
-    orderId: string;
-    examId: number;
-    amount: number;
-    status: 'PAID';
-    paymentType: string | null;
-    paidAt: string;
-    exam: {
-        id: number;
-        title: string;
-        description: string | null;
-        durationMinutes: number;
-        passingScore: number;
-        _count?: {
-            examQuestions: number;
-        };
-    };
-}
-
-// ============================================================================
-// COMPONENT
-// ============================================================================
+import { useMyPaidPackages } from '@/features/transactions';
 
 export default function MyPackagesPage() {
     const [search, setSearch] = useState('');
 
-    // TODO: Replace with actual hook when ready
-    // import { useMyPaidPackages } from '@/features/transactions/hooks';
-    // const { data: packages, isLoading } = useMyPaidPackages();
-
-    const isLoading = false;
-    const packages: PurchasedPackage[] = []; // Will be populated from API
+    // Fetch ONLY PAID transactions using the hook
+    const { transactions: packages, isLoading } = useMyPaidPackages();
 
     // Filter packages by search query
     const filteredPackages = packages.filter((pkg) =>
@@ -112,8 +80,8 @@ export default function MyPackagesPage() {
             {!isLoading && filteredPackages.length === 0 && (
                 <Card className="text-center py-16">
                     <CardContent>
-                        <div className="mx-auto w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
-                            <PackageX className="h-10 w-10 text-muted-foreground" />
+                        <div className="mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-6">
+                            <PackageX className="h-12 w-12 text-primary" />
                         </div>
                         <h3 className="font-semibold text-xl mb-2">
                             {search ? 'Tidak Ditemukan' : 'Belum Ada Paket'}
@@ -151,30 +119,18 @@ export default function MyPackagesPage() {
                                 </div>
                                 <CardDescription className="flex items-center gap-1 mt-1">
                                     <Calendar className="h-3 w-3" />
-                                    Dibeli {new Date(pkg.paidAt).toLocaleDateString('id-ID', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric',
-                                })}
+                                    Dibeli {pkg.paidAt ? new Date(pkg.paidAt).toLocaleDateString('id-ID', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric',
+                                    }) : '-'}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="flex-1 flex flex-col pt-0">
-                                {/* Exam Info */}
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                                    <span className="flex items-center gap-1">
-                                        <Clock className="h-4 w-4" />
-                                        {pkg.exam.durationMinutes} menit
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                        <FileText className="h-4 w-4" />
-                                        {pkg.exam._count?.examQuestions || 0} soal
-                                    </span>
-                                </div>
-
                                 {/* Action Button - Links to /exams/[id] */}
                                 <div className="mt-auto">
                                     <Button asChild className="w-full">
-                                        <Link href={`/exams/${pkg.exam.id}`}>
+                                        <Link href={`/exams/${pkg.examId}`}>
                                             <Play className="mr-2 h-4 w-4" />
                                             Mulai Ujian
                                         </Link>

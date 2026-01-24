@@ -70,22 +70,22 @@ const eventTypeConfig: Record<ProctoringEventType, {
     FACE_DETECTED: {
         label: 'Wajah Terdeteksi',
         icon: CheckCircle,
-        color: 'text-green-500',
+        color: 'text-success',
     },
     NO_FACE_DETECTED: {
         label: 'Tidak Ada Wajah',
         icon: EyeOff,
-        color: 'text-red-500',
+        color: 'text-destructive',
     },
     MULTIPLE_FACES: {
         label: 'Banyak Wajah',
         icon: Users,
-        color: 'text-red-500',
+        color: 'text-destructive',
     },
     LOOKING_AWAY: {
         label: 'Melihat ke Samping',
         icon: Eye,
-        color: 'text-yellow-500',
+        color: 'text-warning',
     },
 };
 
@@ -180,31 +180,31 @@ export default function SessionProctoringPage({ params }: PageProps) {
                         <div className="text-2xl font-bold">{stats.total}</div>
                     </CardContent>
                 </Card>
-                <Card className="border-red-200">
+                <Card className="border-destructive/20">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-red-600">No Face</CardTitle>
-                        <EyeOff className="h-4 w-4 text-red-500" />
+                        <CardTitle className="text-sm font-medium text-destructive">No Face</CardTitle>
+                        <EyeOff className="h-4 w-4 text-destructive" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-red-600">{stats.noFace}</div>
+                        <div className="text-2xl font-bold text-destructive">{stats.noFace}</div>
                     </CardContent>
                 </Card>
-                <Card className="border-red-200">
+                <Card className="border-destructive/20">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-red-600">Multiple Faces</CardTitle>
-                        <Users className="h-4 w-4 text-red-500" />
+                        <CardTitle className="text-sm font-medium text-destructive">Multiple Faces</CardTitle>
+                        <Users className="h-4 w-4 text-destructive" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-red-600">{stats.multiple}</div>
+                        <div className="text-2xl font-bold text-destructive">{stats.multiple}</div>
                     </CardContent>
                 </Card>
-                <Card className="border-yellow-200">
+                <Card className="border-warning/20">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-yellow-600">Looking Away</CardTitle>
-                        <Eye className="h-4 w-4 text-yellow-500" />
+                        <CardTitle className="text-sm font-medium text-warning">Looking Away</CardTitle>
+                        <Eye className="h-4 w-4 text-warning" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-yellow-600">{stats.lookingAway}</div>
+                        <div className="text-2xl font-bold text-warning">{stats.lookingAway}</div>
                     </CardContent>
                 </Card>
             </div>

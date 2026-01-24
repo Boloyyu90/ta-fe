@@ -2,3 +2,4 @@
 export { ExamCard } from './ExamCard';
 export { ExamFilters } from './ExamFilters';
 export { ExamsPagination } from './ExamsPagination';
+export { StartExamDialog } from './StartExamDialog';

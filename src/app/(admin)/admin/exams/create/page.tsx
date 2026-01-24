@@ -428,7 +428,7 @@ export default function CreateExamPage() {
                                     Peserta hanya dapat mengikuti ujian ini satu kali.
                                 </p>
                                 {formData.maxAttempts && formData.maxAttempts > 0 && (
-                                    <p className="text-xs text-amber-600 flex items-center gap-1">
+                                    <p className="text-xs text-warning flex items-center gap-1">
                                         <AlertTriangle className="h-3 w-3" />
                                         Catatan: Nilai maksimal percobaan akan diabaikan karena pengulangan dinonaktifkan.
                                     </p>

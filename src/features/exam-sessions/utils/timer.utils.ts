@@ -79,8 +79,8 @@ export const timerUtils = {
      * Get time status color
      */
     getTimeColor(ms: number): string {
-        if (this.isExpired(ms)) return 'text-red-600';
-        if (this.isCriticalTime(ms)) return 'text-orange-600';
+        if (this.isExpired(ms)) return 'text-destructive';
+        if (this.isCriticalTime(ms)) return 'text-warning';
         return 'text-foreground';
     },
 };

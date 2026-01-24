@@ -918,7 +918,7 @@ export function ProctoringMonitor({
                     </CardTitle>
                     <div className="flex items-center gap-2">
                         {isAnalyzing && isOnline && (
-                            <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />
+                            <RefreshCw className="h-4 w-4 animate-spin text-primary" />
                         )}
                         {!isOnline && (
                             <Badge variant="destructive" className="mr-2">
@@ -1015,8 +1015,8 @@ export function ProctoringMonitor({
                         <div className="text-2xl font-bold">{violationCount}</div>
                         <div className="text-xs text-muted-foreground">Total Violations</div>
                     </div>
-                    <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-center">
-                        <div className="text-2xl font-bold text-red-600">{highViolationCount}</div>
+                    <div className="p-3 rounded-lg bg-destructive/10 dark:bg-destructive/20 text-center">
+                        <div className="text-2xl font-bold text-destructive">{highViolationCount}</div>
                         <div className="text-xs text-muted-foreground">High Severity</div>
                     </div>
                 </div>
@@ -1085,7 +1085,7 @@ export function ProctoringMonitor({
 
                 {/* Success State */}
                 {webcam.isStreaming && violationCount === 0 && (
-                    <div className="flex items-center gap-2 text-green-600 text-sm">
+                    <div className="flex items-center gap-2 text-success text-sm">
                         <CheckCircle className="h-4 w-4" />
                         <span>Tidak ada pelanggaran terdeteksi</span>
                     </div>

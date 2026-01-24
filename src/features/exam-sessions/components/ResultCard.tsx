@@ -90,7 +90,7 @@ export function ResultCard({ result, formatDate }: ResultCardProps) {
     const dateFormatter = formatDate ?? defaultFormatDate;
 
     return (
-        <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+        <Card className="overflow-hidden hover:shadow-medium transition-shadow">
             <div className="flex flex-col md:flex-row">
                 {/* Left Side - Score Display */}
                 <div className={`flex-shrink-0 p-6 flex flex-col items-center justify-center md:w-56 relative`}>
@@ -107,8 +107,8 @@ export function ResultCard({ result, formatDate }: ResultCardProps) {
                         <p className={`text-5xl font-black tracking-tight ${
                             status === 'FINISHED'
                                 ? isPassed
-                                    ? 'text-green-600 dark:text-green-400'
-                                    : 'text-red-600 dark:text-red-400'
+                                    ? 'text-success'
+                                    : 'text-destructive'
                                 : 'text-foreground'
                         }`}>
                             {totalScore ?? 0}
@@ -121,11 +121,8 @@ export function ResultCard({ result, formatDate }: ResultCardProps) {
                     {/* Pass/Fail Badge */}
                     {status === 'FINISHED' && totalScore !== null && (
                         <Badge
-                            className={`mt-4 px-4 py-1 text-sm font-bold ${
-                                isPassed
-                                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                                    : 'bg-red-600 hover:bg-red-700 text-white'
-                            }`}
+                            variant={isPassed ? 'success' : 'destructive'}
+                            className="mt-4 px-4 py-1 text-sm font-bold"
                         >
                             {isPassed ? (
                                 <>
@@ -180,8 +177,8 @@ export function ResultCard({ result, formatDate }: ResultCardProps) {
                                     <td className={`px-4 py-2.5 text-right font-bold ${
                                         status === 'FINISHED'
                                             ? isPassed
-                                                ? 'text-green-600 dark:text-green-400'
-                                                : 'text-red-600 dark:text-red-400'
+                                                ? 'text-success'
+                                                : 'text-destructive'
                                             : ''
                                     }`}>
                                         {totalScore ?? '-'}

@@ -51,11 +51,8 @@ export function AttemptResultCard({
                             </div>
                         </div>
                         <Badge
-                            className={`mt-3 ${
-                                isPassed
-                                    ? 'bg-green-600 hover:bg-green-700'
-                                    : 'bg-red-600 hover:bg-red-700'
-                            }`}
+                            variant={isPassed ? 'success' : 'destructive'}
+                            className="mt-3"
                         >
                             {isPassed ? (
                                 <>
@@ -99,7 +96,7 @@ export function AttemptResultCard({
                                             <td className="py-3 px-3 text-center">{st.passingGrade}</td>
                                             <td
                                                 className={`py-3 px-3 text-center font-bold ${
-                                                    st.isPassing ? 'text-green-600' : 'text-red-500'
+                                                    st.isPassing ? 'text-success' : 'text-destructive'
                                                 }`}
                                             >
                                                 {st.score}

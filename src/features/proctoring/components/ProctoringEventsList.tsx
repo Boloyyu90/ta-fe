@@ -46,17 +46,17 @@ const severityConfig: Record<Severity, {
     LOW: {
         label: 'Rendah',
         variant: 'outline',
-        color: 'text-green-600 bg-green-50',
+        color: 'text-success bg-success/10',
     },
     MEDIUM: {
         label: 'Sedang',
         variant: 'secondary',
-        color: 'text-yellow-600 bg-yellow-50',
+        color: 'text-warning bg-warning/10',
     },
     HIGH: {
         label: 'Tinggi',
         variant: 'destructive',
-        color: 'text-red-600 bg-red-50',
+        color: 'text-destructive bg-destructive/10',
     },
 };
 

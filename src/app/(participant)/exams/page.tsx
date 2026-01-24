@@ -1,6 +1,7 @@
 /**
  * Participant Exams List Page
  *
+ * Fixed: Improved card spacing for better visual hierarchy
  */
 
 'use client';
@@ -14,6 +15,7 @@ import {
 } from '@/features/exams/types/exams.types';
 import type { ExamPublic } from '@/features/exams/types/exams.types';
 import { PageHeaderTitle } from '@/shared/components/PageHeaderTitle';
+import { PriceBadge } from '@/features/transactions';
 
 // UI Components
 import { Button } from '@/shared/components/ui/button';
@@ -119,7 +121,7 @@ export default function ExamsPage() {
             {isLoading ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {[1, 2, 3, 4, 5, 6].map((i) => (
-                        <Skeleton key={i} className="h-64" />
+                        <Skeleton key={i} className="h-72" />
                     ))}
                 </div>
             ) : isError ? (
@@ -159,40 +161,45 @@ export default function ExamsPage() {
                             return (
                                 <Card
                                     key={exam.id}
-                                    className={`transition-all hover:shadow-md ${
+                                    className={`flex flex-col transition-all hover:shadow-md ${
                                         !canStart ? 'opacity-75' : ''
                                     }`}
                                 >
-                                    <CardHeader className="pb-3">
-                                        <div className="flex items-start justify-between">
-                                            <div className="space-y-1 flex-1">
-                                                <Badge variant={availConfig.variant} className="mb-2">
-                                                    <AvailIcon className="h-3 w-3 mr-1" />
-                                                    {availConfig.label}
-                                                </Badge>
-                                                <CardTitle className="text-lg line-clamp-2">
-                                                    {exam.title}
-                                                </CardTitle>
-                                            </div>
+                                    <CardHeader className="pb-4 space-y-3">
+                                        {/* Badges Row */}
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <Badge variant={availConfig.variant}>
+                                                <AvailIcon className="h-3 w-3 mr-1" />
+                                                {availConfig.label}
+                                            </Badge>
+                                            <PriceBadge price={exam.price} />
                                         </div>
+
+                                        {/* Title */}
+                                        <CardTitle className="text-lg line-clamp-2 leading-snug">
+                                            {exam.title}
+                                        </CardTitle>
+
+                                        {/* Description */}
                                         {exam.description && (
-                                            <CardDescription className="line-clamp-2">
+                                            <CardDescription className="line-clamp-2 text-sm">
                                                 {exam.description}
                                             </CardDescription>
                                         )}
                                     </CardHeader>
-                                    <CardContent className="space-y-4">
+
+                                    <CardContent className="flex-1 flex flex-col space-y-4">
                                         {/* Stats */}
-                                        <div className="grid grid-cols-3 gap-2 text-sm">
-                                            <div className="flex items-center gap-1 text-muted-foreground">
+                                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                            <div className="flex items-center gap-1.5">
                                                 <Clock className="h-4 w-4" />
                                                 <span>{formatDuration(exam.durationMinutes)}</span>
                                             </div>
-                                            <div className="flex items-center gap-1 text-muted-foreground">
+                                            <div className="flex items-center gap-1.5">
                                                 <FileText className="h-4 w-4" />
                                                 <span>{questionCount} soal</span>
                                             </div>
-                                            <div className="flex items-center gap-1 text-muted-foreground">
+                                            <div className="flex items-center gap-1.5">
                                                 <Target className="h-4 w-4" />
                                                 <span>{exam.passingScore}</span>
                                             </div>
@@ -200,24 +207,27 @@ export default function ExamsPage() {
 
                                         {/* Schedule */}
                                         {(exam.startTime || exam.endTime) && (
-                                            <div className="text-xs text-muted-foreground space-y-1 border-t pt-3">
+                                            <div className="text-xs text-muted-foreground space-y-1.5 border-t pt-4">
                                                 {exam.startTime && (
-                                                    <div className="flex items-center gap-1">
-                                                        <Calendar className="h-3 w-3" />
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Calendar className="h-3.5 w-3.5" />
                                                         <span>Mulai: {formatDateTime(exam.startTime)}</span>
                                                     </div>
                                                 )}
                                                 {exam.endTime && (
-                                                    <div className="flex items-center gap-1">
-                                                        <Calendar className="h-3 w-3" />
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Calendar className="h-3.5 w-3.5" />
                                                         <span>Berakhir: {formatDateTime(exam.endTime)}</span>
                                                     </div>
                                                 )}
                                             </div>
                                         )}
 
-                                        {/* Action */}
-                                        <Link href={`/exams/${exam.id}`}>
+                                        {/* Spacer to push button to bottom */}
+                                        <div className="flex-1" />
+
+                                        {/* Action Button */}
+                                        <Link href={`/exams/${exam.id}`} className="block mt-auto">
                                             <Button
                                                 className="w-full"
                                                 variant={canStart ? 'default' : 'outline'}

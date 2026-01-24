@@ -87,7 +87,7 @@ export default function AdminSessionDetailPage({ params }: PageProps) {
             <div className="container mx-auto py-8">
                 <Card>
                     <CardContent className="py-8 text-center">
-                        <AlertTriangle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
+                        <AlertTriangle className="h-12 w-12 mx-auto text-warning mb-4" />
                         <p className="text-muted-foreground mb-4">
                             Gagal memuat detail sesi. Sesi mungkin belum selesai atau tidak ditemukan.
                         </p>
@@ -140,12 +140,12 @@ export default function AdminSessionDetailPage({ params }: PageProps) {
                 </Card>
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-green-600">
+                        <CardTitle className="text-sm font-medium text-success">
                             Benar
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600 flex items-center gap-2">
+                        <div className="text-2xl font-bold text-success flex items-center gap-2">
                             <CheckCircle2 className="h-5 w-5" />
                             {correctCount}
                         </div>
@@ -153,12 +153,12 @@ export default function AdminSessionDetailPage({ params }: PageProps) {
                 </Card>
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-red-600">
+                        <CardTitle className="text-sm font-medium text-destructive">
                             Salah
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-red-600 flex items-center gap-2">
+                        <div className="text-2xl font-bold text-destructive flex items-center gap-2">
                             <XCircle className="h-5 w-5" />
                             {incorrectCount}
                         </div>
@@ -166,12 +166,12 @@ export default function AdminSessionDetailPage({ params }: PageProps) {
                 </Card>
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-blue-600">
+                        <CardTitle className="text-sm font-medium text-primary">
                             Total Skor
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">{totalScore}</div>
+                        <div className="text-2xl font-bold text-primary">{totalScore}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -185,7 +185,7 @@ export default function AdminSessionDetailPage({ params }: PageProps) {
                     <div className="flex items-center gap-4">
                         <div className="flex-1 bg-muted rounded-full h-4">
                             <div
-                                className="bg-green-500 h-4 rounded-full transition-all"
+                                className="bg-success h-4 rounded-full transition-all"
                                 style={{ width: `${total > 0 ? (correctCount / total) * 100 : 0}%` }}
                             />
                         </div>
@@ -194,7 +194,7 @@ export default function AdminSessionDetailPage({ params }: PageProps) {
                         </span>
                     </div>
                     {unansweredCount > 0 && (
-                        <p className="text-sm text-yellow-600 mt-2">
+                        <p className="text-sm text-warning mt-2">
                             ⚠️ {unansweredCount} soal tidak dijawab
                         </p>
                     )}
@@ -215,10 +215,10 @@ export default function AdminSessionDetailPage({ params }: PageProps) {
                             key={answer.examQuestionId}
                             className={`p-4 rounded-lg border ${
                                 answer.isCorrect === true
-                                    ? 'border-green-200 bg-green-50'
+                                    ? 'border-success/20 bg-success/10'
                                     : answer.isCorrect === false
-                                        ? 'border-red-200 bg-red-50'
-                                        : 'border-yellow-200 bg-yellow-50'
+                                        ? 'border-destructive/20 bg-destructive/10'
+                                        : 'border-warning/20 bg-warning/10'
                             }`}
                         >
                             {/* Question Header */}
@@ -233,7 +233,7 @@ export default function AdminSessionDetailPage({ params }: PageProps) {
                                     </span>
                                 </div>
                                 {answer.isCorrect === true ? (
-                                    <Badge variant="default" className="bg-green-500">
+                                    <Badge variant="success">
                                         <CheckCircle2 className="h-3 w-3 mr-1" />
                                         Benar
                                     </Badge>
@@ -263,19 +263,19 @@ export default function AdminSessionDetailPage({ params }: PageProps) {
                                             key={key}
                                             className={`p-2 rounded border text-sm ${
                                                 isCorrect
-                                                    ? 'border-green-500 bg-green-100'
+                                                    ? 'border-success bg-success/10'
                                                     : isSelected && !isCorrect
-                                                        ? 'border-red-500 bg-red-100'
-                                                        : 'border-gray-200 bg-white'
+                                                        ? 'border-destructive bg-destructive/10'
+                                                        : 'border-border bg-background'
                                             }`}
                                         >
                                             <span className="font-medium mr-2">{key}.</span>
                                             {value}
                                             {isCorrect && (
-                                                <CheckCircle2 className="inline h-4 w-4 ml-2 text-green-600" />
+                                                <CheckCircle2 className="inline h-4 w-4 ml-2 text-success" />
                                             )}
                                             {isSelected && !isCorrect && (
-                                                <XCircle className="inline h-4 w-4 ml-2 text-red-600" />
+                                                <XCircle className="inline h-4 w-4 ml-2 text-destructive" />
                                             )}
                                             {isSelected && (
                                                 <span className="ml-2 text-xs text-muted-foreground">

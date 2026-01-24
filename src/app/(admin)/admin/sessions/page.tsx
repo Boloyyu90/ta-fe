@@ -131,10 +131,10 @@ export default function AdminSessionsPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Berlangsung</CardTitle>
-                        <PlayCircle className="h-4 w-4 text-blue-500" />
+                        <PlayCircle className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">
+                        <div className="text-2xl font-bold text-primary">
                             {sessions.filter((s) => s.status === 'IN_PROGRESS').length}
                         </div>
                     </CardContent>
@@ -142,10 +142,10 @@ export default function AdminSessionsPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Selesai</CardTitle>
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <CheckCircle2 className="h-4 w-4 text-success" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600">
+                        <div className="text-2xl font-bold text-success">
                             {sessions.filter((s) => s.status === 'FINISHED').length}
                         </div>
                     </CardContent>
@@ -153,10 +153,10 @@ export default function AdminSessionsPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Timeout/Batal</CardTitle>
-                        <XCircle className="h-4 w-4 text-red-500" />
+                        <XCircle className="h-4 w-4 text-destructive" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-red-600">
+                        <div className="text-2xl font-bold text-destructive">
                             {sessions.filter((s) => s.status === 'TIMEOUT' || s.status === 'CANCELLED').length}
                         </div>
                     </CardContent>
@@ -272,10 +272,10 @@ export default function AdminSessionsPage() {
                                                     <TableCell>
                                                         <span className={`font-bold ${
                                                             session.totalScore !== null && session.totalScore >= 70
-                                                                ? 'text-green-600'
+                                                                ? 'text-success'
                                                                 : session.totalScore !== null && session.totalScore >= 50
-                                                                    ? 'text-yellow-600'
-                                                                    : 'text-red-600'
+                                                                    ? 'text-warning'
+                                                                    : 'text-destructive'
                                                         }`}>
                                                             {session.totalScore !== null ? session.totalScore : '-'}
                                                         </span>

@@ -271,7 +271,7 @@ export function ParticipantNavbar() {
                         </span>
                         <span className="font-bold text-xl hidden sm:inline">
                             <span className="text-primary">Prestige</span>{" "}
-                            <span className="text-muted-foreground">Academy</span>
+                            <span className="text-secondary">Academy</span>
                         </span>
                     </Link>
                 </div>

@@ -151,22 +151,22 @@ export default function AdminResultsPage() {
                         <div className="text-2xl font-bold">{avgScore}</div>
                     </CardContent>
                 </Card>
-                <Card className="border-green-200">
+                <Card className="border-success/20">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-green-600">Lulus</CardTitle>
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <CardTitle className="text-sm font-medium text-success">Lulus</CardTitle>
+                        <CheckCircle2 className="h-4 w-4 text-success" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{passedCount}</div>
+                        <div className="text-2xl font-bold text-success">{passedCount}</div>
                     </CardContent>
                 </Card>
-                <Card className="border-red-200">
+                <Card className="border-destructive/20">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-red-600">Tidak Lulus</CardTitle>
-                        <XCircle className="h-4 w-4 text-red-500" />
+                        <CardTitle className="text-sm font-medium text-destructive">Tidak Lulus</CardTitle>
+                        <XCircle className="h-4 w-4 text-destructive" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-red-600">{failedCount}</div>
+                        <div className="text-2xl font-bold text-destructive">{failedCount}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -264,15 +264,15 @@ export default function AdminResultsPage() {
                                                     <TableCell>
                                                         <div className="flex items-center gap-2">
                                                             <span className={`font-bold text-lg ${
-                                                                isPassed ? 'text-green-600' : 'text-red-600'
+                                                                isPassed ? 'text-success' : 'text-destructive'
                                                             }`}>
                                                                 {result.totalScore ?? '-'}
                                                             </span>
                                                             {result.totalScore !== null && (
                                                                 isPassed ? (
-                                                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                                                    <CheckCircle2 className="h-4 w-4 text-success" />
                                                                 ) : (
-                                                                    <XCircle className="h-4 w-4 text-red-500" />
+                                                                    <XCircle className="h-4 w-4 text-destructive" />
                                                                 )
                                                             )}
                                                         </div>

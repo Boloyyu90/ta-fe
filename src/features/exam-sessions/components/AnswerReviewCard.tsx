@@ -25,9 +25,9 @@ interface AnswerReviewCardProps {
 // ============================================================================
 
 const typeColors: Record<QuestionType, string> = {
-    TIU: 'bg-blue-100 text-blue-800 border-blue-200',
-    TWK: 'bg-green-100 text-green-800 border-green-200',
-    TKP: 'bg-purple-100 text-purple-800 border-purple-200',
+    TIU: 'bg-primary/10 text-primary border-primary/20',
+    TWK: 'bg-success/10 text-success border-success/20',
+    TKP: 'bg-secondary/10 text-secondary border-secondary/20',
 };
 
 const typeLabels: Record<QuestionType, string> = {
@@ -77,12 +77,12 @@ export function AnswerReviewCard({
                     {selectedOption !== null && (
                         <div className="flex items-center gap-2">
                             {isCorrect ? (
-                                <div className="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
+                                <div className="flex items-center gap-1 rounded-full bg-success/10 px-3 py-1 text-sm font-medium text-success">
                                     <CheckCircle2 className="h-4 w-4" />
                                     Benar
                                 </div>
                             ) : (
-                                <div className="flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
+                                <div className="flex items-center gap-1 rounded-full bg-destructive/10 px-3 py-1 text-sm font-medium text-destructive">
                                     <XCircle className="h-4 w-4" />
                                     Salah
                                 </div>
@@ -113,7 +113,7 @@ export function AnswerReviewCard({
                 {/* Score Display */}
                 <div className="mb-4 flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Skor:</span>
-                    <span className={`font-semibold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className={`font-semibold ${isCorrect ? 'text-success' : 'text-destructive'}`}>
                         {score}
                     </span>
                 </div>
@@ -126,17 +126,17 @@ export function AnswerReviewCard({
                         const isCorrectOption = showCorrectAnswer && correctAnswer === optionKey;
 
                         // Determine styling
-                        let optionClass = 'border-gray-200 bg-gray-50';
+                        let optionClass = 'border-border bg-muted';
 
                         if (isSelected && isCorrect) {
                             // Selected and correct
-                            optionClass = 'border-green-500 bg-green-50';
+                            optionClass = 'border-success bg-success/10';
                         } else if (isSelected && !isCorrect) {
                             // Selected but wrong
-                            optionClass = 'border-red-500 bg-red-50';
+                            optionClass = 'border-destructive bg-destructive/10';
                         } else if (isCorrectOption && showCorrectAnswer) {
                             // Not selected but is correct answer
-                            optionClass = 'border-green-300 bg-green-50/50';
+                            optionClass = 'border-success/50 bg-success/5';
                         }
 
                         return (
@@ -147,11 +147,11 @@ export function AnswerReviewCard({
                                 <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-sm font-medium ${
                                     isSelected
                                         ? isCorrect
-                                            ? 'border-green-500 bg-green-500 text-white'
-                                            : 'border-red-500 bg-red-500 text-white'
+                                            ? 'border-success bg-success text-success-foreground'
+                                            : 'border-destructive bg-destructive text-destructive-foreground'
                                         : isCorrectOption && showCorrectAnswer
-                                            ? 'border-green-500 text-green-500'
-                                            : 'border-gray-300 text-gray-500'
+                                            ? 'border-success text-success'
+                                            : 'border-border text-muted-foreground'
                                 }`}>
                                     {optionKey}
                                 </div>
@@ -164,7 +164,7 @@ export function AnswerReviewCard({
                                     </span>
                                 )}
                                 {!isSelected && isCorrectOption && showCorrectAnswer && (
-                                    <span className="ml-auto text-xs font-medium text-green-600">
+                                    <span className="ml-auto text-xs font-medium text-success">
                                         ✓ Jawaban Benar
                                     </span>
                                 )}

@@ -535,7 +535,7 @@ export default function AdminDashboardPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <CardTitle className="flex items-center gap-2">
-                                        <Trophy className="h-5 w-5 text-yellow-500" />
+                                        <Trophy className="h-5 w-5 text-secondary" />
                                         Hasil Ujian Terbaru
                                     </CardTitle>
                                     <CardDescription>
@@ -594,8 +594,8 @@ export default function AdminDashboardPage() {
                                                     <div
                                                         className={`h-8 w-8 rounded-full flex items-center justify-center ${
                                                             isPassed
-                                                                ? "bg-green-100 text-green-600"
-                                                                : "bg-red-100 text-red-600"
+                                                                ? "bg-success/10 text-success"
+                                                                : "bg-destructive/10 text-destructive"
                                                         }`}
                                                     >
                                                         {isPassed ? (

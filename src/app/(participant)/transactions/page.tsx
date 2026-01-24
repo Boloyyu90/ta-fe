@@ -69,37 +69,37 @@ const STATUS_CONFIG: Record<TransactionStatus, {
         label: 'Menunggu Pembayaran',
         icon: Clock,
         variant: 'secondary',
-        color: 'text-yellow-600',
+        color: 'text-warning',
     },
     PAID: {
         label: 'Lunas',
         icon: CheckCircle,
         variant: 'default',
-        color: 'text-green-600',
+        color: 'text-success',
     },
     EXPIRED: {
         label: 'Kedaluwarsa',
         icon: XCircle,
         variant: 'outline',
-        color: 'text-gray-500',
+        color: 'text-muted-foreground',
     },
     CANCELLED: {
         label: 'Dibatalkan',
         icon: XCircle,
         variant: 'outline',
-        color: 'text-gray-500',
+        color: 'text-muted-foreground',
     },
     FAILED: {
         label: 'Gagal',
         icon: AlertTriangle,
         variant: 'destructive',
-        color: 'text-red-600',
+        color: 'text-destructive',
     },
     REFUNDED: {
         label: 'Dikembalikan',
         icon: RotateCcw,
         variant: 'secondary',
-        color: 'text-blue-600',
+        color: 'text-info',
     },
 };
 

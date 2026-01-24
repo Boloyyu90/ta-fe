@@ -61,8 +61,8 @@ const severityConfig: Record<Severity, {
     animation: string;
 }> = {
     HIGH: {
-        bgColor: 'bg-red-500/10',
-        iconBgColor: 'bg-red-100 dark:bg-red-900/30',
+        bgColor: 'bg-destructive/10',
+        iconBgColor: 'bg-destructive/10 dark:bg-destructive/20',
         iconColor: 'text-severity-high',
         borderColor: 'border-severity-high/50',
         Icon: XCircle,
@@ -70,8 +70,8 @@ const severityConfig: Record<Severity, {
         animation: 'animate-shake',
     },
     MEDIUM: {
-        bgColor: 'bg-yellow-500/10',
-        iconBgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
+        bgColor: 'bg-warning/10',
+        iconBgColor: 'bg-warning/10 dark:bg-warning/20',
         iconColor: 'text-severity-medium',
         borderColor: 'border-severity-medium/50',
         Icon: AlertTriangle,
@@ -79,8 +79,8 @@ const severityConfig: Record<Severity, {
         animation: '',
     },
     LOW: {
-        bgColor: 'bg-gray-500/10',
-        iconBgColor: 'bg-gray-100 dark:bg-gray-900/30',
+        bgColor: 'bg-muted',
+        iconBgColor: 'bg-muted dark:bg-muted',
         iconColor: 'text-severity-low',
         borderColor: 'border-severity-low/50',
         Icon: Info,

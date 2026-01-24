@@ -169,19 +169,19 @@ export default function ResultDetailPage() {
                     <div className={`p-6 ${
                         status === 'FINISHED' && passed !== null
                             ? passed
-                                ? 'bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-950/30 dark:to-emerald-900/20'
-                                : 'bg-gradient-to-br from-red-50 to-rose-100 dark:from-red-950/30 dark:to-rose-900/20'
+                                ? 'bg-gradient-to-br from-success/10 to-success/20 dark:from-success/10 dark:to-success/5'
+                                : 'bg-gradient-to-br from-destructive/10 to-destructive/20 dark:from-destructive/10 dark:to-destructive/5'
                             : 'bg-gradient-to-br from-muted/30 to-muted/50'
                     }`}>
                         {/* Pass/Fail Indicator */}
                         {status === 'FINISHED' && passed !== null && (
                             <div className={`flex items-center gap-4 p-4 rounded-xl mb-6 ${
                                 passed
-                                    ? 'bg-green-500/10 border-2 border-green-500/20'
-                                    : 'bg-red-500/10 border-2 border-red-500/20'
+                                    ? 'bg-success/10 border-2 border-success/20'
+                                    : 'bg-destructive/10 border-2 border-destructive/20'
                             }`}>
                                 <div className={`h-14 w-14 rounded-full flex items-center justify-center ${
-                                    passed ? 'bg-green-500' : 'bg-red-500'
+                                    passed ? 'bg-success' : 'bg-destructive'
                                 }`}>
                                     {passed ? (
                                         <Trophy className="h-7 w-7 text-white" />
@@ -191,12 +191,12 @@ export default function ResultDetailPage() {
                                 </div>
                                 <div>
                                     <p className={`font-bold text-xl ${
-                                        passed ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'
+                                        passed ? 'text-success' : 'text-destructive'
                                     }`}>
                                         {passed ? 'LULUS' : 'TIDAK LULUS'}
                                     </p>
                                     <p className={`text-sm ${
-                                        passed ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'
+                                        passed ? 'text-success' : 'text-destructive'
                                     }`}>
                                         {passed
                                             ? 'Selamat! Anda berhasil mencapai passing score.'
@@ -215,8 +215,8 @@ export default function ResultDetailPage() {
                                 <span className={`text-6xl font-black tracking-tight ${
                                     status === 'FINISHED' && passed !== null
                                         ? passed
-                                            ? 'text-green-600 dark:text-green-400'
-                                            : 'text-red-600 dark:text-red-400'
+                                            ? 'text-success'
+                                            : 'text-destructive'
                                         : 'text-foreground'
                                 }`}>
                                     {totalScore ?? 0}
@@ -234,8 +234,8 @@ export default function ResultDetailPage() {
                                 value={scorePercentage}
                                 className={`h-4 rounded-full ${
                                     passed
-                                        ? '[&>div]:bg-gradient-to-r [&>div]:from-green-500 [&>div]:to-emerald-500'
-                                        : '[&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-rose-500'
+                                        ? '[&>div]:bg-success'
+                                        : '[&>div]:bg-destructive'
                                 }`}
                             />
                             <p className="text-center text-sm text-muted-foreground mt-2">
@@ -255,8 +255,8 @@ export default function ResultDetailPage() {
                                 </p>
                             </div>
                             <div className="text-center p-4 bg-background/50 rounded-xl">
-                                <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-2">
-                                    <BarChart3 className="h-5 w-5 text-blue-500" />
+                                <div className="h-10 w-10 rounded-full bg-info/10 flex items-center justify-center mx-auto mb-2">
+                                    <BarChart3 className="h-5 w-5 text-info" />
                                 </div>
                                 <p className="text-sm text-muted-foreground mb-1">Akurasi</p>
                                 <p className="text-xl font-bold">
@@ -296,8 +296,8 @@ export default function ResultDetailPage() {
 
                             {submittedAt && (
                                 <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg">
-                                    <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-                                        <Calendar className="h-5 w-5 text-green-500" />
+                                    <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
+                                        <Calendar className="h-5 w-5 text-success" />
                                     </div>
                                     <div>
                                         <p className="text-sm text-muted-foreground">Waktu Selesai</p>
@@ -334,7 +334,7 @@ export default function ResultDetailPage() {
                                                     <td className="px-4 py-3 text-center text-muted-foreground">
                                                         {st.passingGrade}
                                                     </td>
-                                                    <td className="px-4 py-3 text-center text-green-600 dark:text-green-400">
+                                                    <td className="px-4 py-3 text-center text-success">
                                                         {st.correctAnswers}
                                                     </td>
                                                     <td className="px-4 py-3 text-center text-muted-foreground">
@@ -342,8 +342,8 @@ export default function ResultDetailPage() {
                                                     </td>
                                                     <td className={`px-4 py-3 text-right font-semibold ${
                                                         st.isPassing
-                                                            ? 'text-green-600 dark:text-green-400'
-                                                            : 'text-red-600 dark:text-red-400'
+                                                            ? 'text-success'
+                                                            : 'text-destructive'
                                                     }`}>
                                                         {st.score} / {st.maxScore}
                                                     </td>
@@ -354,7 +354,7 @@ export default function ResultDetailPage() {
                                             <tr className="bg-muted/30 font-semibold">
                                                 <td className="px-4 py-3">Total</td>
                                                 <td className="px-4 py-3 text-center text-muted-foreground">-</td>
-                                                <td className="px-4 py-3 text-center text-green-600 dark:text-green-400">
+                                                <td className="px-4 py-3 text-center text-success">
                                                     {scoresByType.reduce((sum, st) => sum + st.correctAnswers, 0)}
                                                 </td>
                                                 <td className="px-4 py-3 text-center text-muted-foreground">

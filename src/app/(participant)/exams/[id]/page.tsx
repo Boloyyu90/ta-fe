@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from "next/image";
 import Link from 'next/link';
@@ -19,6 +19,7 @@ import {
 } from '@/features/transactions';
 import { useCpnsCategoriesWithFallback } from '@/shared/hooks/useCpnsConfig';
 import { BackButton } from '@/shared/components/BackButton';
+import { StartExamDialog } from '@/features/exams/components';
 import {
     isExamAvailable,
     getExamAvailabilityStatus,
@@ -90,7 +91,7 @@ const availabilityConfig = {
         label: 'Belum Ada Soal',
         description: 'Ujian ini belum memiliki soal',
         icon: AlertTriangle,
-        color: 'text-yellow-600',
+        color: 'text-warning',
         canStart: false,
     },
 };
@@ -217,6 +218,7 @@ export default function ExamDetailPage({ params }: PageProps) {
     const resolvedParams = use(params);
     const router = useRouter();
     const examId = parseInt(resolvedParams.id, 10);
+    const [showStartDialog, setShowStartDialog] = useState(false);
 
     // Fetch exam details WITH attempts info
     // Backend returns: { exam, attemptsCount, firstAttempt, latestAttempt }
@@ -343,7 +345,7 @@ export default function ExamDetailPage({ params }: PageProps) {
             <div className="container mx-auto py-8">
                 <Card>
                     <CardContent className="py-8 text-center">
-                        <AlertTriangle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
+                        <AlertTriangle className="h-12 w-12 mx-auto text-warning mb-4" />
                         <h2 className="text-xl font-semibold mb-2">Ujian Tidak Ditemukan</h2>
                         <p className="text-muted-foreground mb-4">
                             Ujian yang Anda cari tidak tersedia atau sudah dihapus.
@@ -602,65 +604,33 @@ export default function ExamDetailPage({ params }: PageProps) {
                                 </Button>
                             )}
 
-                            {/* Start / Retake Action */}
                             {(buttonState.action === 'start' || buttonState.action === 'retake') &&
                                 availInfo.canStart && (
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button
-                                                size="lg"
-                                                disabled={isStarting}
-                                                className="w-full rounded-full"
-                                            >
-                                                {isStarting ? (
-                                                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                                                ) : (
-                                                    <ButtonIcon className="h-5 w-5 mr-2" />
-                                                )}
-                                                {buttonState.label}
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>
-                                                    {buttonState.action === 'retake'
-                                                        ? 'Mulai Ujian Ulang?'
-                                                        : 'Mulai Ujian?'}
-                                                </AlertDialogTitle>
-                                                <AlertDialogDescription asChild>
-                                                    <div className="space-y-2">
-                                                        <p>
-                                                            Anda akan memulai ujian &quot;{exam.title}&quot;.
-                                                            {buttonState.attemptInfo && (
-                                                                <span className="font-medium">
-                                                                    {' '}
-                                                                    ({buttonState.attemptInfo})
-                                                                </span>
-                                                            )}
-                                                        </p>
-                                                        <p>
-                                                            Pastikan Anda sudah siap karena timer akan berjalan
-                                                            segera setelah ujian dimulai.
-                                                        </p>
-                                                    </div>
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Batal</AlertDialogCancel>
-                                                <AlertDialogAction
-                                                    onClick={handleStartExam}
-                                                    disabled={isStarting}
-                                                >
-                                                    {isStarting ? (
-                                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                    ) : (
-                                                        <Play className="h-4 w-4 mr-2" />
-                                                    )}
-                                                    Mulai Sekarang
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
+                                    <>
+                                        <Button
+                                            size="lg"
+                                            disabled={isStarting}
+                                            className="w-full rounded-full"
+                                            onClick={() => setShowStartDialog(true)}
+                                        >
+                                            {isStarting ? (
+                                                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                            ) : (
+                                                <ButtonIcon className="h-5 w-5 mr-2" />
+                                            )}
+                                            {buttonState.label}
+                                        </Button>
+
+                                        <StartExamDialog
+                                            open={showStartDialog}
+                                            onOpenChange={setShowStartDialog}
+                                            examTitle={exam.title}
+                                            attemptInfo={buttonState.attemptInfo}
+                                            isRetake={buttonState.action === 'retake'}
+                                            isLoading={isStarting}
+                                            onConfirm={handleStartExam}
+                                        />
+                                    </>
                                 )}
 
                             {/* Unavailable State */}
@@ -720,11 +690,6 @@ export default function ExamDetailPage({ params }: PageProps) {
                     </div>
                 )}
 
-                {/* Info Footer */}
-                <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
-                    <Info className="h-4 w-4" />
-                    Untuk Peringkat dan Grafik menggunakan nilai percobaan pertama
-                </p>
             </section>
         </div>
     );

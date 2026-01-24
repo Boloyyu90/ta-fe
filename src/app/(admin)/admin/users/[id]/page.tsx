@@ -167,12 +167,12 @@ export default function UserDetailPage({ params }: PageProps) {
                             <div className="space-y-1">
                                 <p className="text-sm text-muted-foreground">Status Verifikasi</p>
                                 {user.isEmailVerified ? (
-                                    <div className="flex items-center gap-2 text-green-600">
+                                    <div className="flex items-center gap-2 text-success">
                                         <CheckCircle className="h-5 w-5" />
                                         <span className="font-medium">Email Terverifikasi</span>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center gap-2 text-yellow-600">
+                                    <div className="flex items-center gap-2 text-warning">
                                         <XCircle className="h-5 w-5" />
                                         <span className="font-medium">Belum Diverifikasi</span>
                                     </div>

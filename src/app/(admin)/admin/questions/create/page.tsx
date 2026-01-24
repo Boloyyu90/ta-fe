@@ -295,7 +295,7 @@ export default function CreateQuestionPage() {
                                         className={`flex-1 ${errors[`option_${key}`] ? 'border-destructive' : ''}`}
                                     />
                                     {formData.correctAnswer === key && (
-                                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                        <CheckCircle2 className="h-5 w-5 text-success" />
                                     )}
                                 </div>
                                 {errors[`option_${key}`] && (
@@ -312,7 +312,7 @@ export default function CreateQuestionPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
-                            <CheckCircle2 className="h-5 w-5 text-green-500" />
+                            <CheckCircle2 className="h-5 w-5 text-success" />
                             Jawaban Benar
                         </CardTitle>
                     </CardHeader>

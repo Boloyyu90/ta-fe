@@ -2,7 +2,7 @@
 export { transactionsApi } from './api/transactions.api';
 
 // Hooks
-export { useCheckExamAccess, useCreateTransaction } from './hooks';
+export { useCheckExamAccess, useCreateTransaction, useTransactions, useMyPaidPackages } from './hooks';
 
 // Components
 export { TransactionStatusBadge, PriceBadge } from './components';

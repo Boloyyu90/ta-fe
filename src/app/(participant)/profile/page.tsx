@@ -356,12 +356,12 @@ export default function ProfilePage() {
                                     {user.role === 'ADMIN' ? 'Admin' : 'Peserta'}
                                 </Badge>
                                 {user.isEmailVerified ? (
-                                    <Badge variant="outline" className="text-green-600">
+                                    <Badge variant="outline" className="text-success">
                                         <CheckCircle className="h-3 w-3 mr-1" />
                                         Email Terverifikasi
                                     </Badge>
                                 ) : (
-                                    <Badge variant="outline" className="text-amber-600">
+                                    <Badge variant="outline" className="text-warning">
                                         <XCircle className="h-3 w-3 mr-1" />
                                         Email Belum Terverifikasi
                                     </Badge>

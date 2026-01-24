@@ -41,25 +41,25 @@ const availabilityConfig = {
         label: 'Tersedia',
         variant: 'default' as const,
         icon: CheckCircle,
-        color: 'text-green-600',
+        color: 'text-success',
     },
     upcoming: {
         label: 'Segera',
         variant: 'secondary' as const,
         icon: Clock,
-        color: 'text-blue-600',
+        color: 'text-info',
     },
     ended: {
         label: 'Berakhir',
         variant: 'outline' as const,
         icon: XCircle,
-        color: 'text-gray-500',
+        color: 'text-muted-foreground',
     },
     'no-questions': {
         label: 'Belum Ada Soal',
         variant: 'outline' as const,
         icon: AlertTriangle,
-        color: 'text-yellow-600',
+        color: 'text-warning',
     },
 };
 
@@ -77,7 +77,7 @@ export function ExamCard({ exam, showActions = true }: ExamCardProps) {
     const questionCount = exam._count?.examQuestions ?? 0;
 
     return (
-        <Card className="h-full hover:shadow-md transition-shadow">
+        <Card className="h-full hover:shadow-medium transition-shadow">
             <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-4">
                     <CardTitle className="text-lg line-clamp-2">

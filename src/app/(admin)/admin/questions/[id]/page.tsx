@@ -175,14 +175,14 @@ export default function QuestionDetailPage({ params }: PageProps) {
                                     key={key}
                                     className={`flex items-center gap-3 p-3 rounded-lg border ${
                                         key === question.correctAnswer
-                                            ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'
+                                            ? 'bg-success/10 border-success/20 dark:bg-success/10 dark:border-success/30'
                                             : 'bg-background'
                                     }`}
                                 >
                                     <span className="font-medium w-8">{key}.</span>
                                     <span className="flex-1">{value}</span>
                                     {key === question.correctAnswer && (
-                                        <CheckCircle className="h-5 w-5 text-green-600" />
+                                        <CheckCircle className="h-5 w-5 text-success" />
                                     )}
                                 </div>
                             ))}

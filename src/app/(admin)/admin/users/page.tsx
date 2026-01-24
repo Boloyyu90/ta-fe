@@ -541,12 +541,12 @@ export default function AdminUsersPage() {
                                                 </TableCell>
                                                 <TableCell>
                                                     {user.isEmailVerified ? (
-                                                        <div className="flex items-center gap-1 text-green-600">
+                                                        <div className="flex items-center gap-1 text-success">
                                                             <CheckCircle className="h-4 w-4" />
                                                             <span className="text-sm">Terverifikasi</span>
                                                         </div>
                                                     ) : (
-                                                        <div className="flex items-center gap-1 text-yellow-600">
+                                                        <div className="flex items-center gap-1 text-warning">
                                                             <XCircle className="h-4 w-4" />
                                                             <span className="text-sm">Belum verifikasi</span>
                                                         </div>

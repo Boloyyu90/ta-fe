@@ -80,32 +80,32 @@ export default function ExamReviewPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <div className="text-center p-4 bg-success/10 rounded-lg">
                             <div className="flex items-center justify-center gap-2 mb-2">
-                                <CheckCircle className="h-5 w-5 text-green-600" />
-                                <span className="text-2xl font-bold text-green-600">
+                                <CheckCircle className="h-5 w-5 text-success" />
+                                <span className="text-2xl font-bold text-success">
                                     {correctCount}
                                 </span>
                             </div>
                             <p className="text-sm text-muted-foreground">Benar</p>
                         </div>
-                        <div className="text-center p-4 bg-red-50 rounded-lg">
+                        <div className="text-center p-4 bg-destructive/10 rounded-lg">
                             <div className="flex items-center justify-center gap-2 mb-2">
-                                <XCircle className="h-5 w-5 text-red-600" />
-                                <span className="text-2xl font-bold text-red-600">
+                                <XCircle className="h-5 w-5 text-destructive" />
+                                <span className="text-2xl font-bold text-destructive">
                                     {incorrectCount}
                                 </span>
                             </div>
                             <p className="text-sm text-muted-foreground">Salah</p>
                         </div>
-                        <div className="text-center p-4 bg-gray-50 rounded-lg">
-                            <span className="text-2xl font-bold text-gray-600">
+                        <div className="text-center p-4 bg-muted rounded-lg">
+                            <span className="text-2xl font-bold text-muted-foreground">
                                 {unansweredCount}
                             </span>
                             <p className="text-sm text-muted-foreground">Tidak Dijawab</p>
                         </div>
-                        <div className="text-center p-4 bg-blue-50 rounded-lg">
-                            <span className="text-2xl font-bold text-blue-600">
+                        <div className="text-center p-4 bg-info/10 rounded-lg">
+                            <span className="text-2xl font-bold text-info">
                                 {totalScore}
                             </span>
                             <p className="text-sm text-muted-foreground">Total Skor</p>

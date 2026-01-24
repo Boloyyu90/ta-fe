@@ -262,7 +262,7 @@ export default function EditExamPage({ params }: PageProps) {
             <div className="container mx-auto py-8">
                 <Card>
                     <CardContent className="py-8 text-center">
-                        <AlertTriangle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
+                        <AlertTriangle className="h-12 w-12 mx-auto text-warning mb-4" />
                         <p className="text-muted-foreground mb-4">
                             Ujian tidak ditemukan.
                         </p>
@@ -491,7 +491,7 @@ export default function EditExamPage({ params }: PageProps) {
                                     Peserta hanya dapat mengikuti ujian ini satu kali.
                                 </p>
                                 {formData.maxAttempts && formData.maxAttempts > 0 && (
-                                    <p className="text-xs text-amber-600 flex items-center gap-1">
+                                    <p className="text-xs text-warning flex items-center gap-1">
                                         <AlertTriangle className="h-3 w-3" />
                                         Catatan: Nilai maksimal percobaan akan diabaikan karena pengulangan dinonaktifkan.
                                     </p>

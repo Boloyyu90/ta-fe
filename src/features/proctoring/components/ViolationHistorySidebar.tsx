@@ -61,19 +61,19 @@ const severityConfig: Record<Severity, {
     Icon: typeof AlertTriangle;
 }> = {
     HIGH: {
-        bgColor: 'bg-red-50 dark:bg-red-900/20',
+        bgColor: 'bg-destructive/10 dark:bg-destructive/20',
         borderColor: 'border-l-severity-high',
         textColor: 'text-severity-high',
         Icon: AlertTriangle,
     },
     MEDIUM: {
-        bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+        bgColor: 'bg-warning/10 dark:bg-warning/20',
         borderColor: 'border-l-severity-medium',
         textColor: 'text-severity-medium',
         Icon: AlertCircle,
     },
     LOW: {
-        bgColor: 'bg-gray-50 dark:bg-gray-900/20',
+        bgColor: 'bg-muted dark:bg-muted',
         borderColor: 'border-l-severity-low',
         textColor: 'text-severity-low',
         Icon: Info,
@@ -186,8 +186,8 @@ export function ViolationHistorySidebar({
 
                 {/* High Severity Warning */}
                 {highViolationCount >= 2 && (
-                    <div className="mt-2 p-2 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                        <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                    <div className="mt-2 p-2 rounded-lg bg-destructive/10 dark:bg-destructive/20 border border-destructive/20 dark:border-destructive/30">
+                        <p className="text-xs text-destructive flex items-center gap-1">
                             <AlertTriangle className="h-3 w-3" />
                             <span>
                                 <strong>{highViolationCount}</strong> pelanggaran serius.
@@ -262,17 +262,17 @@ export function ViolationHistorySidebar({
                     </ScrollArea>
                 ) : (
                     <div className="text-center py-8">
-                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/20 mb-3">
-                            <CheckCircle className="h-6 w-6 text-green-500" />
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-success/10 dark:bg-success/20 mb-3">
+                            <CheckCircle className="h-6 w-6 text-success" />
                         </div>
-                        <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                        <p className="text-sm font-medium text-success">
                             Tidak ada pelanggaran
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
                             Sistem monitoring aktif
                         </p>
                         <div className="flex items-center justify-center gap-1.5 mt-3 text-xs text-muted-foreground">
-                            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+                            <div className="h-2 w-2 bg-success rounded-full animate-pulse" />
                             <span>AI Monitoring</span>
                         </div>
                     </div>
@@ -288,12 +288,12 @@ export function ViolationHistorySidebar({
                         <div className={cn(
                             "text-center p-2 rounded-lg",
                             highViolationCount > 0
-                                ? "bg-red-50 dark:bg-red-900/20"
+                                ? "bg-destructive/10 dark:bg-destructive/20"
                                 : "bg-muted"
                         )}>
                             <div className={cn(
                                 "text-lg font-bold",
-                                highViolationCount > 0 && "text-red-600"
+                                highViolationCount > 0 && "text-destructive"
                             )}>
                                 {highViolationCount}
                             </div>

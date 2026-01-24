@@ -62,7 +62,7 @@ export function QuestionCard({ question, onEdit, onDelete, onView, isDeleting }:
 
     return (
         <>
-            <Card className="hover:shadow-md transition-shadow">
+            <Card className="hover:shadow-medium transition-shadow">
                 <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                         <div className="space-y-1 flex-1">
@@ -121,7 +121,7 @@ export function QuestionCard({ question, onEdit, onDelete, onView, isDeleting }:
                                 key={key}
                                 className={`flex items-start gap-2 p-2 rounded ${
                                     key === question.correctAnswer
-                                        ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                                        ? 'bg-success/10 text-success'
                                         : 'bg-muted'
                                 }`}
                             >

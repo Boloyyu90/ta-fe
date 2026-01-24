@@ -40,7 +40,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
             toastOptions={{
                 classNames: {
                     toast:
-                        "group toast group-[.toaster]:border-0 group-[.toaster]:shadow-xl group-[.toaster]:rounded-xl",
+                        "group toast group-[.toaster]:border-0 group-[.toaster]:shadow-large group-[.toaster]:rounded-xl",
                     title: "group-[.toast]:font-semibold group-[.toast]:text-base group-[.toast]:text-white",
                     description: "group-[.toast]:text-white/90 group-[.toast]:text-sm",
                     actionButton:
@@ -49,18 +49,18 @@ const Toaster = ({ ...props }: ToasterProps) => {
                         "group-[.toast]:bg-white/10 group-[.toast]:text-white group-[.toast]:rounded-lg group-[.toast]:hover:bg-white/20",
                     closeButton:
                         "group-[.toast]:bg-white/20 group-[.toast]:border-0 group-[.toast]:text-white group-[.toast]:hover:bg-white/30 group-[.toast]:hover:text-white",
-                    // Success toast - green background
+                    // Success toast - uses design system success color
                     success:
-                        "group-[.toaster]:!bg-green-600 group-[.toaster]:!text-white",
-                    // Error toast - red background
+                        "group-[.toaster]:!bg-success group-[.toaster]:!text-success-foreground",
+                    // Error toast - uses design system destructive color
                     error:
-                        "group-[.toaster]:!bg-red-600 group-[.toaster]:!text-white",
-                    // Warning toast - brand secondary (amber/orange)
+                        "group-[.toaster]:!bg-destructive group-[.toaster]:!text-destructive-foreground",
+                    // Warning toast - uses design system warning color
                     warning:
-                        "group-[.toaster]:!bg-amber-500 group-[.toaster]:!text-white",
-                    // Info toast - primary color
+                        "group-[.toaster]:!bg-warning group-[.toaster]:!text-warning-foreground",
+                    // Info toast - uses design system info color
                     info:
-                        "group-[.toaster]:!bg-primary group-[.toaster]:!text-white",
+                        "group-[.toaster]:!bg-info group-[.toaster]:!text-info-foreground",
                 },
             }}
             {...props}
