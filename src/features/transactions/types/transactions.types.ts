@@ -175,3 +175,54 @@ declare global {
         };
     }
 }
+
+// =============================================================================
+// ADMIN TYPES
+// =============================================================================
+
+/**
+ * Transaction statistics response (admin)
+ * GET /api/v1/admin/transactions/stats
+ */
+export interface TransactionStatsResponse {
+    total: number;
+    byStatus: Record<TransactionStatus, number>;
+    totalRevenue: number;
+    todayRevenue: number;
+}
+
+/**
+ * Transaction with user details (admin view)
+ * Admin endpoints always include user info
+ */
+export interface TransactionWithDetails extends TransactionResponse {
+    user: {
+        id: number;
+        name: string;
+        email: string;
+    };
+}
+
+/**
+ * Admin list transactions params
+ * Extends participant params with additional admin filters
+ */
+export interface AdminListTransactionsParams extends ListTransactionsParams {
+    userId?: number;
+    search?: string;
+}
+
+/**
+ * Paginated admin transactions response
+ */
+export interface PaginatedAdminTransactionsResponse {
+    transactions: TransactionWithDetails[];
+    pagination: PaginationMeta;
+}
+
+/**
+ * Cleanup expired transactions response
+ */
+export interface CleanupExpiredResponse {
+    expiredCount: number;
+}

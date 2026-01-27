@@ -1,30 +1,8 @@
-/**
- * Participant Profile Page
- *
- * ✅ FIXED:
- * - Uses useProfile hook instead of useAuth
- * - Implements loading/error states
- * - Add "Update Name" functionality using PATCH /me
- * - Add "Change Password" functionality using PATCH /me
- * - Follows same patterns as admin pages
- *
- * Features:
- * - View profile information
- * - Update name
- * - Change password
- *
- * Backend endpoints:
- * - GET /api/v1/me
- * - PATCH /api/v1/me
- */
-
 'use client';
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
-import { useProfile } from '@/features/users/hooks';
-import { usersApi } from '@/features/users/api/users.api';
+import { useProfile, useUpdateProfile } from '@/features/users/hooks';
 import type { User } from '@/features/users/types/users.types';
 
 // UI Components
@@ -34,6 +12,7 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { Badge } from '@/shared/components/ui/badge';
+import { PageHeaderTitle } from '@/shared/components/PageHeaderTitle';
 import {
     Dialog,
     DialogContent,
@@ -67,10 +46,20 @@ interface EditNameDialogProps {
 
 function EditNameDialog({ user, open, onOpenChange }: EditNameDialogProps) {
     const [name, setName] = useState(user.name);
-    const [isLoading, setIsLoading] = useState(false);
-    const queryClient = useQueryClient();
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const { updateProfile, isPending } = useUpdateProfile({
+        onSuccess: () => {
+            toast.success('Nama berhasil diubah');
+            onOpenChange(false);
+        },
+        onError: (error) => {
+            const err = error as { response?: { data?: { message?: string } } };
+            const message = err?.response?.data?.message || 'Gagal mengubah nama';
+            toast.error(message);
+        },
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
         if (name.trim() === user.name) {
@@ -89,20 +78,7 @@ function EditNameDialog({ user, open, onOpenChange }: EditNameDialogProps) {
             return;
         }
 
-        setIsLoading(true);
-
-        try {
-            await usersApi.updateProfile({ name: name.trim() });
-            queryClient.invalidateQueries({ queryKey: ['profile'] });
-            toast.success('Nama berhasil diubah');
-            onOpenChange(false);
-        } catch (error: unknown) {
-            const err = error as { response?: { data?: { message?: string } } };
-            const message = err?.response?.data?.message || 'Gagal mengubah nama';
-            toast.error(message);
-        } finally {
-            setIsLoading(false);
-        }
+        updateProfile({ name: name.trim() });
     };
 
     return (
@@ -137,12 +113,12 @@ function EditNameDialog({ user, open, onOpenChange }: EditNameDialogProps) {
                             type="button"
                             variant="outline"
                             onClick={() => onOpenChange(false)}
-                            disabled={isLoading}
+                            disabled={isPending}
                         >
                             Batal
                         </Button>
-                        <Button type="submit" disabled={isLoading}>
-                            {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                        <Button type="submit" disabled={isPending}>
+                            {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                             Simpan
                         </Button>
                     </DialogFooter>
@@ -164,10 +140,22 @@ interface ChangePasswordDialogProps {
 function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialogProps) {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const queryClient = useQueryClient();
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const { updateProfile, isPending } = useUpdateProfile({
+        onSuccess: () => {
+            toast.success('Password berhasil diubah');
+            onOpenChange(false);
+            setPassword('');
+            setConfirmPassword('');
+        },
+        onError: (error) => {
+            const err = error as { response?: { data?: { message?: string } } };
+            const message = err?.response?.data?.message || 'Gagal mengubah password';
+            toast.error(message);
+        },
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
         // Validation
@@ -191,22 +179,7 @@ function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialogProps)
             return;
         }
 
-        setIsLoading(true);
-
-        try {
-            await usersApi.updateProfile({ password });
-            queryClient.invalidateQueries({ queryKey: ['profile'] });
-            toast.success('Password berhasil diubah');
-            onOpenChange(false);
-            setPassword('');
-            setConfirmPassword('');
-        } catch (error: unknown) {
-            const err = error as { response?: { data?: { message?: string } } };
-            const message = err?.response?.data?.message || 'Gagal mengubah password';
-            toast.error(message);
-        } finally {
-            setIsLoading(false);
-        }
+        updateProfile({ password });
     };
 
     return (
@@ -257,12 +230,12 @@ function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialogProps)
                                 setPassword('');
                                 setConfirmPassword('');
                             }}
-                            disabled={isLoading}
+                            disabled={isPending}
                         >
                             Batal
                         </Button>
-                        <Button type="submit" disabled={isLoading}>
-                            {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                        <Button type="submit" disabled={isPending}>
+                            {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                             Ubah Password
                         </Button>
                     </DialogFooter>
@@ -326,16 +299,10 @@ export default function ProfilePage() {
     };
 
     return (
-        <div className="min-h-screen bg-muted/30">
-            <div className="container mx-auto py-8 space-y-6">
-                <BackButton href="/dashboard" />
-                {/* Header */}
-                <div>
-                <h1 className="text-3xl font-bold">Profil Saya</h1>
-                <p className="text-muted-foreground mt-2">
-                    Kelola informasi akun Anda
-                </p>
-            </div>
+        <div className="container mx-auto py-8 space-y-6">
+            <BackButton href="/dashboard" />
+            {/* Header */}
+            <PageHeaderTitle title="Profil Saya" />
 
             {/* Profile Card */}
             <Card>
@@ -482,7 +449,6 @@ export default function ProfilePage() {
                 open={isPasswordOpen}
                 onOpenChange={setIsPasswordOpen}
             />
-            </div>
         </div>
     );
 }

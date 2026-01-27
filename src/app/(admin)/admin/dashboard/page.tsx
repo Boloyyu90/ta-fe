@@ -66,6 +66,7 @@ import {
     AlertTriangle,
     RefreshCw,
     Eye,
+    Receipt,
 } from "lucide-react";
 
 // Types
@@ -642,7 +643,7 @@ export default function AdminDashboardPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <Link href="/admin/users">
                                 <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2">
                                     <Users className="h-5 w-5" />
@@ -659,6 +660,12 @@ export default function AdminDashboardPage() {
                                 <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2">
                                     <FileText className="h-5 w-5" />
                                     <span className="text-sm">Bank Soal</span>
+                                </Button>
+                            </Link>
+                            <Link href="/admin/transactions">
+                                <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2">
+                                    <Receipt className="h-5 w-5" />
+                                    <span className="text-sm">Transaksi</span>
                                 </Button>
                             </Link>
                             <Link href="/admin/results">

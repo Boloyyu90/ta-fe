@@ -12,6 +12,11 @@ import type {
     ExamAccessResponse,
     ListTransactionsParams,
     PaginatedTransactionsResponse,
+    AdminListTransactionsParams,
+    PaginatedAdminTransactionsResponse,
+    TransactionStatsResponse,
+    TransactionWithDetails,
+    CleanupExpiredResponse,
 } from '../types/transactions.types';
 
 // =============================================================================
@@ -96,10 +101,64 @@ export const getClientKey = async (): Promise<{ clientKey: string }> => {
 };
 
 // =============================================================================
+// ADMIN ENDPOINTS
+// =============================================================================
+
+/**
+ * Get all transactions (admin)
+ * GET /api/v1/admin/transactions
+ */
+export const getAdminTransactions = async (
+    params?: AdminListTransactionsParams
+): Promise<PaginatedAdminTransactionsResponse> => {
+    const response = await apiClient.get<PaginatedAdminTransactionsResponse>(
+        '/admin/transactions',
+        { params }
+    );
+    return response.data;
+};
+
+/**
+ * Get transaction statistics (admin)
+ * GET /api/v1/admin/transactions/stats
+ */
+export const getTransactionStats = async (): Promise<TransactionStatsResponse> => {
+    const response = await apiClient.get<TransactionStatsResponse>(
+        '/admin/transactions/stats'
+    );
+    return response.data;
+};
+
+/**
+ * Cleanup expired transactions (admin)
+ * POST /api/v1/admin/transactions/cleanup
+ */
+export const cleanupExpiredTransactions = async (): Promise<CleanupExpiredResponse> => {
+    const response = await apiClient.post<CleanupExpiredResponse>(
+        '/admin/transactions/cleanup'
+    );
+    return response.data;
+};
+
+/**
+ * Get any transaction by ID (admin)
+ * GET /api/v1/admin/transactions/:id
+ */
+export const getAdminTransaction = async (
+    id: number
+): Promise<{ transaction: TransactionWithDetails }> => {
+    const response = await apiClient.get<{ transaction: TransactionWithDetails }>(
+        `/admin/transactions/${id}`
+    );
+    return response.data;
+};
+
+// =============================================================================
 // NAMED EXPORT OBJECT (same pattern as examsApi)
 // =============================================================================
 
 export const transactionsApi = {
+    // Participant endpoints
     createTransaction,
     checkExamAccess,
     getTransactions,
@@ -107,6 +166,11 @@ export const transactionsApi = {
     cancelTransaction,
     syncTransaction,
     getClientKey,
+    // Admin endpoints
+    getAdminTransactions,
+    getTransactionStats,
+    cleanupExpiredTransactions,
+    getAdminTransaction,
 };
 
 export default transactionsApi;

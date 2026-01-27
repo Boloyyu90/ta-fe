@@ -3,6 +3,7 @@
  *
  * Participant hooks:
  * - useProfile: Get current user profile (GET /me)
+ * - useUpdateProfile: Update own profile (PATCH /me)
  * - useMyStats: Get dashboard statistics (GET /me/stats)
  *
  * Admin hooks:
@@ -15,6 +16,7 @@
 
 // Participant
 export { useProfile } from './useProfile';
+export { useUpdateProfile } from './useUpdateProfile';
 export { useMyStats } from './useMyStats';
 
 // Admin
