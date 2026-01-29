@@ -158,7 +158,7 @@ export const SEVERITY_LABELS: Record<Severity, string> = {
 
 /** Severity colors for UI (Tailwind classes) */
 export const SEVERITY_COLORS: Record<Severity, string> = {
-    LOW: 'text-green-600 bg-green-100',
-    MEDIUM: 'text-yellow-600 bg-yellow-100',
-    HIGH: 'text-red-600 bg-red-100',
+    LOW: 'text-success bg-success/10',
+    MEDIUM: 'text-warning bg-warning/10',
+    HIGH: 'text-destructive bg-destructive/10',
 };

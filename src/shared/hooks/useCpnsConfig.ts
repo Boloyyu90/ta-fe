@@ -67,10 +67,10 @@ const FALLBACK_PASSING_GRADES: Record<QuestionType, number> = {
 
 /**
  * Fetch CPNS config from backend and normalize response
- * GET /api/v1/config/cpns
+ * GET /api/v1/questions/cpns-config
  */
 async function getCpnsConfig(): Promise<CpnsConfigResponse> {
-    const response = await apiClient.get<BackendCpnsConfigResponse>('/config/cpns');
+    const response = await apiClient.get<BackendCpnsConfigResponse>('/questions/cpns-config');
     const backendData = response.data;
 
     // Normalize categories to frontend structure

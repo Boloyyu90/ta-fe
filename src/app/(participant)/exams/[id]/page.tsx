@@ -469,7 +469,7 @@ export default function ExamDetailPage({ params }: PageProps) {
 
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 rounded-lg flex items-center justify-center">
-                                        <div className="h-2.5 w-2.5 rounded-full bg-orange-500" />
+                                        <div className="h-2.5 w-2.5 rounded-full bg-secondary" />
                                     </div>
                                     <div>
                                         <p className="text-sm text-muted-foreground">Waktu Pengerjaan</p>

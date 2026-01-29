@@ -139,7 +139,7 @@ function NavBadge({ badge }: { badge?: "soon" | "new" }) {
 
     return (
         <span className={cn(
-            "text-[10px] px-1.5 py-0.5 rounded-full font-medium ml-1",
+            "text-xs px-1.5 py-0.5 rounded-full font-medium ml-1",
             styles[badge]
         )}>
             {labels[badge]}

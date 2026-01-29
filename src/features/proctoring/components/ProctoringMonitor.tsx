@@ -865,7 +865,7 @@ export function ProctoringMonitor({
                 <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
                     {/* LIVE indicator */}
                     {webcam.isStreaming && isOnline && (
-                        <Badge className="status-live text-[10px] px-1.5 py-0.5 h-5 flex items-center gap-1">
+                        <Badge className="status-live text-xs px-1.5 py-0.5 h-5 flex items-center gap-1">
                             <div className="h-1.5 w-1.5 bg-white rounded-full animate-pulse" />
                             LIVE
                         </Badge>
@@ -873,7 +873,7 @@ export function ProctoringMonitor({
 
                     {/* Offline indicator */}
                     {!isOnline && (
-                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5 h-5">
+                        <Badge variant="destructive" className="text-xs px-1.5 py-0.5 h-5">
                             <AlertTriangle className="h-3 w-3 mr-0.5" />
                             Offline
                         </Badge>
@@ -881,7 +881,7 @@ export function ProctoringMonitor({
 
                     {/* Analyzing indicator */}
                     {isAnalyzing && isOnline && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 h-5 bg-background/80">
+                        <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-5 bg-background/80">
                             <RefreshCw className="h-3 w-3 mr-0.5 animate-spin" />
                             Analyzing
                         </Badge>
@@ -891,11 +891,11 @@ export function ProctoringMonitor({
                 {/* Bottom overlay: Session ID + violation count */}
                 {webcam.isStreaming && (
                     <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center">
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 h-5 bg-background/80">
+                        <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-5 bg-background/80">
                             Session #{sessionId}
                         </Badge>
                         {violationCount > 0 && (
-                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5 h-5">
+                            <Badge variant="destructive" className="text-xs px-1.5 py-0.5 h-5">
                                 {violationCount} violation{violationCount > 1 ? 's' : ''}
                             </Badge>
                         )}

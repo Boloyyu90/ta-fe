@@ -32,7 +32,6 @@ import {
     XCircle,
     Calendar,
 } from 'lucide-react';
-import { BackButton } from '@/shared/components/BackButton';
 
 // ============================================================================
 // EDIT NAME DIALOG
@@ -300,7 +299,6 @@ export default function ProfilePage() {
 
     return (
         <div className="container mx-auto py-8 space-y-6">
-            <BackButton href="/dashboard" />
             {/* Header */}
             <PageHeaderTitle title="Profil Saya" />
 

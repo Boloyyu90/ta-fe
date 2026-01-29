@@ -246,7 +246,7 @@ export function ViolationHistorySidebar({
                                             <Badge
                                                 variant="outline"
                                                 className={cn(
-                                                    "text-[10px] flex-shrink-0 px-1.5",
+                                                    "text-xs flex-shrink-0 px-1.5",
                                                     violation.severity === 'HIGH' && "border-severity-high text-severity-high",
                                                     violation.severity === 'MEDIUM' && "border-severity-medium text-severity-medium",
                                                     violation.severity === 'LOW' && "border-severity-low text-severity-low"
@@ -283,7 +283,7 @@ export function ViolationHistorySidebar({
                     <div className="mt-3 pt-3 border-t grid grid-cols-2 gap-2">
                         <div className="text-center p-2 rounded-lg bg-muted">
                             <div className="text-lg font-bold">{violationCount}</div>
-                            <div className="text-[10px] text-muted-foreground">Total</div>
+                            <div className="text-xs text-muted-foreground">Total</div>
                         </div>
                         <div className={cn(
                             "text-center p-2 rounded-lg",
@@ -297,7 +297,7 @@ export function ViolationHistorySidebar({
                             )}>
                                 {highViolationCount}
                             </div>
-                            <div className="text-[10px] text-muted-foreground">Serius</div>
+                            <div className="text-xs text-muted-foreground">Serius</div>
                         </div>
                     </div>
                 )}

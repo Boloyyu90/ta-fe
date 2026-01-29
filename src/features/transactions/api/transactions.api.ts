@@ -100,6 +100,19 @@ export const getClientKey = async (): Promise<{ clientKey: string }> => {
     return response.data;
 };
 
+/**
+ * Get transaction by Midtrans order ID
+ * GET /api/v1/transactions/order/:orderId
+ */
+export const getTransactionByOrderId = async (
+    orderId: string
+): Promise<{ transaction: TransactionResponse }> => {
+    const response = await apiClient.get<{ transaction: TransactionResponse }>(
+        `/transactions/order/${orderId}`
+    );
+    return response.data;
+};
+
 // =============================================================================
 // ADMIN ENDPOINTS
 // =============================================================================
@@ -163,6 +176,7 @@ export const transactionsApi = {
     checkExamAccess,
     getTransactions,
     getTransaction,
+    getTransactionByOrderId,
     cancelTransaction,
     syncTransaction,
     getClientKey,
